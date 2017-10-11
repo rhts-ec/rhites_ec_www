@@ -55,7 +55,7 @@ def period_to_dates(period_str):
     m = re.match(r'([\d]{4})(-([\d]{2}))?', period_str)
     if m:
         y, _, m_str = m.groups()
-        if m:
+        if m_str:
             dt = date(int(y), int(m_str), 1)
             return dt, dt, dt
         else:
