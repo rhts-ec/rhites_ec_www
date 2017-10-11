@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import SourceDocument, DataElement, DataValue, load_excel_to_datavalues
+from mptt.admin import MPTTModelAdmin
+
+from .models import SourceDocument, OrgUnit, DataElement, DataValue, load_excel_to_datavalues
 
 def load_document_values(modeladmin, request, queryset):
     import itertools
@@ -18,14 +20,18 @@ class SourceDocumentAdmin(admin.ModelAdmin):
     ordering = ['uploaded_at']
     actions = [load_document_values]
 
+class OrgUnitAdmin(MPTTModelAdmin):
+    list_display = ['name', 'level']
+
 class DataElementAdmin(admin.ModelAdmin):
     list_display = ['name', 'value_type']
 
 class DataValueAdmin(admin.ModelAdmin):
-    list_display = ['data_element', 'category_str', 'site_str', 'month', 'quarter', 'year', 'numeric_value']
+    list_display = ['data_element', 'category_str', 'site_str', 'org_unit', 'month', 'quarter', 'year', 'numeric_value']
     list_filter = ('data_element__name',)
     search_fields = ['data_element__name', 'category_str', 'site_str']
 
 admin.site.register(SourceDocument, SourceDocumentAdmin)
+admin.site.register(OrgUnit, OrgUnitAdmin)
 admin.site.register(DataElement, DataElementAdmin)
 admin.site.register(DataValue, DataValueAdmin)

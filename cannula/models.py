@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 import mimetypes
 from functools import lru_cache, partialmethod, partial
 
+from mptt.models import MPTTModel, TreeForeignKey
+
 from . import grabbag
 
 def make_random_filename(instance, filename):
@@ -31,6 +33,33 @@ class SourceDocument(models.Model):
 
     def __str__(self):
         return '%s: %s' % (self.file, self.orig_filename)
+
+class OrgUnit(MPTTModel):
+    name = models.CharField(max_length=64)
+    parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
+
+    class MPTTMeta:
+        order_insertion_by = ['name']
+
+    class Meta:
+        unique_together = (('name', 'parent'),)
+        verbose_name = 'organisation unit'
+
+    @classmethod
+    def from_path_str(cls, path, path_sep='/'):
+        return cls.from_path(path.split(path_sep))
+
+    @classmethod
+    def from_path(cls, *path_parts):
+        current_node = None
+        for p in path_parts:
+            ou_p, created = cls.objects.get_or_create(name=str(p), parent=current_node)
+            current_node = ou_p
+
+        return current_node
+
+    def __str__(self):
+        return '%s [%d]' % (self.name, self.level,)
 
 class DataElement(models.Model):
     VALUE_TYPES = (
@@ -122,6 +151,7 @@ class DataValue(models.Model):
     #TODO: break this out into a foreign key to the Category/Subcategory models
     category_str = models.CharField(max_length=128)
     site_str = models.CharField(max_length=128)
+    org_unit = models.ForeignKey(OrgUnit, related_name='data_values')
     numeric_value = models.DecimalField(max_digits=17, decimal_places=4)
     month = models.CharField(max_length=7, blank=True, null=True) # ISO 8601 format '2017-09'
     quarter = models.CharField(max_length=7, blank=True, null=True) # ISO 8601 format '2017-Q3'
@@ -173,12 +203,14 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
             if not period:
                 continue
             iso_year, iso_quarter, iso_month = extract_periods(period.strip())
+            location_parts = ('Uganda', *location_parts) # turn to tuple and prepend name of root OrgUnit
+            current_ou = OrgUnit.from_path(*location_parts)
             location = ' => '.join(location_parts)
             logger.debug((period, location))
 
             site_val_cells = row[DE_COLUMN_START:]
             site_values = zip(data_elements, (c.value for c in site_val_cells))
-            dv_construct = partial(DataValue, site_str=location, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
+            dv_construct = partial(DataValue, site_str=location, org_unit=current_ou, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
             data_values = [dv_construct(data_element=sv[0][0], category_str=sv[0][1], numeric_value=sv[-1]) for sv in site_values if sv[-1] != '' and not(sv[-1] is None)]
             
             wb_loc_values[location] += data_values
