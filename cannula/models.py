@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import mimetypes
-from functools import lru_cache, partialmethod, partial
+from functools import lru_cache, partial
 
 from mptt.models import MPTTModel, TreeForeignKey
 
@@ -172,8 +172,6 @@ def extract_periods(period_str):
 
 def load_excel_to_datavalues(source_doc, max_sheets=4):
     from collections import defaultdict
-    from datetime import datetime
-    from itertools import islice
     import re
     import calendar
     import openpyxl
@@ -196,12 +194,12 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
         # discard the month (and space) prefix on the data element names
         clean_headers = (re.sub(MONTH_PREFIX_REGEX, '', h) for h in headers[DE_COLUMN_START:] if h is not None)
         data_elements = (*(unpack_data_element(de) for de in clean_headers),)
-        
+
 
         for row in ws.rows[1:]: # skip header row
             period, *location_parts = [c.value for c in row[:DE_COLUMN_START]]
-            if not period:
-                continue
+            if not period or not all(location_parts):
+                continue # ignore rows where period or location is missing
             iso_year, iso_quarter, iso_month = extract_periods(period.strip())
             location_parts = ('Uganda', *location_parts) # turn to tuple and prepend name of root OrgUnit
             current_ou = OrgUnit.from_path(*location_parts)
@@ -212,7 +210,7 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
             site_values = zip(data_elements, (c.value for c in site_val_cells))
             dv_construct = partial(DataValue, site_str=location, org_unit=current_ou, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
             data_values = [dv_construct(data_element=sv[0][0], category_str=sv[0][1], numeric_value=sv[-1]) for sv in site_values if sv[-1] != '' and not(sv[-1] is None)]
-            
+
             wb_loc_values[location] += data_values
 
     return dict(wb_loc_values) # convert back to a normal dict for our callers
