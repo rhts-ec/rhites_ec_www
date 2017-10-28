@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
 from django.db.models.signals import post_init
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
@@ -149,6 +150,39 @@ def unpack_data_element(de_long):
     de_instance, created = DataElement.objects.get_or_create(name=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM')
     return (de_instance, cat_str)
 
+class DataValueQuerySet(models.QuerySet):
+    """Convenience queryset methods for handling datavalues"""
+    def what(self, names=None):
+        de_filters = None
+        if names:
+            for de in names:
+                if de_filters:
+                    de_filters = de_filters | Q(data_element__name=de)
+                else:
+                    de_filters = Q(data_element__name=de)
+
+        return self.filter(de_filters).annotate(de_name=F('data_element__name'))#.annotate(de_uid=F('data_element__uid'))
+
+    def where(self):
+        raise NotImplementedError()
+
+    def when(self):
+        raise NotImplementedError()
+
+class DataValueManager(models.Manager):
+    """Attach our custom queryset methods to the model manager"""
+    def get_queryset(self):
+        return DataValueQuerySet(self.model, using=self._db)
+
+    def what(self, names=None):
+        return self.get_queryset().what(names)
+
+    def where(self):
+        raise NotImplementedError()
+
+    def when(self):
+        raise NotImplementedError()
+
 class DataValue(models.Model):
     data_element = models.ForeignKey(DataElement, related_name='data_values')
     #TODO: break this out into a foreign key to the Category/Subcategory models
@@ -160,6 +194,8 @@ class DataValue(models.Model):
     quarter = models.CharField(max_length=7, blank=True, null=True) # ISO 8601 format '2017-Q3'
     year = models.CharField(max_length=4, blank=True, null=True) # ISO 8601 format '2017'
     source_doc = models.ForeignKey(SourceDocument, related_name='data_values')
+
+    objects = DataValueManager() # override the default manager
 
     def __repr__(self):
         return 'DataValue<%s [%s], %s, %s, %d>' % (str(self.data_element), self.category_str, self.site_str,  next(filter(None, (self.month, self.quarter, self.year))), self.numeric_value,)
