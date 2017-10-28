@@ -27,9 +27,6 @@ def ipt_quarterly(request):
         '105-2.1 A6:First dose IPT (IPT1)',
         '105-2.1 A7:Second dose IPT (IPT2)',
     )
-    de_filters = Q(data_element__name=ipt_de_names[0])
-    for de in ipt_de_names[1:]:
-        de_filters = de_filters | Q(data_element__name=de)
 
     this_day = date.today()
     this_year = this_day.year
@@ -58,11 +55,11 @@ def ipt_quarterly(request):
     val_dicts = list(gen_raster)
 
     # get list of subcategories for IPT2
-    qs_ipt_subcat = DataValue.objects.filter(Q(data_element__name='105-2.1 A7:Second dose IPT (IPT2)')).order_by().values('category_str').distinct()
+    qs_ipt_subcat = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).order_by().values('category_str').distinct()
     subcategory_names = (*(x['category_str'] for x in qs_ipt_subcat),)
 
     # get IPT2 with subcategory disaggregation
-    qs2 = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').filter(quarter=filter_period)
+    qs2 = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).filter(quarter=filter_period)
     # use clearer aliases for the unwieldy names
     qs2 = qs2.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs2 = qs2.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
@@ -75,7 +72,7 @@ def ipt_quarterly(request):
     val_dicts2 = list(gen_raster)
 
     # get expected pregnancies
-    qs3 = DataValue.objects.what('Expected Pregnancies (*5/100)')
+    qs3 = DataValue.objects.what(['Expected Pregnancies (*5/100)'])
     # use clearer aliases for the unwieldy names
     qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
     qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
@@ -113,9 +110,6 @@ def malaria_compliance(request):
         '105-1.3 OPD Malaria (Total)',
         '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
     )
-    de_filters = Q(data_element__name=data_element_names[0])
-    for de in data_element_names[1:]:
-        de_filters = de_filters | Q(data_element__name=de)
 
     this_day = date.today()
     this_year = this_day.year
