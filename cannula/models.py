@@ -53,8 +53,11 @@ class OrgUnit(MPTTModel):
     def from_path(cls, *path_parts):
         current_node = None
         for p in path_parts:
-            ou_p, created = cls.objects.get_or_create(name=str(p), parent=current_node)
-            current_node = ou_p
+            if p:
+                ou_p, created = cls.objects.get_or_create(name=str(p), parent=current_node)
+                current_node = ou_p
+            else:
+                break # stop processing when you find blank/empty path component/name
 
         return current_node
 
@@ -198,10 +201,10 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
 
         for row in ws.rows[1:]: # skip header row
             period, *location_parts = [c.value for c in row[:DE_COLUMN_START]]
-            if not period or not all(location_parts):
+            if not period or not any(location_parts):
                 continue # ignore rows where period or location is missing
-            iso_year, iso_quarter, iso_month = extract_periods(period.strip())
-            location_parts = ('Uganda', *location_parts) # turn to tuple and prepend name of root OrgUnit
+            iso_year, iso_quarter, iso_month = extract_periods(str(period).strip())
+            location_parts = ('Uganda', *filter(None, location_parts)) # turn to tuple and prepend name of root OrgUnit
             current_ou = OrgUnit.from_path(*location_parts)
             location = ' => '.join(location_parts)
             logger.debug((period, location))
