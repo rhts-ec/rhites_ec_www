@@ -4,5 +4,6 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'summary.php\?de_id=(?P<data_element_id>[0-9]+)', views.data_element_summary, name='de_summary')
+    url(r'dash_malaria_compliance\.php', views.malaria_compliance, name='malaria_compliance'),
+    url(r'dash_malaria_quarterly\.php', views.ipt_quarterly, name='ipt_quarterly'),
 ]

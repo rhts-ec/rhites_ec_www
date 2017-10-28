@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>{% load staticfiles %}
+<head>
+	<style type="text/css">
+		.sparkline { display: none; width: 6em; height: 1ex;}
+		.sparkline_bar { display: none; width: 6em; height: 1ex;}
+		body { font-family: sans-serif; font-size: 12px; }
+		td.disabled_cell { background-color: rgb(200, 200, 200); }
+		@media print {
+			.no-print, .no-print * { display: none !important; }
+		}
+	</style>
+	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
+	<script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
+</head>
+<body>
+<h2>Malaria - IPT scorecard</h2>
+<h3>{{ period_desc }} ({{ period }})</h3>
+
+<div class="w3-bar w3-row-padding no-print">
+<form class="w3-bar-item" style="width:75%" action="{% url 'ipt_quarterly' %}">
+<div class="w3-cell w3-quarter">
+<input class="w3-input w3-border" type="text">
+<label>Location</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="period">
+	{% for p in period_list %}
+	{% if p == period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>Period</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border">
+	<option>All districts</option>
+	<option>RHITES EC districts only</option>
+</select>
+<label>Coverage</label>
+</div>
+<div class="w3-cell w3-cell-bottom w3-quarter">
+<button class="w3-button w3-round-xxlarge w3-blue">Filter</button>
+</div>
+</form>
+
+<div class="w3-bar-item w3-right">
+<table class="w3-table w3-border w3-bordered" border="1">
+	<thead>
+		<tr><th>Legend</th></tr>
+	</thead>
+	<tbody>
+		<tr><td class="w3-pale-green w3-right-align">71+%</td></tr>
+		<tr><td class="w3-pale-yellow w3-right-align">&lt;71%</td></tr>
+	</tbody>
+</table>
+</div>
+</div>
+
+<div class="w3-container">
+<table class="w3-table w3-border w3-bordered w3-small" border="1">
+<thead class="w3-gray">
+<tr>
+	<th class="w3-center" rowspan="2">District</th>
+	<th class="w3-center" rowspan="2">Subcounty</th>
+	<th class="w3-center" rowspan="2">Annual Expected Pregnancies</th>
+	{% for de_name in data_element_names %}
+	<th class="w3-center" rowspan="2">{{ de_name }}</th>
+	<th class="w3-center" rowspan="2">%</th>
+	{% endfor %}
+	<th class="w3-center" colspan="{{subcategory_names|length}}">105-2.1 A7:Second dose IPT (IPT2)</th>
+</tr>
+<tr>
+	{% for subcateg_name in subcategory_names %}
+	<th class="w3-center">{{ subcateg_name }}</th>
+	{% endfor %}
+</tr>
+</thead>
+{% for org_path,group in grouped_data %}
+<tr>
+	{% for op in org_path %}
+	<td>{{ op }}</td>
+	{% endfor %}
+	{% for x in group %}
+	<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
+	{% if x.category_str or forloop.first %}
+	{% else %}
+	<td class="traffic_light_71_unbounded w3-right-align">{{ x.ipt_rate|floatformat:-2 }}</td>
+	{% endif %}
+	{% endfor %}
+</tr>
+{% endfor %}
+</table>
+</div>
+<hr/>
+<pre class="no-print">
+{{grouped_data|pprint}}
+</pre>
+</body>
+</html>

@@ -77,3 +77,20 @@ def dates_to_iso_periods(ydate, qdate, mdate):
             return iso_year, iso_quarter, None
         if ydate:
             return iso_year, None, None
+
+def rasterize(rows, columns, values, row_index_func, col_index_func, default_func=lambda r, c: None):
+    """
+    Take sparse value sequence and go through the coordinate space filling each
+    address with a value from the sequence of values or a computed default
+    """
+    i_values = iter(values)
+    for i, row in enumerate(rows):
+        row_list = list()
+        for j, col in enumerate(columns):
+            if i == 0 and j == 0:
+                curr_val = next(i_values, default_func(row, col))
+            if curr_val is not None and row == row_index_func(curr_val) and col == col_index_func(curr_val):
+                yield curr_val
+                curr_val = next(i_values, default_func(row, col))
+            else:
+                yield default_func(row, col)

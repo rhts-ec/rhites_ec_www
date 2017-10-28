@@ -1,0 +1,113 @@
+</!DOCTYPE html>
+<html>
+<head>
+	<style type="text/css">
+		.sparkline { display: none; width: 6em; height: 1ex;}
+		.sparkline_bar { display: none; width: 6em; height: 1ex;}
+		body { font-family: sans-serif; font-size: 12px; }
+		td.disabled_cell { background-color: rgb(200, 200, 200); }
+	</style>
+	{% load staticfiles %}
+	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
+	<script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
+</head>
+<body>
+<h2>Malaria - Compliance</h2>
+<h3>{{ period_desc }} ({{ start_period }} to {{ end_period }})</h3>
+
+<div class="w3-bar w3-row-padding">
+<form class="w3-bar-item" style="width:75%" action="{% url 'malaria_compliance' %}">
+<div class="w3-cell w3-quarter">
+<input class="w3-input w3-border" type="text">
+<label>Location</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="start_period">
+	{% for p in period_list %}
+	{% if p == start_period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>Start Period</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="end_period">
+	{% for p in period_list %}
+	{% if p == end_period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>End Period</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border">
+	<option>All districts</option>
+	<option>RHITES EC districts only</option>
+</select>
+<label>Coverage</label>
+</div>
+<div class="w3-cell w3-cell-bottom w3-quarter">
+<button class="w3-button w3-round-xxlarge w3-blue">Filter</button>
+</div>
+</form>
+
+<div class="w3-bar-item w3-right">
+<table class="w3-table w3-border w3-bordered" border="1">
+	<thead>
+		<tr><th>Legend</th></tr>
+	</thead>
+	<tbody>
+		<tr><td class="w3-pale-green w3-right-align">71+%</td></tr>
+		<tr><td class="w3-pale-yellow w3-right-align">&lt;71%</td></tr>
+	</tbody>
+</table>
+</div>
+</div>
+
+<div class="w3-container">
+<table class="w3-table w3-border w3-bordered w3-small" border="1">
+<thead class="w3-gray">
+<tr>
+	<th class="w3-center" rowspan="2">District</th>
+	<th class="w3-center" rowspan="2">Subcounty</th>
+	<th class="w3-center" rowspan="2">Facility</th>
+	{% for de_name in data_element_names %}
+	<th class="w3-center" colspan="{{periods|length}}">{{ de_name }}</th>
+	{% endfor %}
+</tr>
+<tr>
+	{% for de_name in data_element_names %}
+	{% for p in periods %}
+	<th class="w3-center">{{ p }}</th>
+	{% endfor %}
+	{% endfor %}
+</tr>
+</thead>
+{% for org_path,group in grouped_data %}
+<tr>
+	{% for op in org_path %}
+	<td>{{ op }}</td>
+	{% endfor %}
+	{% for x in group %}
+	<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
+	{% endfor %}
+</tr>
+{% endfor %}
+</table>
+</div>
+<hr/>
+<pre>
+{{data_element_names|pprint}}
+{{start_period|pprint}}
+{{end_period|pprint}}
+{{period_desc|pprint}}
+{{grouped_data|pprint}}
+</pre>
+</body>
+</html>
