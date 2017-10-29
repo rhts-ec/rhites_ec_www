@@ -1,7 +1,7 @@
 import string
 
 TRICKY_CHARS = 'IlO' # can be confused with digits
-CODE_KEYSPACE_LETTERS = string.ascii_letters.translate(str.maketrans(TRICKY_CHARS,' '*len(TRICKY_CHARS))).replace(' ', '')
+CODE_KEYSPACE_LETTERS = ''.join(set(string.ascii_letters).difference(TRICKY_CHARS))
 CODE_KEYSPACE = string.digits + CODE_KEYSPACE_LETTERS
 
 import calendar
@@ -85,7 +85,6 @@ def rasterize(rows, columns, values, row_index_func, col_index_func, default_fun
     """
     i_values = iter(values)
     for i, row in enumerate(rows):
-        row_list = list()
         for j, col in enumerate(columns):
             if i == 0 and j == 0:
                 curr_val = next(i_values, default_func(row, col))

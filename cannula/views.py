@@ -84,11 +84,11 @@ def ipt_quarterly(request):
     
     # calculate the IPT rate for the IPT1/IPT2 values (without subcategories)
     for _group in grouped_vals:
-        (district_subcounty, d_s_values) = _group
-        if d_s_values[0]['de_name'] == 'Expected Pregnancies (*5/100)':
-            for val in d_s_values:
+        (district_subcounty, (preg_val, *other_vals)) = _group
+        if preg_val['de_name'] == 'Expected Pregnancies (*5/100)':
+            for val in other_vals:
                 if val['de_name'] in ipt_de_names and 'category_str' not in val:
-                    pregnancies_per_annum = (d_s_values[0])['numeric_sum']
+                    pregnancies_per_annum = preg_val['numeric_sum']
                     if pregnancies_per_annum != 0 and val['numeric_sum']:
                         val['ipt_rate'] = val['numeric_sum']*100/(pregnancies_per_annum/4)
                     else:
@@ -132,8 +132,7 @@ def malaria_compliance(request):
 
     # get data values without subcategory disaggregation
     qs = DataValue.objects.what(data_element_names)
-    qs = qs.filter(quarter__gte=start_quarter)
-    qs = qs.filter(quarter__lte=end_quarter)
+    qs = qs.filter(quarter__gte=start_quarter).filter(quarter__lte=end_quarter)
     # use clearer aliases for the unwieldy names
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
     qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
