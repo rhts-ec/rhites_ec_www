@@ -225,7 +225,7 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
 
     wb_loc_values = defaultdict(list) # when a new key is encountered return a new empty list
 
-    for ws_name in ['Step1']: #wb.get_sheet_names()[:max_sheets]:
+    for ws_name in ['Step1', 'Targets']: #wb.get_sheet_names()[:max_sheets]:
         ws = wb[ws_name]
         logger.debug((ws_name, ws.max_row, ws.max_column))
 
