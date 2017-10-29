@@ -43,15 +43,15 @@ def ipt_quarterly(request):
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
     qs = qs.order_by('district', 'subcounty', 'de_name', 'period')
-    val_dicts = list(qs.values('district', 'subcounty', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')))
+    val_dicts = qs.values('district', 'subcounty', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     
     # all subcounties (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=2).annotate(district=F('parent__name'), subcounty=F('name'))
-    ou_list = list(qs_ou.all())
+    ou_list = qs_ou.values_list('district', 'subcounty')
 
     def val_fun(row, col):
         return { 'district': row[0], 'subcounty': row[1], 'de_name': col, 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(map(lambda x: (x.district, x.subcounty), ou_list), ipt_de_names, val_dicts, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
+    gen_raster = grabbag.rasterize(ou_list, ipt_de_names, val_dicts, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
     val_dicts = list(gen_raster)
 
     # get list of subcategories for IPT2
@@ -64,11 +64,11 @@ def ipt_quarterly(request):
     qs2 = qs2.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs2 = qs2.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
     qs2 = qs2.order_by('district', 'subcounty', 'de_name', 'period', 'category_str')
-    val_dicts2 = list(qs2.values('district', 'subcounty', 'de_name', 'period', 'category_str').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')))
+    val_dicts2 = qs2.values('district', 'subcounty', 'de_name', 'period', 'category_str').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
     def val_with_subcat_fun(row, col):
         return { 'district': row[0], 'subcounty': row[1], 'category_str': col, 'de_name': '105-2.1 A7:Second dose IPT (IPT2)', 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(map(lambda x: (x.district, x.subcounty), ou_list), subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: x['category_str'], val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: x['category_str'], val_with_subcat_fun)
     val_dicts2 = list(gen_raster)
 
     # get expected pregnancies
@@ -77,7 +77,7 @@ def ipt_quarterly(request):
     qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
     qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
     qs3 = qs3.order_by('district', 'subcounty', 'de_name', 'period')
-    val_dicts3 = list(qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=Sum('numeric_value')))
+    val_dicts3 = qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=Sum('numeric_value'))
 
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(chain(val_dicts3, val_dicts, val_dicts2), key=lambda x: (x['district'], x['subcounty'])), key=lambda x: (x['district'], x['subcounty']))
@@ -138,7 +138,7 @@ def malaria_compliance(request):
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
     qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
     qs = qs.order_by('district', 'subcounty', 'facility', 'de_name', 'period')
-    val_dicts = list(qs.values('district', 'subcounty', 'facility', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')))
+    val_dicts = qs.values('district', 'subcounty', 'facility', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(val_dicts, key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
