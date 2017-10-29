@@ -55,8 +55,8 @@ def ipt_quarterly(request):
     val_dicts = list(gen_raster)
 
     # get list of subcategories for IPT2
-    qs_ipt_subcat = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).order_by().values('category_str').distinct()
-    subcategory_names = (*(x['category_str'] for x in qs_ipt_subcat),)
+    qs_ipt_subcat = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).order_by().values('de_name', 'category_str').distinct()
+    subcategory_names = (*((x['de_name'], x['category_str']) for x in qs_ipt_subcat),)
 
     # get IPT2 with subcategory disaggregation
     qs2 = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).filter(quarter=filter_period)
@@ -67,8 +67,10 @@ def ipt_quarterly(request):
     val_dicts2 = qs2.values('district', 'subcounty', 'de_name', 'period', 'category_str').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
     def val_with_subcat_fun(row, col):
-        return { 'district': row[0], 'subcounty': row[1], 'category_str': col, 'de_name': '105-2.1 A7:Second dose IPT (IPT2)', 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: x['category_str'], val_with_subcat_fun)
+        district, subcounty = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'category_str': subcategory, 'de_name': de_name, 'numeric_sum': None }
+    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: (x['de_name'], x['category_str']), val_with_subcat_fun)
     val_dicts2 = list(gen_raster)
 
     # get expected pregnancies
