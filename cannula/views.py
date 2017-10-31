@@ -38,7 +38,7 @@ def ipt_quarterly(request):
         filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
 
     # get IPT1 and IPT2 without subcategory disaggregation
-    qs = DataValue.objects.what(ipt_de_names).filter(quarter=filter_period)
+    qs = DataValue.objects.what(*ipt_de_names).filter(quarter=filter_period)
     # use clearer aliases for the unwieldy names
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
@@ -55,11 +55,11 @@ def ipt_quarterly(request):
     val_dicts = list(gen_raster)
 
     # get list of subcategories for IPT2
-    qs_ipt_subcat = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).order_by().values('de_name', 'category_str').distinct()
+    qs_ipt_subcat = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').order_by().values('de_name', 'category_str').distinct()
     subcategory_names = (*((x['de_name'], x['category_str']) for x in qs_ipt_subcat),)
 
     # get IPT2 with subcategory disaggregation
-    qs2 = DataValue.objects.what(['105-2.1 A7:Second dose IPT (IPT2)']).filter(quarter=filter_period)
+    qs2 = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').filter(quarter=filter_period)
     # use clearer aliases for the unwieldy names
     qs2 = qs2.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs2 = qs2.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
@@ -74,7 +74,7 @@ def ipt_quarterly(request):
     val_dicts2 = list(gen_raster)
 
     # get expected pregnancies
-    qs3 = DataValue.objects.what(['Expected Pregnancies (*5/100)'])
+    qs3 = DataValue.objects.what('Expected Pregnancies (*5/100)')
     # use clearer aliases for the unwieldy names
     qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
     qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
@@ -133,7 +133,7 @@ def malaria_compliance(request):
         end_quarter = '%d-Q%d' % (this_year, month2quarter(end_month))
 
     # get data values without subcategory disaggregation
-    qs = DataValue.objects.what(data_element_names)
+    qs = DataValue.objects.what(*data_element_names)
     qs = qs.filter(quarter__gte=start_quarter).filter(quarter__lte=end_quarter)
     # use clearer aliases for the unwieldy names
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))

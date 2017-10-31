@@ -152,7 +152,7 @@ def unpack_data_element(de_long):
 
 class DataValueQuerySet(models.QuerySet):
     """Convenience queryset methods for handling datavalues"""
-    def what(self, names=None):
+    def what(self, *names):
         de_filters = None
         if names:
             for de in names:
@@ -174,8 +174,8 @@ class DataValueManager(models.Manager):
     def get_queryset(self):
         return DataValueQuerySet(self.model, using=self._db)
 
-    def what(self, names=None):
-        return self.get_queryset().what(names)
+    def what(self, *names):
+        return self.get_queryset().what(*names)
 
     def where(self):
         raise NotImplementedError()
