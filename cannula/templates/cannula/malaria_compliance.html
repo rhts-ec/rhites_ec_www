@@ -66,12 +66,12 @@
 	<th class="w3-center" rowspan="2">District</th>
 	<th class="w3-center" rowspan="2">Subcounty</th>
 	<th class="w3-center" rowspan="2">Facility</th>
-	{% for de_name in data_element_names %}
+	{% for de_name, cat_combo in data_element_names %}
 	<th class="w3-center" colspan="{{periods|length}}">{{ de_name }}</th>
 	{% endfor %}
 </tr>
 <tr>
-	{% for de_name in data_element_names %}
+	{% for de_name, cat_combo in data_element_names %}
 	{% for p in periods %}
 	<th class="w3-center">{{ p }}</th>
 	{% endfor %}

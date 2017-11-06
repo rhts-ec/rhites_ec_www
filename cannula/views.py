@@ -101,10 +101,16 @@ def ipt_quarterly(request):
                     else:
                         val['ipt_rate'] = None
 
+    data_element_names = list()
+    data_element_names.insert(0, ('Expected Pregnancies (*5/100)', None))
+    for de_n in ipt_de_names:
+        data_element_names.append((de_n, None))
+        data_element_names.append(('%', None))
+    data_element_names.extend(subcategory_names)
+
     context = {
         'grouped_data': grouped_vals,
-        'data_element_names': ipt_de_names,
-        'subcategory_names': subcategory_names,
+        'data_element_names': data_element_names,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
