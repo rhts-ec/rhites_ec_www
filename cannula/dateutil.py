@@ -84,7 +84,7 @@ class Quarter():
         return 'Quarter(%d, %d)' % (self.year, self.qnum)
 
     def __str__(self):
-        return '%dQ%d' % (self.year, self.qnum)
+        return '%d-Q%d' % (self.year, self.qnum)
 
 def get_quarters(quarter_start, quarter_end):
     """
