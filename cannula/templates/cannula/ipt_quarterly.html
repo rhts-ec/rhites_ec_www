@@ -15,7 +15,7 @@
 </head>
 <body>
 <h2>Malaria - IPT scorecard</h2>
-<h3>{{ period_desc }} ({{ period }})</h3>
+<h3>{{ period_desc }} ({{ request.GET.period }})</h3>
 
 <div class="w3-bar w3-row-padding no-print">
 <form class="w3-bar-item" style="width:75%" action="{% url 'ipt_quarterly' %}">
@@ -26,7 +26,7 @@
 <div class="w3-cell w3-quarter">
 <select class="w3-input w3-border" name="period">
 	{% for p in period_list %}
-	{% if p == period %}
+	{% if p == request.GET.period %}
 	<option selected="selected">{{ p }}</option>
 	{% else %}
 	<option>{{ p }}</option>

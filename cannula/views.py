@@ -105,7 +105,6 @@ def ipt_quarterly(request):
         'grouped_data': grouped_vals,
         'data_element_names': ipt_de_names,
         'subcategory_names': subcategory_names,
-        'period': filter_period,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
