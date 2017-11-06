@@ -81,6 +81,9 @@ def ipt_quarterly(request):
     qs3 = qs3.order_by('district', 'subcounty', 'de_name', 'period')
     val_dicts3 = qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=Sum('numeric_value'))
 
+    gen_raster = grabbag.rasterize(ou_list, ('Expected Pregnancies (*5/100)',), val_dicts3, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
+    val_dicts3 = list(gen_raster)
+
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(chain(val_dicts3, val_dicts, val_dicts2), key=lambda x: (x['district'], x['subcounty'])), key=lambda x: (x['district'], x['subcounty']))
     
@@ -108,7 +111,7 @@ def ipt_quarterly(request):
     return render(request, 'cannula/ipt_quarterly.html', context)
 
 def malaria_compliance(request):
-    data_element_names = (
+    cases_de_names = (
         '105-1.3 OPD Malaria (Total)',
         '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
     )
@@ -132,8 +135,14 @@ def malaria_compliance(request):
         start_quarter = '%d-Q%d' % (start_year, month2quarter(start_month))
         end_quarter = '%d-Q%d' % (this_year, month2quarter(end_month))
 
+    periods = dateutil.get_quarters(start_quarter, end_quarter)
+    
+    # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = qs_ou.values_list('district', 'subcounty', 'facility')
+
     # get data values without subcategory disaggregation
-    qs = DataValue.objects.what(*data_element_names)
+    qs = DataValue.objects.what(*cases_de_names)
     qs = qs.filter(quarter__gte=start_quarter).filter(quarter__lte=end_quarter)
     # use clearer aliases for the unwieldy names
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -141,15 +150,26 @@ def malaria_compliance(request):
     qs = qs.order_by('district', 'subcounty', 'facility', 'de_name', 'period')
     val_dicts = qs.values('district', 'subcounty', 'facility', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
+    def val_with_period_fun(row, col):
+        district, subcounty, facility = row
+        de_name, period = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'period': period, 'de_name': de_name, 'numeric_sum': None }
+    gen_raster = grabbag.rasterize(ou_list, tuple(product(cases_de_names, periods)), val_dicts, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['period']), val_with_period_fun)
+    val_dicts = gen_raster
+
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(val_dicts, key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+
+    data_element_names = list()
+    for de_n in cases_de_names:
+        data_element_names.append((de_n, None))
 
     context = {
         'grouped_data': grouped_vals,
         'data_element_names': data_element_names,
         'start_period': start_quarter,
         'end_period': end_quarter,
-        'periods': dateutil.get_quarters(start_quarter, end_quarter),
+        'periods': periods,
         'period_desc': dateutil.DateSpan.fromquarter(start_quarter).combine(dateutil.DateSpan.fromquarter(end_quarter)).format_long(),
         'period_list': PREV_5YR_QTRS,
     }
