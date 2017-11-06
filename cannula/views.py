@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
 
 from datetime import date
-from itertools import groupby, tee, chain
+from itertools import groupby, tee, chain, product
 
 from . import dateutil, grabbag
 
@@ -36,6 +36,8 @@ def ipt_quarterly(request):
         filter_period=request.GET['period']
     else:
         filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
     # get IPT1 and IPT2 without subcategory disaggregation
     qs = DataValue.objects.what(*ipt_de_names).filter(quarter=filter_period)
@@ -104,7 +106,7 @@ def ipt_quarterly(request):
         'data_element_names': ipt_de_names,
         'subcategory_names': subcategory_names,
         'period': filter_period,
-        'period_desc': 'Apr to Jun 2017',
+        'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
 
