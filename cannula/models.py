@@ -161,7 +161,10 @@ class DataValueQuerySet(models.QuerySet):
                 else:
                     de_filters = Q(data_element__name=de)
 
-        return self.filter(de_filters).annotate(de_name=F('data_element__name'))#.annotate(de_uid=F('data_element__uid'))
+        qs = self.annotate(de_name=F('data_element__name'))#.annotate(de_uid=F('data_element__uid'))
+        if de_filters:
+            qs = qs.filter(de_filters)
+        return qs
 
     def where(self):
         raise NotImplementedError()
