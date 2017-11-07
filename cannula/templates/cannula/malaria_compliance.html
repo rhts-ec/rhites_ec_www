@@ -77,14 +77,20 @@
 	{% endfor %}
 	{% endfor %}
 </tr>
-</thead>
+</thead>{% load define_var %}
 {% for org_path,group in grouped_data %}
 <tr>
 	{% for op in org_path %}
 	<td>{{ op }}</td>
 	{% endfor %}
+	{% define None as prev_value %}
 	{% for x in group %}
+	{% ifchanged x.de_name %}
 	<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
+	{% else %}
+	<td class="w3-right-align rise_fall" previous="{{prev_value|default_if_none:''}}">{{ x.numeric_sum|floatformat }}</td>
+	{% endifchanged %}
+	{% define x.numeric_sum as prev_value %}
 	{% endfor %}
 </tr>
 {% endfor %}
