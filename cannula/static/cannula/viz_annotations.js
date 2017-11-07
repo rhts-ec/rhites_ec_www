@@ -87,18 +87,20 @@ addEvent( window, "load", function() {
   for ( var i = 0; i < a.length; i++ )
     if ( has( a[i].className, "rise_fall" ) ) {
       var current_val = extractNumber(a[i]);
-      if ('previous' in a[i].attributes) {
-      var previous_val = a[i].attributes['previous'].value;
-      var percent_categ = "same";
-      if ( current_val > previous_val ) percent_categ = "rise";
-      else if ( current_val < previous_val ) percent_categ = "fall";
-      if (percent_categ == "rise")
-      	a[i].innerHTML = a[i].innerHTML + " &uArr;";
-      else if (percent_categ == "fall")
-      	a[i].innerHTML = a[i].innerHTML + " &dArr;";
-      else
-      	a[i].innerHTML = a[i].innerHTML + " &hArr;";
-//      alert( a[i].innerHTML + ": " + percent_categ );
+      if (current_val != null && 'previous' in a[i].attributes) {
+        var previous_val = a[i].attributes['previous'].value;
+        if (previous_val != null & previous_val != '') {
+          var percent_categ = "same";
+          if ( current_val > previous_val ) percent_categ = "rise";
+          else if ( current_val < previous_val ) percent_categ = "fall";
+          if (percent_categ == "rise")
+          	a[i].innerHTML = a[i].innerHTML + " &uArr;";
+          else if (percent_categ == "fall")
+          	a[i].innerHTML = a[i].innerHTML + " &dArr;";
+          else
+          	a[i].innerHTML = a[i].innerHTML + " &hArr;";
+    //      alert( a[i].innerHTML + ": " + percent_categ );
+        }
       }
     }
 } );
