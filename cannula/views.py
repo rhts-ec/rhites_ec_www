@@ -57,8 +57,8 @@ def ipt_quarterly(request):
     val_dicts = list(gen_raster)
 
     # get list of subcategories for IPT2
-    qs_ipt_subcat = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').order_by().values('de_name', 'category_str').distinct()
-    subcategory_names = (*((x['de_name'], x['category_str']) for x in qs_ipt_subcat),)
+    qs_ipt_subcat = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').order_by().values_list('de_name', 'category_str').distinct()
+    subcategory_names = tuple(qs_ipt_subcat)
 
     # get IPT2 with subcategory disaggregation
     qs2 = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').filter(quarter=filter_period)
@@ -81,7 +81,7 @@ def ipt_quarterly(request):
     qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
     qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
     qs3 = qs3.order_by('district', 'subcounty', 'de_name', 'period')
-    val_dicts3 = qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=Sum('numeric_value'))
+    val_dicts3 = qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=(Sum('numeric_value')/4))
 
     gen_raster = grabbag.rasterize(ou_list, ('Expected Pregnancies (*5/100)',), val_dicts3, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
     val_dicts3 = list(gen_raster)
@@ -96,8 +96,8 @@ def ipt_quarterly(request):
             for val in other_vals:
                 if val['de_name'] in ipt_de_names and 'category_str' not in val:
                     pregnancies_per_annum = preg_val['numeric_sum']
-                    if pregnancies_per_annum != 0 and val['numeric_sum']:
-                        val['ipt_rate'] = val['numeric_sum']*100/(pregnancies_per_annum/4)
+                    if pregnancies_per_annum and pregnancies_per_annum != 0 and val['numeric_sum']:
+                        val['ipt_rate'] = val['numeric_sum']*100/pregnancies_per_annum
                     else:
                         val['ipt_rate'] = None
 
