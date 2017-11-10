@@ -80,7 +80,10 @@ class DataElement(models.Model):
         # ('COUNT', 'Count()'), # eg. we have a facility reporting patient aggregates but also a facility level field (has_incinerator)
         # ('AVG', 'Average()'), # needs a corresponding 'population' data element that provides the ratios when we combine two (or more) averages
     )
-    name = models.CharField(max_length=128)
+    
+    dhis2_uid = models.CharField(max_length=11, blank=True, null=True) #TODO: add unique check and check for a minimum length of 11 as well
+    name = models.CharField(max_length=128) #TODO: add unique check
+    alias = models.CharField(max_length=128, blank=True, null=True) #TODO: add unique check against name/alias of other data elements
     value_type = models.CharField(max_length=8, choices=VALUE_TYPES)
     value_min = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Minimum Value', blank=True, null=True)
     value_max = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Maximum Value', blank=True, null=True)
@@ -156,12 +159,15 @@ class DataValueQuerySet(models.QuerySet):
         de_filters = None
         if names:
             for de in names:
+                if de is None:
+                    continue # skip any names/uids with value of None
                 if de_filters:
-                    de_filters = de_filters | Q(data_element__name=de)
+                    de_filters = de_filters | Q(data_element__name=de) | Q(data_element__alias=de)
                 else:
-                    de_filters = Q(data_element__name=de)
+                    de_filters = Q(data_element__name=de) | Q(data_element__alias=de)
 
-        qs = self.annotate(de_name=F('data_element__name'))#.annotate(de_uid=F('data_element__uid'))
+        qs = self.annotate(de_name=F('data_element__name'))
+        qs = qs.annotate(de_uid=F('data_element__dhis2_uid'))
         if de_filters:
             qs = qs.filter(de_filters)
         return qs
