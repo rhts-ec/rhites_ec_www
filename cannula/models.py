@@ -95,6 +95,28 @@ class DataElement(models.Model):
     def __str__(self):
         return '%s' % (self.name,)
 
+class Category(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+
+class CategoryCombo(models.Model):
+    name = models.CharField(max_length=512)
+    categories = models.ManyToManyField(Category)
+
+    @classmethod
+    def from_cat_names(cls, cat_names):
+        sorted_names = sorted(cat_names) #TODO: sort based on the name of the classification the Category belongs to
+        cat_list = [Category.objects.get_or_create(name=cat_name) for cat_name in sorted_names]
+        cc_name = '(%s)' % ', '.join(sorted_names)
+        cat_combo, created = cls.get_or_create(name=cc_name)
+        if not created:
+            for categ in cat_list:
+                cat_combo.categories.add(categ)
+
+        return cat_combo
+
+    def __str__(self):
+        return self.name
+
 
 # TODO: Consider tracking which data element each subcategory is from (reduce false matches and other? benefits)
 CATEGORIES = [
