@@ -108,7 +108,7 @@ class CategoryCombo(models.Model):
         cat_list = [Category.objects.get_or_create(name=cat_name) for cat_name in sorted_names]
         cc_name = '(%s)' % ', '.join(sorted_names)
         cat_combo, created = cls.get_or_create(name=cc_name)
-        if not created:
+        if created:
             for categ in cat_list:
                 cat_combo.categories.add(categ)
 

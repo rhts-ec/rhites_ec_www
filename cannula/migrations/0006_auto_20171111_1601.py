@@ -10,6 +10,7 @@ def make_default_category_and_categorycombo(apps, schema_editor):
     def_categ = Category(name='default')
     def_categ.save()
     def_cat_combo = CategoryCombo(name='(default)')
+    def_cat_combo.save()
     def_cat_combo.categories.add(def_categ)
     def_cat_combo.save()
 
