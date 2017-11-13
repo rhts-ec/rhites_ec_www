@@ -111,12 +111,13 @@ class CategoryCombo(models.Model):
     @classmethod
     def from_cat_names(cls, cat_names):
         sorted_names = sorted(cat_names) #TODO: sort based on the name of the classification the Category belongs to
-        cat_list = [Category.objects.get_or_create(name=cat_name) for cat_name in sorted_names]
+        cat_list = [Category.objects.get_or_create(name=cat_name)[0] for cat_name in sorted_names]
         cc_name = '(%s)' % ', '.join(sorted_names)
-        cat_combo, created = cls.get_or_create(name=cc_name)
+        cat_combo, created = cls.objects.get_or_create(name=cc_name)
         if created:
             for categ in cat_list:
                 cat_combo.categories.add(categ)
+            cat_combo.save()
 
         return cat_combo
 
