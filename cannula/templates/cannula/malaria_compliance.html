@@ -6,6 +6,9 @@
 		.sparkline_bar { display: none; width: 6em; height: 1ex;}
 		body { font-family: sans-serif; font-size: 12px; }
 		td.disabled_cell { background-color: rgb(200, 200, 200); }
+		@media print {
+			.no-print, .no-print * { display: none !important; }
+		}
 	</style>
 	{% load staticfiles %}
 	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
@@ -15,7 +18,7 @@
 <h2>Malaria - Compliance</h2>
 <h3>{{ period_desc }} ({{ start_period }} to {{ end_period }})</h3>
 
-<div class="w3-bar w3-row-padding">
+<div class="w3-bar w3-row-padding no-print">
 <form class="w3-bar-item" style="width:75%" action="{% url 'malaria_compliance' %}">
 <div class="w3-cell w3-quarter">
 <input class="w3-input w3-border" type="text">
