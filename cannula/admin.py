@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from mptt.admin import MPTTModelAdmin
 
-from .models import SourceDocument, OrgUnit, DataElement, DataValue, load_excel_to_datavalues
+from .models import SourceDocument, OrgUnit, DataElement, DataValue, Category, CategoryCombo, load_excel_to_datavalues
 
 def load_document_values(modeladmin, request, queryset):
     import itertools
@@ -26,6 +26,10 @@ class OrgUnitAdmin(MPTTModelAdmin):
 class DataElementAdmin(admin.ModelAdmin):
     list_display = ['name', 'value_type']
 
+class CategoryComboAdmin(admin.ModelAdmin):
+    filter_horizontal = ['categories']
+        
+
 class DataValueAdmin(admin.ModelAdmin):
     list_display = ['data_element', 'category_str', 'site_str', 'org_unit', 'month', 'quarter', 'year', 'numeric_value']
     list_filter = ('data_element__name',)
@@ -35,3 +39,5 @@ admin.site.register(SourceDocument, SourceDocumentAdmin)
 admin.site.register(OrgUnit, OrgUnitAdmin)
 admin.site.register(DataElement, DataElementAdmin)
 admin.site.register(DataValue, DataValueAdmin)
+admin.site.register(Category)
+admin.site.register(CategoryCombo, CategoryComboAdmin)
