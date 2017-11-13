@@ -5,12 +5,10 @@ from mptt.admin import MPTTModelAdmin
 from .models import SourceDocument, OrgUnit, DataElement, DataValue, Category, CategoryCombo, load_excel_to_datavalues
 
 def load_document_values(modeladmin, request, queryset):
-    import itertools
-
     for doc in queryset:
         all_values = load_excel_to_datavalues(doc)
-        iter_data_values = itertools.chain.from_iterable(all_values.values())
-        DataValue.objects.bulk_create(iter_data_values)
+        for site_name, site_vals in all_values.items():
+            DataValue.objects.bulk_create(site_vals)
 
 load_document_values.short_description = 'Load data values from document into DB'
 

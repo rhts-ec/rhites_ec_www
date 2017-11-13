@@ -288,7 +288,7 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
         headers = [cell.value for cell in ws.rows[0]]
         # discard the month (and space) prefix on the data element names
         clean_headers = (re.sub(MONTH_PREFIX_REGEX, '', h) for h in headers[DE_COLUMN_START:] if h is not None)
-        data_elements = (*(unpack_data_element(de) for de in clean_headers),)
+        data_elements = tuple(unpack_data_element(de) for de in clean_headers)
 
 
         for row in ws.rows[1:]: # skip header row
@@ -297,7 +297,7 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
                 continue # ignore rows where period or location is missing
             iso_year, iso_quarter, iso_month = extract_periods(str(period).strip())
             location_parts = ('Uganda', *filter(None, location_parts)) # turn to tuple and prepend name of root OrgUnit
-            current_ou = OrgUnit.from_path(*location_parts)
+            current_ou = OrgUnit.from_path_recurse(*location_parts)
             location = ' => '.join(location_parts)
             logger.debug((period, location))
 
@@ -313,6 +313,6 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
                 else:
                     data_values.append(dv_construct(data_element=de, numeric_value=dv))
 
-            wb_loc_values[location] += data_values
+            wb_loc_values[location].extend(data_values)
 
     return dict(wb_loc_values) # convert back to a normal dict for our callers
