@@ -167,6 +167,21 @@ def malaria_compliance(request):
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(val_dicts, key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
 
+    for _group in grouped_vals:
+        (district_subcounty_facility, other_vals) = _group
+        malaria_totals = dict()
+        for val in other_vals:
+            if val['de_name'] == cases_de_names[0]:
+                malaria_totals[val['period']] = val['numeric_sum']
+            elif val['de_name'] == cases_de_names[1]:
+                total_cases = malaria_totals.get(val['period'], 0)
+                confirmed_cases = val['numeric_sum']
+                if confirmed_cases and total_cases and total_cases != 0:
+                    confirmed_rate = confirmed_cases * 100 / total_cases
+                    val['rdt_rate'] = confirmed_rate
+                else:
+                    val['rdt_rate'] = None
+
     data_element_names = list()
     for de_n in cases_de_names:
         data_element_names.append((de_n, None))

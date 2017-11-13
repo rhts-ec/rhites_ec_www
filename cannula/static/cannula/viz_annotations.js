@@ -77,6 +77,30 @@ addEvent( window, "load", function() {
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
       }
+    } else 
+    if ( has( a[i].className, "unary_good_80_unbounded" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 80 ) {
+          percent_categ = "w3-pale-green";
+          a[i].className += (" " + percent_categ);
+        }
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else 
+    if ( has( a[i].className, "unary_good_80" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
+        if ( percent_val >= 80 ) {
+          percent_categ = "w3-pale-green";
+          a[i].className += (" " + percent_categ);
+        }
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
     }
 } );
 
