@@ -89,7 +89,7 @@
 	{% endfor %}
 	{% for x in group %}
 	<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
-	{% if x.category_str or forloop.first %}
+	{% if x.cat_combo or forloop.first %}
 	{% else %}
 	<td class="traffic_light_71_unbounded w3-right-align">{{ x.ipt_rate|floatformat:-2 }}</td>
 	{% endif %}

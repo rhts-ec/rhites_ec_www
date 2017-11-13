@@ -62,6 +62,19 @@ class OrgUnit(MPTTModel):
 
         return current_node
 
+    @classmethod
+    @lru_cache(maxsize=None)
+    def from_path_recurse(cls, *path_parts):
+        if len(path_parts) == 0:
+            return None
+        *parent_path, node_name = path_parts
+        if len(parent_path) == 0:
+            ou, created = cls.objects.get_or_create(name=node_name, parent=None)
+        else:
+            ou_parent = cls.from_path_recurse(*parent_path)
+            ou, created = cls.objects.get_or_create(name=node_name, parent=ou_parent)
+        return ou
+
     def __str__(self):
         return '%s [%d]' % (self.name, self.level,)
 
@@ -180,7 +193,10 @@ def unpack_data_element(de_long):
             cat_str = ''
 
     de_instance, created = DataElement.objects.get_or_create(name=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM')
-    return (de_instance, cat_str)
+    if len(category_list):
+        return (de_instance, CategoryCombo.from_cat_names(category_list))
+    else:
+        return (de_instance, None)
 
 class DataValueQuerySet(models.QuerySet):
     """Convenience queryset methods for handling datavalues"""
@@ -221,10 +237,12 @@ class DataValueManager(models.Manager):
     def when(self):
         raise NotImplementedError()
 
+def get_default_category_combo():
+    return CategoryCombo.objects.get(id=1)
+
 class DataValue(models.Model):
     data_element = models.ForeignKey(DataElement, related_name='data_values')
-    #TODO: break this out into a foreign key to the Category/Subcategory models
-    category_str = models.CharField(max_length=128)
+    category_combo = models.ForeignKey(CategoryCombo, related_name='data_values', default=1)
     site_str = models.CharField(max_length=128)
     org_unit = models.ForeignKey(OrgUnit, related_name='data_values')
     numeric_value = models.DecimalField(max_digits=17, decimal_places=4)
@@ -236,10 +254,10 @@ class DataValue(models.Model):
     objects = DataValueManager() # override the default manager
 
     def __repr__(self):
-        return 'DataValue<%s [%s], %s, %s, %d>' % (str(self.data_element), self.category_str, self.site_str,  next(filter(None, (self.month, self.quarter, self.year))), self.numeric_value,)
+        return 'DataValue<%s [%s], %s, %s, %d>' % (str(self.data_element), self.category_combo, self.site_str,  next(filter(None, (self.month, self.quarter, self.year))), self.numeric_value,)
 
     def __str__(self):
-        return '%s [%s], %s, %s, %d' % (str(self.data_element), self.category_str, self.site_str.split(' => ')[-1],  next(filter(None, (self.month, self.quarter, self.year))), self.numeric_value,)
+        return '%s [%s], %s, %s, %d' % (str(self.data_element), self.category_combo, self.site_str.split(' => ')[-1],  next(filter(None, (self.month, self.quarter, self.year))), self.numeric_value,)
 
 @lru_cache(maxsize=16) # memoize to reduce cost of "parsing"
 def extract_periods(period_str):
@@ -286,7 +304,14 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
             site_val_cells = row[DE_COLUMN_START:]
             site_values = zip(data_elements, (c.value for c in site_val_cells))
             dv_construct = partial(DataValue, site_str=location, org_unit=current_ou, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
-            data_values = [dv_construct(data_element=sv[0][0], category_str=sv[0][1], numeric_value=sv[-1]) for sv in site_values if sv[-1] != '' and not(sv[-1] is None)]
+            data_values = list()
+            for (de, cc), dv in site_values:
+                if dv == '' or dv is None:
+                    continue # skip rows with empty values
+                if cc:
+                    data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=dv))
+                else:
+                    data_values.append(dv_construct(data_element=de, numeric_value=dv))
 
             wb_loc_values[location] += data_values
 

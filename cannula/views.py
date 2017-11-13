@@ -57,7 +57,7 @@ def ipt_quarterly(request):
     val_dicts = list(gen_raster)
 
     # get list of subcategories for IPT2
-    qs_ipt_subcat = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').order_by().values_list('de_name', 'category_str').distinct()
+    qs_ipt_subcat = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').order_by('category_combo__name').values_list('de_name', 'category_combo__name').distinct()
     subcategory_names = tuple(qs_ipt_subcat)
 
     # get IPT2 with subcategory disaggregation
@@ -65,14 +65,15 @@ def ipt_quarterly(request):
     # use clearer aliases for the unwieldy names
     qs2 = qs2.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs2 = qs2.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
-    qs2 = qs2.order_by('district', 'subcounty', 'de_name', 'period', 'category_str')
-    val_dicts2 = qs2.values('district', 'subcounty', 'de_name', 'period', 'category_str').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    qs2 = qs2.annotate(cat_combo=F('category_combo__name'))
+    qs2 = qs2.order_by('district', 'subcounty', 'de_name', 'period', 'cat_combo')
+    val_dicts2 = qs2.values('district', 'subcounty', 'de_name', 'period', 'cat_combo').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
     def val_with_subcat_fun(row, col):
         district, subcounty = row
         de_name, subcategory = col
-        return { 'district': district, 'subcounty': subcounty, 'category_str': subcategory, 'de_name': de_name, 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: (x['de_name'], x['category_str']), val_with_subcat_fun)
+        return { 'district': district, 'subcounty': subcounty, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
     val_dicts2 = list(gen_raster)
 
     # get expected pregnancies
@@ -94,7 +95,7 @@ def ipt_quarterly(request):
         (district_subcounty, (preg_val, *other_vals)) = _group
         if preg_val['de_name'] == 'Expected Pregnancies (*5/100)':
             for val in other_vals:
-                if val['de_name'] in ipt_de_names and 'category_str' not in val:
+                if val['de_name'] in ipt_de_names and 'cat_combo' not in val:
                     pregnancies_per_annum = preg_val['numeric_sum']
                     if pregnancies_per_annum and pregnancies_per_annum != 0 and val['numeric_sum']:
                         val['ipt_rate'] = val['numeric_sum']*100/pregnancies_per_annum

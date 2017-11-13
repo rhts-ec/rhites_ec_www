@@ -31,9 +31,9 @@ class CategoryComboAdmin(admin.ModelAdmin):
         
 
 class DataValueAdmin(admin.ModelAdmin):
-    list_display = ['data_element', 'category_str', 'site_str', 'org_unit', 'month', 'quarter', 'year', 'numeric_value']
+    list_display = ['data_element', 'category_combo', 'site_str', 'org_unit', 'month', 'quarter', 'year', 'numeric_value']
     list_filter = ('data_element__name',)
-    search_fields = ['data_element__name', 'category_str', 'site_str']
+    search_fields = ['data_element__name', 'category_combo', 'site_str']
 
 admin.site.register(SourceDocument, SourceDocumentAdmin)
 admin.site.register(OrgUnit, OrgUnitAdmin)
