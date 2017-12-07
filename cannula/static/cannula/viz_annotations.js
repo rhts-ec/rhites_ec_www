@@ -36,9 +36,9 @@ addEvent( window, "load", function() {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
-        if ( percent_val >= 90 ) percent_categ = "w3-pale-green";
-        else if ( percent_val >= 80 ) percent_categ = "w3-pale-yellow";
-        else percent_categ = "w3-pale-red";
+        if ( percent_val >= 90 ) percent_categ = "w3-green";
+        else if ( percent_val >= 80 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
@@ -48,9 +48,9 @@ addEvent( window, "load", function() {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
-        if ( percent_val >= 60 ) percent_categ = "w3-pale-green";
-        else if ( percent_val >= 50 ) percent_categ = "w3-pale-yellow";
-        else percent_categ = "w3-pale-red";
+        if ( percent_val >= 60 ) percent_categ = "w3-green";
+        else if ( percent_val >= 50 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
@@ -60,8 +60,8 @@ addEvent( window, "load", function() {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
-        if ( percent_val >= 71 ) percent_categ = "w3-pale-green";
-        else percent_categ = "w3-pale-yellow";
+        if ( percent_val >= 71 ) percent_categ = "w3-green";
+        else percent_categ = "w3-yellow";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
@@ -71,8 +71,8 @@ addEvent( window, "load", function() {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
-        if ( percent_val >= 71 ) percent_categ = "w3-pale-green";
-        else percent_categ = "w3-pale-yellow";
+        if ( percent_val >= 71 ) percent_categ = "w3-green";
+        else percent_categ = "w3-yellow";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
@@ -83,7 +83,7 @@ addEvent( window, "load", function() {
 
       if ( percent_val != null && percent_val >= 0) {
         if ( percent_val >= 80 ) {
-          percent_categ = "w3-pale-green";
+          percent_categ = "w3-green";
           a[i].className += (" " + percent_categ);
         }
         a[i].style.fontWeight = "bolder";
@@ -95,7 +95,7 @@ addEvent( window, "load", function() {
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
         if ( percent_val >= 80 ) {
-          percent_categ = "w3-pale-green";
+          percent_categ = "w3-green";
           a[i].className += (" " + percent_categ);
         }
         a[i].style.fontWeight = "bolder";
