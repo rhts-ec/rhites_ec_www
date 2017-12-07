@@ -39,3 +39,7 @@ admin.site.register(DataElement, DataElementAdmin)
 admin.site.register(DataValue, DataValueAdmin)
 admin.site.register(Category)
 admin.site.register(CategoryCombo, CategoryComboAdmin)
+
+admin.site.site_title = 'RHITES-EC Data Validation Administrative Interface'
+admin.site.site_header = 'RHITES-EC Data Validation Admin'
+admin.site.index_title = 'System Configuration & Administration'
