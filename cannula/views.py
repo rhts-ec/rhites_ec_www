@@ -77,14 +77,14 @@ def ipt_quarterly(request):
     val_dicts2 = list(gen_raster)
 
     # get expected pregnancies
-    qs3 = DataValue.objects.what('Expected Pregnancies (*5/100)')
+    qs3 = DataValue.objects.what('Expected Pregnancies')
     # use clearer aliases for the unwieldy names
     qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
     qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
     qs3 = qs3.order_by('district', 'subcounty', 'de_name', 'period')
     val_dicts3 = qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=(Sum('numeric_value')/4))
 
-    gen_raster = grabbag.rasterize(ou_list, ('Expected Pregnancies (*5/100)',), val_dicts3, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
+    gen_raster = grabbag.rasterize(ou_list, ('Expected Pregnancies',), val_dicts3, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
     val_dicts3 = list(gen_raster)
 
     # combine the data and group by district and subcounty
@@ -93,7 +93,7 @@ def ipt_quarterly(request):
     # calculate the IPT rate for the IPT1/IPT2 values (without subcategories)
     for _group in grouped_vals:
         (district_subcounty, (preg_val, *other_vals)) = _group
-        if preg_val['de_name'] == 'Expected Pregnancies (*5/100)':
+        if preg_val['de_name'] == 'Expected Pregnancies':
             for val in other_vals:
                 if val['de_name'] in ipt_de_names and 'cat_combo' not in val:
                     pregnancies_per_annum = preg_val['numeric_sum']
@@ -103,7 +103,7 @@ def ipt_quarterly(request):
                         val['ipt_rate'] = None
 
     data_element_names = list()
-    data_element_names.insert(0, ('Expected Pregnancies (*5/100)', None))
+    data_element_names.insert(0, ('Expected Pregnancies', None))
     for de_n in ipt_de_names:
         data_element_names.append((de_n, None))
         data_element_names.append(('%', None))
