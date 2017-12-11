@@ -76,7 +76,7 @@ class OrgUnit(MPTTModel):
         return ou
 
     def __str__(self):
-        return '%s [%d]' % (self.name, self.level,)
+        return '%s [parent_id: %s]' % (self.name, str(self.parent_id),)
 
 class DataElement(models.Model):
     VALUE_TYPES = (

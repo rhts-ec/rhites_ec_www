@@ -22,7 +22,7 @@ class OrgUnitAdmin(MPTTModelAdmin):
     list_display = ['name', 'level']
 
 class DataElementAdmin(admin.ModelAdmin):
-    list_display = ['name', 'value_type']
+    list_display = ['name', 'alias', 'value_type']
 
 class CategoryComboAdmin(admin.ModelAdmin):
     filter_horizontal = ['categories']
