@@ -207,9 +207,9 @@ class DataValueQuerySet(models.QuerySet):
                 if de is None:
                     continue # skip any names/uids with value of None
                 if de_filters:
-                    de_filters = de_filters | Q(data_element__name=de) | Q(data_element__alias=de)
+                    de_filters = de_filters | Q(data_element__name__iexact=de) | Q(data_element__alias__iexact=de)
                 else:
-                    de_filters = Q(data_element__name=de) | Q(data_element__alias=de)
+                    de_filters = Q(data_element__name__iexact=de) | Q(data_element__alias__iexact=de)
 
         qs = self.annotate(de_name=F('data_element__name'))
         qs = qs.annotate(de_uid=F('data_element__dhis2_uid'))
