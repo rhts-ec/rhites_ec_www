@@ -6,4 +6,11 @@
 	<li><a href="{% url 'malaria_compliance' %}">Malaria - Compliance</li>
 	<li><a href="{% url 'ipt_quarterly' %}?ou_level=2&period=2017-Q2">Malaria - IPT</a></li>
 </ul>
+
+<h4>Validation Reports</h4>
+<ul>
+{% for id, name in validation_rules %}
+	<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
+{% endfor %}
+</ul>
 {% endblock %}

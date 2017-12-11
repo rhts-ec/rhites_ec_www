@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from mptt.admin import MPTTModelAdmin
 
-from .models import SourceDocument, OrgUnit, DataElement, DataValue, Category, CategoryCombo, load_excel_to_datavalues
+from .models import SourceDocument, OrgUnit, DataElement, DataValue, Category, CategoryCombo, ValidationRule, load_excel_to_datavalues, load_excel_to_validations
 
 def load_document_values(modeladmin, request, queryset):
     for doc in queryset:
@@ -12,11 +12,17 @@ def load_document_values(modeladmin, request, queryset):
 
 load_document_values.short_description = 'Load data values from document into DB'
 
+def load_document_validations(modeladmin, request, queryset):
+    for doc in queryset:
+        load_excel_to_validations(doc)
+
+load_document_validations.short_description = 'Load validation rules from document into DB'
+
 class SourceDocumentAdmin(admin.ModelAdmin):
     readonly_fields = ('orig_filename',)
     list_display = ['uploaded_at', 'orig_filename']
     ordering = ['uploaded_at']
-    actions = [load_document_values]
+    actions = [load_document_values, load_document_validations]
 
 class OrgUnitAdmin(MPTTModelAdmin):
     list_display = ['name', 'level']
@@ -39,6 +45,7 @@ admin.site.register(DataElement, DataElementAdmin)
 admin.site.register(DataValue, DataValueAdmin)
 admin.site.register(Category)
 admin.site.register(CategoryCombo, CategoryComboAdmin)
+admin.site.register(ValidationRule)
 
 admin.site.site_title = 'RHITES-EC Data Validation Administrative Interface'
 admin.site.site_header = 'RHITES-EC Data Validation Admin'

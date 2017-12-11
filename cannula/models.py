@@ -316,3 +316,286 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
             wb_loc_values[location].extend(data_values)
 
     return dict(wb_loc_values) # convert back to a normal dict for our callers
+
+def de_pivot_col(de):
+    return 'DE_%d' % (de.id,)
+
+def pivot_clause(data_elements):
+    return ',\n'.join("SUM(CASE WHEN de.name = '%s' THEN dv.numeric_value ELSE 0 END) as '%s'" % (de.name, de_pivot_col(de)) for de in data_elements)
+
+def validation_expr(left, right, operator):
+    pass
+
+def validation_expr_elements(expr):
+    names = list()
+    for de_tup in DataElement.objects.all().values_list('name', 'alias'):
+        names.extend(de_tup)
+    names = filter(None, names)
+    sorted_names = list(sorted(names, reverse=True)) # sort puts longest matches first
+    DE_REGEX = '|'.join('%s' % (re.escape(de_name),) for de_name in sorted_names)
+    m = re.findall(DE_REGEX, expr, flags=re.IGNORECASE)
+    print(m)
+    return tuple(filter(None, m))
+
+def load_excel_to_validations(source_doc):
+    import openpyxl
+
+    wb = openpyxl.load_workbook(source_doc.file.path) #TODO: ensure we close the workbook file. use a context manager?
+    logger.debug(wb.get_sheet_names())
+
+    for ws_name in ['Validations']:
+        ws = wb[ws_name]
+        logger.debug((ws_name, ws.max_row, ws.max_column))
+
+        
+        for row in ws.rows[1:]: # skip header row
+            validation_name, l_exp, op, r_exp, *_ = [c.value for c in row]
+            if not l_exp or not op or not r_exp:
+                continue # ignore rows where any part of the rule is missing
+            print(validation_name, l_exp, op, r_exp)
+            l_element_names = validation_expr_elements(l_exp)
+            r_element_names = validation_expr_elements(r_exp)
+            element_names = l_element_names + r_element_names
+            bad_rules = ['Mal_1', 'Mal_6', 'Mal_7', 'Mal_11']
+            if len(element_names) > 0 and len(l_element_names) > 0 and len(r_element_names) > 0 and validation_name not in bad_rules: #TODO: exclude dodgy rule for demo
+                try:
+                    vr = ValidationRule.objects.get(name=validation_name)
+                    vr.left_expr, vr.right_expr, vr.operator = l_exp, r_exp, op
+                except ValidationRule.DoesNotExist as e:
+                    vr = ValidationRule(name=validation_name, left_expr=l_exp, right_expr=r_exp, operator=op)
+                vr.save()
+                print(vr.view_name())
+
+    return
+
+    ou_level = month_multiple = None
+    search_periods = ['2016']
+    de_meta_list = query_de_meta(tt_names)
+    print(de_meta_list)
+    calc_exprs = (
+        ('DE_5*100/DE_22', ['DE_22',]),
+        ('DE_6*100/DE_22', ['DE_22',]),
+    )
+    if ou_level is None: # if not explicitly given use the highest orgunit level
+        ou_level = min(map(lambda x: x.ou_level, de_meta_list))
+    if month_multiple is None:
+        month_multiple = max(map(lambda x: x.month_multiple, de_meta_list))
+    calc_query = mk_calculation_sql(calc_exprs, de_meta_list, [], ou_level, search_periods, month_multiple)
+    print(calc_query)
+
+def mk_validation_rule_sql(rule_expr, data_elements):
+    de_meta_list = query_de_meta(data_elements)
+    ou_level = min(map(lambda x: x.ou_level, de_meta_list))
+    month_multiple = max(map(lambda x: x.month_multiple, de_meta_list))
+
+    subst_rule_expr = rule_expr
+    for de_meta in sorted(de_meta_list, key=lambda x: x.name, reverse=True):
+        subst_rule_expr = subst_rule_expr.replace(de_meta.name, 'DE_%d' % (de_meta.id,))
+        if de_meta.alias:
+            subst_rule_expr = subst_rule_expr.replace(de_meta.alias, 'DE_%d' % (de_meta.id,))
+
+    return mk_calculation_sql([(subst_rule_expr, [])], de_meta_list, [], ou_level, [], month_multiple)
+
+def query_de_meta(de_names):
+    """
+    Given a sequence of dataelement names, return a corresponding sequence of
+    tuples containing the name, id, highest orgunit level it is collected at,
+    and the largest period type it is collected for (as a multiple of month)
+    """
+    from functools import reduce
+    from collections import namedtuple
+    
+    q_objs = reduce(lambda x, y: x | y, (Q(alias__iexact=de_name)|Q(name__iexact=de_name) for de_name in de_names))
+    qs = DataElement.objects.filter(q_objs)
+    qs = qs.annotate(ou_level=Min(F('data_values__org_unit__level')))
+    qs = qs.annotate(month_multiple=Min(Case(When(data_values__month__isnull=False, then=1), When(data_values__quarter__isnull=False, then=4), When(data_values__year__isnull=False, then=12), default=None, output_field=models.IntegerField())))
+    qs = qs.order_by('name', 'id', 'ou_level', 'month_multiple')
+    
+    DataElementMeta = namedtuple('DataElementMeta', ['name', 'alias', 'id', 'ou_level', 'month_multiple'])
+    return tuple(DataElementMeta(**v) for v in qs.values('name', 'alias', 'id', 'ou_level', 'month_multiple'))
+
+def fields_for_ou_level(ou_level):
+    return ('country', 'district', 'subcounty', 'facility')[:ou_level+1]
+
+def fields_for_month_multiple(month_mul):
+    return ('year', 'quarter', 'month')[:(12, 3, 1).index(month_mul)+1]
+
+def gen_pairs(iterable):
+    item2_iter = iter(iterable)
+    _ = next(item2_iter) # skip one ahead
+    for item1 in iterable:
+        yield (item1, next(item2_iter))
+
+def mk_de_group_sql(de_meta_list, all_fields, ou_level):
+    select_clause = ' '.join(['SELECT', ', '.join(all_fields)])
+    
+    _tables = ['cannula_datavalue dv', 'cannula_orgunit ou', 'cannula_dataelement de'] + ['cannula_orgunit ou%d' % i for i in range(ou_level+1)]
+    from_clause = ' '.join(['FROM', ', '.join(_tables)])
+
+    join_filter_subclause = ' AND '.join(('dv.org_unit_id=ou.id', 'dv.data_element_id=de.id'))
+    ou_traversals = ['ou0.parent_id IS NULL'] + ['ou%d.parent_id=ou%d.id' % (c, p) for p,c in gen_pairs(range(ou_level+1))]
+    ou_traversals.append('ou.id = ou%d.id' % (ou_level,))
+    de_filters = ['de.name=\'%s\'' % (de_m.name,) for de_m in de_meta_list] #TODO: switch to data element IDs/UIDs/CODEs to avoid SQL injection
+    de_filter_clause = '(%s)' % ('\nOR '.join(de_filters),)
+    where_parts = [join_filter_subclause, *ou_traversals, de_filter_clause]
+    where_clause = 'WHERE ' + ('\nAND '.join(where_parts))
+
+    return '\n'.join([select_clause, from_clause, where_clause])
+
+def mk_union_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
+    from itertools import groupby
+
+    ou_fields = fields_for_ou_level(ou_level)
+    period_fields = fields_for_month_multiple(period_month_multiple)
+    print(ou_fields, period_fields)
+
+    hier_ou_pairs = tuple(('ou%d' % (i,), f) for i, f in enumerate(ou_fields))
+    hier_ou_fields = tuple('%s.name as %s' % (code, desc) for code, desc in hier_ou_pairs)
+
+    placeholder_fields = ', '.join(['NULL as %s' % (f,) for f in (period_fields + ou_fields)])
+    union_parts = ['SELECT %s, NULL as de_name, NULL as numeric_value FROM cannula_datavalue dv' % (placeholder_fields,)]
+
+    grouped_de_metas = groupby(de_meta_list, lambda x: (x.ou_level, x.month_multiple))
+    for g in grouped_de_metas:
+        g_ident, g_seq = g
+        g_seq = list(g_seq)
+        g_ou_level, g_month_multiple = g_ident
+
+        if g_month_multiple > period_month_multiple:
+            my_period_fields = fields_for_month_multiple(g_month_multiple)
+            my_periods = [tuple(filter(None, grabbag.dates_to_iso_periods(*grabbag.period_to_dates(p)))) for p in period_list]
+            my_periods = [tuple('\'%s\'' % (p,) for p in p_tup) for p_tup in my_periods] #TODO: do proper db quoting
+            print(my_periods)
+            for p_tup in my_periods:
+                all_fields = my_period_fields + p_tup[len(my_period_fields):] + hier_ou_fields + ('de.name as de_name' , 'numeric_value')
+                group_select = mk_de_group_sql(g_seq, all_fields, g_ou_level)
+                union_parts.append(group_select)
+        else:
+            my_period_fields = period_fields
+            all_fields = my_period_fields + hier_ou_fields + ('de.name as de_name' , 'numeric_value')
+            group_select = mk_de_group_sql(g_seq, all_fields, g_ou_level)
+            union_parts.append(group_select)
+
+    return '\nUNION ALL\n'.join(union_parts)
+
+def mk_aggregate_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
+    union_sql = mk_union_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple)
+    ou_fields = fields_for_ou_level(ou_level)
+    period_fields = fields_for_month_multiple(period_month_multiple)
+    groupby_fields = period_fields+ou_fields+('de_name',)
+    groupby_fields_str = ', '.join(groupby_fields)
+    select_clause = ' '.join(['SELECT', ', '.join(groupby_fields+('sum(numeric_value) as numeric_sum', 'count(numeric_value) as numeric_count'))])
+    group_order_clause = 'AS q_aggregate\nGROUP BY %s\nORDER BY %s' % (groupby_fields_str, groupby_fields_str)
+
+    aggregate_sql = select_clause + '\n' + 'FROM (' + '\n' + union_sql + '\n' + ') ' + group_order_clause
+
+    return aggregate_sql
+
+def mk_pivot_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
+    aggregate_sql = mk_aggregate_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple)
+    ou_fields = fields_for_ou_level(ou_level)
+    period_fields = fields_for_month_multiple(period_month_multiple)
+    pivot_fields = list()
+    for de in de_meta_list:
+        if de.month_multiple <= period_month_multiple:
+            de_pivot_str = 'SUM(CASE WHEN de_name = \'%s\' THEN numeric_sum ELSE 0 END) as DE_%d' % (de.name, de.id)
+        else:
+            de_pivot_str = 'SUM(CASE WHEN de_name = \'%s\' THEN numeric_sum/%f ELSE 0 END) as DE_%d' % (de.name, de.month_multiple/period_month_multiple, de.id)
+        pivot_fields.append(de_pivot_str)
+    groupby_fields = period_fields + ou_fields
+    groupby_fields_str = ', '.join(groupby_fields)
+    select_clause = ' '.join(['SELECT', ', '.join(groupby_fields+tuple(pivot_fields))])
+    group_clause = 'AS q_pivot\nGROUP BY %s' % (groupby_fields_str)
+
+    pivot_sql = select_clause + '\n' + 'FROM (' + '\n' + aggregate_sql + '\n' + ') ' + group_clause
+
+    return pivot_sql
+
+def mk_calc_fields(calculations):
+    calc_fields = list()
+    for i, (calc_exp, zero_checks) in enumerate(calculations, start=1):
+        z_c_str = ' AND '.join('(%s != 0)' % (z_c_field) for z_c_field in zero_checks)
+        if len(zero_checks) > 0:
+            calc_str = 'CASE WHEN %s THEN %s ELSE NULL END as DE_CALC_%d' % (z_c_str, calc_exp, i)
+        else:
+            calc_str = '%s as DE_CALC_%d' % (calc_exp, i)
+        calc_fields.append(calc_str)
+
+    return tuple(calc_fields)
+
+def mk_calculation_sql(calculations, de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
+    from collections import defaultdict
+
+    print('OU_PARAM: %d, PERIOD_PARAM: %d' % (ou_level, period_month_multiple))
+    
+    pivot_sql = mk_pivot_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple)
+    ou_fields = fields_for_ou_level(ou_level)
+    period_fields = fields_for_month_multiple(period_month_multiple)
+    calc_src_fields =  tuple('DE_%d' % (de.id,) for de in de_meta_list)
+    calc_fields = mk_calc_fields(calculations)
+    groupby_fields = period_fields + ou_fields
+    groupby_fields_str = ', '.join(groupby_fields)
+    select_clause = ' '.join(['SELECT', ', '.join(groupby_fields+calc_src_fields+calc_fields)])
+
+    where_groups = defaultdict(list)
+    p_fields = fields_for_month_multiple(period_month_multiple)
+    for p in period_list:
+        p_vals = tuple(filter(None, grabbag.dates_to_iso_periods(*grabbag.period_to_dates(p))))
+        for p_pair in zip(p_fields, p_vals):
+            if p_pair not in where_groups[p_pair[0]]:
+                where_groups[p_pair[0]].append(p_pair)
+    where_parts = ['(%s)' % (' OR '.join('%s=\'%s\'' % (f, v) for f, v in l),) for k, l in where_groups.items()]
+
+    if len(where_parts) > 0:
+        where_clause = 'WHERE (%s)' % ' AND '.join(where_parts)
+    else:
+        where_clause = ''
+
+    calculation_sql = select_clause + '\n' + 'FROM (' + '\n' + pivot_sql + '\n' + ') AS q_calculate' + '\n' + where_clause
+
+    return calculation_sql
+
+class ValidationRule(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+    left_expr = models.CharField(max_length=256) #TODO: store the cleaned up expression with symbolic data element names
+    right_expr = models.CharField(max_length=256)
+    operator = models.CharField(max_length=2) #TODO: make this a choice field
+    #TODO: add a description/comments field ?
+
+    data_elements = models.ManyToManyField(DataElement)
+
+    def expression(self):
+        return ' '.join([self.left_expr, self.operator, self.right_expr])
+
+    def view_name(self):
+        return 'vw_validation_%d' % (self.id,)
+
+    def save(self, *args, **kwargs):
+        from django.db import connection
+        
+        # parse and collect data element names
+        l_element_names = validation_expr_elements(self.left_expr)
+        r_element_names = validation_expr_elements(self.right_expr)
+        element_names = l_element_names + r_element_names
+        
+        # modify list of data elements
+        new_meta_list = query_de_meta(element_names)
+        curr_meta_list = query_de_meta(self.data_elements.all().values_list('name'))
+        for de_meta in curr_meta_list: # remove, if not in new list
+            if de_meta not in new_meta_list:
+                self.data_elements.remove(DataElement.objects.get(id=de_meta.id))
+        for de_meta in new_meta_list: # add, if not in current list
+            if de_meta not in curr_meta_list:
+                self.data_elements.add(DataElement.objects.get(id=de_meta.id))
+
+        super(ValidationRule, self).save(*args, **kwargs)
+
+        # create the view
+        sql = mk_validation_rule_sql(self.expression(), element_names)
+        view_sql = 'CREATE OR REPLACE VIEW %s AS\n%s' % (self.view_name(), sql)
+        cursor = connection.cursor()
+        cursor.execute(view_sql, [])
+
+    def __str__(self):
+        return self.name
+        

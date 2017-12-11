@@ -6,10 +6,13 @@ from itertools import groupby, tee, chain, product
 
 from . import dateutil, grabbag
 
-from .models import DataElement, OrgUnit, DataValue
+from .models import DataElement, OrgUnit, DataValue, ValidationRule
 
 def index(request):
-    return render(request, 'cannula/index.html')
+    context = {
+        'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
+    }
+    return render(request, 'cannula/index.html', context)
 
 def data_elements(request):
     data_elements = DataElement.objects.order_by('name').all()
@@ -198,3 +201,39 @@ def malaria_compliance(request):
     }
 
     return render(request, 'cannula/malaria_compliance.html', context)
+
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+
+def validation_rule(request):
+    from django.db import connection
+    cursor = connection.cursor()
+    vr_id = int(request.GET['id'])
+    vr = ValidationRule.objects.get(id=vr_id)
+    cursor.execute('SELECT * FROM %s' % (vr.view_name(),))
+    columns = [col[0] for col in cursor.description]
+    de_name_map = dict()
+    for de_id, de_name in DataElement.objects.all().values_list('id', 'name'):
+        de_name_map['de_%d' % (de_id,)] = de_name
+        columns = [c.replace('de_%d' % (de_id,), de_name) for c in columns] #TODO: can we include the alias, if there is one?
+    results = dictfetchall(cursor)
+    for r in results:
+        r['data_values'] = dict()
+        for k,v in r.items():
+            if k in de_name_map:
+                de_name = de_name_map[k]
+                r['data_values'][de_name] = v
+    if 'exclude_true' in request.GET:
+        results = filter(lambda x: not x['de_calc_1'], results)
+    context = {
+        'results': results,
+        'columns': columns,
+        'rule': vr,
+    }
+
+    return render(request, 'cannula/validation_rule.html', context)
