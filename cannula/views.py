@@ -147,6 +147,8 @@ def malaria_compliance(request):
         end_quarter = '%d-Q%d' % (this_year, month2quarter(end_month))
 
     periods = dateutil.get_quarters(start_quarter, end_quarter)
+    if start_quarter == end_quarter:
+        periods = periods[:1]
     
     # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
