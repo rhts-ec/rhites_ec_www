@@ -32,12 +32,15 @@ class DataElementAdmin(admin.ModelAdmin):
 
 class CategoryComboAdmin(admin.ModelAdmin):
     filter_horizontal = ['categories']
-        
 
 class DataValueAdmin(admin.ModelAdmin):
     list_display = ['data_element', 'category_combo', 'site_str', 'org_unit', 'month', 'quarter', 'year', 'numeric_value']
     list_filter = ('data_element__name',)
     search_fields = ['data_element__name', 'category_combo', 'site_str']
+
+class ValidationRuleAdmin(admin.ModelAdmin):
+    list_display = ['name', 'expression']
+    filter_horizontal = ['data_elements']
 
 admin.site.register(SourceDocument, SourceDocumentAdmin)
 admin.site.register(OrgUnit, OrgUnitAdmin)
@@ -45,7 +48,7 @@ admin.site.register(DataElement, DataElementAdmin)
 admin.site.register(DataValue, DataValueAdmin)
 admin.site.register(Category)
 admin.site.register(CategoryCombo, CategoryComboAdmin)
-admin.site.register(ValidationRule)
+admin.site.register(ValidationRule, ValidationRuleAdmin)
 
 admin.site.site_title = 'RHITES-EC Data Validation Administrative Interface'
 admin.site.site_header = 'RHITES-EC Data Validation Admin'
