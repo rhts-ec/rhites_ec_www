@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
 from django.db.models.signals import post_init
 from django.core.files.storage import FileSystemStorage
+from django.core.exceptions import ValidationError
 from django.conf import settings
 
 import logging
@@ -95,12 +96,27 @@ class DataElement(models.Model):
     )
     
     dhis2_uid = models.CharField(max_length=11, blank=True, null=True) #TODO: add unique check and check for a minimum length of 11 as well
-    name = models.CharField(max_length=128) #TODO: add unique check
-    alias = models.CharField(max_length=128, blank=True, null=True) #TODO: add unique check against name/alias of other data elements
+    name = models.CharField(max_length=128, unique=True)
+    alias = models.CharField(max_length=128, blank=True, null=True)
     value_type = models.CharField(max_length=8, choices=VALUE_TYPES)
     value_min = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Minimum Value', blank=True, null=True)
     value_max = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Maximum Value', blank=True, null=True)
     aggregation_method = models.CharField(max_length=8, choices=AGG_METHODS)
+
+    def validate_unique(self, exclude=None):
+        super(DataElement, self).validate_unique(exclude=exclude)
+
+        # name already exists as an alias
+        if DataElement.objects.filter(Q(alias__iexact=self.name)).exists():
+            raise ValidationError({'name': 'Name already used as an alias: \'%s\'' % (self.name,)})
+        if self.alias:
+            # alias already exists as a name/alias
+            if DataElement.objects.filter(Q(name__iexact=self.alias)|Q(alias__iexact=self.alias)).exists():
+                raise ValidationError({'alias': 'Alias already used as a name/alias: \'%s\'' % (self.alias,)})
+
+    def save(self, *args, **kwargs):
+        self.validate_unique()
+        super(DataElement, self).save(*args, **kwargs)
 
     def __repr__(self):
         return 'DataElement<%s>' % (str(self),)
