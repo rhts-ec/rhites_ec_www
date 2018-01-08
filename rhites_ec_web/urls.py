@@ -20,5 +20,7 @@ urlpatterns = [
     url(r'^$', 'cannula.views.index'),
     url(r'', include('cannula.urls')),
 
+    url(r'^accounts/', include('django.contrib.auth.urls')),
+
     url(r'^admin/', include(admin.site.urls)),
 ]
