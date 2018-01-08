@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
+from django.contrib.auth.decorators import login_required
 
 from datetime import date
 from itertools import groupby, tee, chain, product
@@ -8,12 +9,14 @@ from . import dateutil, grabbag
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule
 
+@login_required
 def index(request):
     context = {
         'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
     }
     return render(request, 'cannula/index.html', context)
 
+@login_required
 def data_elements(request):
     data_elements = DataElement.objects.order_by('name').all()
     return render(request, 'cannula/data_element_listing.html', {'data_elements': data_elements})
@@ -25,6 +28,7 @@ def groupbylist(*args, **kwargs):
 def month2quarter(month_num):
     return ((month_num-1)//3+1)
 
+@login_required
 def ipt_quarterly(request):
     ipt_de_names = (
         '105-2.1 A6:First dose IPT (IPT1)',
@@ -121,6 +125,7 @@ def ipt_quarterly(request):
 
     return render(request, 'cannula/ipt_quarterly.html', context)
 
+@login_required
 def malaria_compliance(request):
     cases_de_names = (
         '105-1.3 OPD Malaria (Total)',
@@ -212,6 +217,7 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+@login_required
 def validation_rule(request):
     from django.db import connection
     cursor = connection.cursor()
