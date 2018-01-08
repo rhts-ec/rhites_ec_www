@@ -81,9 +81,14 @@ WSGI_APPLICATION = 'rhites_ec_web.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'rhitesec',
+        'USER': 'rhitesec',
+        'PASSWORD': 'rhitesec',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+        'ATOMIC_REQUESTS': True,
+    },
 }
 
 
