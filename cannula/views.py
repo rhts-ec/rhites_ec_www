@@ -1,13 +1,16 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, render_to_response, redirect
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from django.template import RequestContext
 
 from datetime import date
 from itertools import groupby, tee, chain, product
 
 from . import dateutil, grabbag
 
-from .models import DataElement, OrgUnit, DataValue, ValidationRule
+from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
+from .forms import SourceDocumentForm
 
 @login_required
 def index(request):
@@ -208,6 +211,67 @@ def malaria_compliance(request):
     }
 
     return render(request, 'cannula/malaria_compliance.html', context)
+
+@login_required
+def data_workflow_new(request):
+    if request.method == 'POST':
+        form = SourceDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('data_workflow_listing')
+    else:
+        form = SourceDocumentForm()
+
+    context = {
+        'form': form,
+    }
+
+    return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
+
+@login_required
+def data_workflow_detail(request):
+    from .models import load_excel_to_datavalues, load_excel_to_validations
+
+    if 'wf_id' in request.GET:
+        src_doc_id = int(request.GET['wf_id'])
+        src_doc = get_object_or_404(SourceDocument, id=src_doc_id)
+
+        if request.method == 'POST':
+            if 'load_values' in request.POST:
+                all_values = load_excel_to_datavalues(src_doc)
+                for site_name, site_vals in all_values.items():
+                    DataValue.objects.bulk_create(site_vals)
+            elif 'load_validations' in request.POST:
+                load_excel_to_validations(src_doc)
+
+            #TODO: redirect with to detail page?
+
+        qs_vals = DataValue.objects.filter(source_doc__id=src_doc_id).values('id')
+        doc_elements = DataElement.objects.filter(data_values__id__in=qs_vals).distinct('id')
+        doc_rules = ValidationRule.objects.filter(data_elements__data_values__id__in=qs_vals).distinct('id')
+        num_values = qs_vals.count()
+    else:
+        raise Http404("Workflow does not exist or workflow id is missing/invalid")
+
+    context = {
+        'srcdoc': src_doc,
+        'num_values': num_values,
+        'data_elements': doc_elements,
+        'validation_rules': doc_rules,
+    }
+
+    return render(request, 'cannula/data_workflow_detail.html', context)
+
+@login_required
+def data_workflow_listing(request):
+    # TODO: filter based on user who uploaded file?
+    docs = SourceDocument.objects.all().annotate(num_values=Count('data_values'))
+    docs = docs.order_by('uploaded_at')
+
+    context = {
+        'workflows': docs,
+    }
+    return render(request, 'cannula/data_workflow_listing.html', context)
 
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dict"
