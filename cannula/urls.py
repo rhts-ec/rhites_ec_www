@@ -6,5 +6,5 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'dash_malaria_compliance\.php', views.malaria_compliance, name='malaria_compliance'),
     url(r'dash_malaria_quarterly\.php', views.ipt_quarterly, name='ipt_quarterly'),
-    url(r'validation_rule\.php', views.validation_rule, name='validation_rule')
+    url(r'validation_rule\.php', views.validation_rule, name='validation_rule'),
 ]

@@ -420,6 +420,9 @@ def query_de_meta(de_names):
     """
     from functools import reduce
     from collections import namedtuple
+
+    if len(de_names) == 0:
+        return tuple()
     
     q_objs = reduce(lambda x, y: x | y, (Q(alias__iexact=de_name)|Q(name__iexact=de_name) for de_name in de_names))
     qs = DataElement.objects.filter(q_objs)
@@ -588,6 +591,8 @@ class ValidationRule(models.Model):
 
     def save(self, *args, **kwargs):
         from django.db import connection
+
+        super(ValidationRule, self).save(*args, **kwargs)
         
         # parse and collect data element names
         l_element_names = validation_expr_elements(self.left_expr)
