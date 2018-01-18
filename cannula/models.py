@@ -406,9 +406,9 @@ def mk_validation_rule_sql(rule_expr, data_elements):
 
     subst_rule_expr = rule_expr
     for de_meta in sorted(de_meta_list, key=lambda x: x.name, reverse=True):
-        subst_rule_expr = subst_rule_expr.replace(de_meta.name, 'DE_%d' % (de_meta.id,))
+        subst_rule_expr = re.sub('(?i)' + re.escape(de_meta.name), 'DE_%d' % (de_meta.id,), subst_rule_expr)
         if de_meta.alias:
-            subst_rule_expr = subst_rule_expr.replace(de_meta.alias, 'DE_%d' % (de_meta.id,))
+            subst_rule_expr = re.sub('(?i)' + re.escape(de_meta.alias), 'DE_%d' % (de_meta.id,), subst_rule_expr)
 
     return mk_calculation_sql([(subst_rule_expr, [])], de_meta_list, [], ou_level, [], month_multiple)
 
