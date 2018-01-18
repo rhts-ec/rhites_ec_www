@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>{% load staticfiles %}
+<html lang="en">{% load staticfiles %}
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -20,7 +20,7 @@
 <div class="w3-bar w3-top w3-large" style="z-index:4;  background-color:rgb(0, 121, 194)">
   <button class="w3-bar-item w3-button w3-hide-large w3-hover-none w3-hover-text-light-grey" onclick="w3_open();"><i class="fa fa-bars"></i> &nbsp;Menu</button>
   <span class="w3-text-white w3-xxlarge">RHITES-EC Data Verification</span>
-  <span class="w3-bar-item w3-right"><img style="height:42px" src="{% static 'cannula/urc-logo-150.png' %}"/></span>
+  <span class="w3-bar-item w3-right"><img style="height:42px" src="{% static 'cannula/urc-logo-150.png' %}" alt="URC Logo"/></span>
 </div>
 
 <!-- Sidebar/menu -->
@@ -112,7 +112,7 @@
   <div class="w3-panel">
     <div class="w3-row-padding" style="margin:0 -16px">
       <div class="w3-third">
-        <h5><img src="{% static 'static/region.jpg' %}" style="width:100%" alt="Google Regional Map">
+        <img src="{% static 'static/region.jpg' %}" style="width:100%" alt="Google Regional Map">
       </div>
       <div class="w3-twothird">
         <h5>Feeds</h5>
