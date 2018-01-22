@@ -107,11 +107,11 @@ class DataElement(models.Model):
         super(DataElement, self).validate_unique(exclude=exclude)
 
         # name already exists as an alias
-        if DataElement.objects.filter(Q(alias__iexact=self.name)).exists():
+        if DataElement.objects.filter(Q(alias__iexact=self.name), ~Q(id=self.id)).exists():
             raise ValidationError({'name': 'Name already used as an alias: \'%s\'' % (self.name,)})
         if self.alias:
             # alias already exists as a name/alias
-            if DataElement.objects.filter(Q(name__iexact=self.alias)|Q(alias__iexact=self.alias)).exists():
+            if DataElement.objects.filter(Q(name__iexact=self.alias)|Q(alias__iexact=self.alias), ~Q(id=self.id)).exists():
                 raise ValidationError({'alias': 'Alias already used as a name/alias: \'%s\'' % (self.alias,)})
 
     def save(self, *args, **kwargs):
