@@ -10,4 +10,5 @@ urlpatterns = [
     url(r'data_workflow_new.php', views.data_workflow_new, name='data_workflow_new'),
     url(r'data_workflow.php', views.data_workflow_detail, name='data_workflow_detail'),
     url(r'data_workflows.php', views.data_workflow_listing, name='data_workflow_listing'),
+    url(r'data_element_alias.php', views.data_element_alias, name='data_element_alias'),
 ]

@@ -12,7 +12,10 @@
 Data Elements
 <ul style="column-count: 3">
 	{% for de in data_elements %}
-	<li>{{ de.name }} {% if de.alias %}<i>[aliased as "{{ de.alias }}"]</i>{% endif %}</li>
+	<li>
+		{{ de.name }} {% if de.alias %}<i>[aliased as "{{ de.alias }}"]</i>{% endif %}
+		<a href="{% url 'data_element_alias' %}?de_id={{ de.id }}&wf_id={{ request.GET.wf_id }}">Edit Alias</a>
+	</li>
 	{% empty %}
 	<li>
 		<button type="submit" form="workflow_actions" name="load_values">Load Data Elements/Values</button>

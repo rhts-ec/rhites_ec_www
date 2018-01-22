@@ -3,6 +3,7 @@ from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, Wh
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.template import RequestContext
+from django.core.urlresolvers import reverse
 
 from datetime import date
 from itertools import groupby, tee, chain, product
@@ -10,7 +11,7 @@ from itertools import groupby, tee, chain, product
 from . import dateutil, grabbag
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
-from .forms import SourceDocumentForm
+from .forms import SourceDocumentForm, DataElementAliasForm
 
 @login_required
 def index(request):
@@ -309,3 +310,26 @@ def validation_rule(request):
     }
 
     return render(request, 'cannula/validation_rule.html', context)
+
+@login_required
+def data_element_alias(request):
+    if 'de_id' in request.GET:
+        de_id = int(request.GET['de_id'])
+        de = get_object_or_404(DataElement, id=de_id)
+
+        if request.method == 'POST':
+            form = DataElementAliasForm(request.POST, instance=de)
+            if form.is_valid():
+                form.save()
+                de_url = '%s?wf_id=%d' % (reverse('data_workflow_detail'), int(request.GET['wf_id']))
+                return redirect(de_url, de)
+        else:
+            form = DataElementAliasForm(instance=de)
+
+        context = {
+            'form': form,
+        }
+    else:
+        raise Http404("Data Element does not exist or data element id is missing/invalid")
+
+    return render_to_response('cannula/data_element_edit_alias.html', context, context_instance=RequestContext(request))
