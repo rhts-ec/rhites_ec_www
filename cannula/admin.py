@@ -36,7 +36,7 @@ class CategoryComboAdmin(admin.ModelAdmin):
 class DataValueAdmin(admin.ModelAdmin):
     list_display = ['data_element', 'category_combo', 'site_str', 'org_unit', 'month', 'quarter', 'year', 'numeric_value']
     list_filter = ('data_element__name',)
-    search_fields = ['data_element__name', 'category_combo', 'site_str']
+    search_fields = ['data_element__name', 'category_combo__name', 'site_str']
 
 class ValidationRuleAdmin(admin.ModelAdmin):
     list_display = ['name', 'expression']
