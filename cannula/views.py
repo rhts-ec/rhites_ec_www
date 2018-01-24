@@ -120,12 +120,76 @@ def ipt_quarterly(request):
         data_element_names.append(('%', None))
     data_element_names.extend(subcategory_names)
 
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+        from openpyxl.styles import Color, PatternFill, Font, Border
+        from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, Rule
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.create_sheet()
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            offset = 0
+            for j, g_val in enumerate(g_val_list, start=3):
+                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+                if 'ipt_rate' in g_val:
+                    offset += 1
+                    ws.cell(row=i, column=j+offset, value=g_val['ipt_rate'])
+
+
+        #ipt1_percent_range = 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        ipt1_percent_range = 'E1:E16384'
+        ipt2_percent_range = 'G1:G16384'
+        yellow_fill = PatternFill(start_color='FFEB3B', end_color='FFEB3B', fill_type='solid')
+        green_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')
+        rule_lt_71 = CellIsRule(operator='between', formula=['0','70'], stopIfTrue=True, fill=yellow_fill)
+        rule_lt_71_unbounded = CellIsRule(operator='lessThan', formula=['71'], stopIfTrue=True, fill=yellow_fill)
+        rule_ge_71 = CellIsRule(operator='between', formula=['71','100'], stopIfTrue=True, fill=green_fill)
+        rule_ge_71_unbounded = CellIsRule(operator='greaterThanOrEqual', formula=['71'], stopIfTrue=True, fill=green_fill)
+        rule_ignore_blanks = Rule(type="containsBlanks", stopIfTrue=True)
+        ws.conditional_formatting.add(ipt1_percent_range, rule_ignore_blanks)
+        ws.conditional_formatting.add(ipt1_percent_range, rule_lt_71)
+        ws.conditional_formatting.add(ipt1_percent_range, rule_ge_71_unbounded)
+        ws.conditional_formatting.add(ipt2_percent_range, rule_ignore_blanks)
+        ws.conditional_formatting.add(ipt2_percent_range, rule_lt_71)
+        ws.conditional_formatting.add(ipt2_percent_range, rule_ge_71_unbounded)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="malaria_ipt_scorecard.xlsx"'
+
+        return response
+
     context = {
         'grouped_data': grouped_vals,
         'data_element_names': data_element_names,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'level_list': level_list,
     }
+
+    if output_format == 'JSON':
+        from django.http import JsonResponse
+        
+        return JsonResponse(context)
 
     return render(request, 'cannula/ipt_quarterly.html', context)
 

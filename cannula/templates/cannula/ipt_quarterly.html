@@ -60,7 +60,12 @@
 </div>
 </div>
 
+
 <div class="w3-container">
+<span class="w3-small no-print">
+<a href="{% url 'ipt_quarterly_excel' %}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+</span>
+
 <table class="w3-table w3-border w3-bordered w3-small" border="1">
 <thead class="w3-gray">
 <tr>

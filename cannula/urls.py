@@ -6,6 +6,7 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'dash_malaria_compliance\.php', views.malaria_compliance, name='malaria_compliance'),
     url(r'dash_malaria_quarterly\.php', views.ipt_quarterly, name='ipt_quarterly'),
+    url(r'dash_malaria_quarterly\.xls', views.ipt_quarterly, {'output_format': 'EXCEL'}, name='ipt_quarterly_excel'),
     url(r'validation_rule\.php', views.validation_rule, name='validation_rule'),
     url(r'data_workflow_new.php', views.data_workflow_new, name='data_workflow_new'),
     url(r'data_workflow.php', views.data_workflow_detail, name='data_workflow_detail'),
