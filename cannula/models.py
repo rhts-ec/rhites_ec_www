@@ -270,6 +270,9 @@ class DataValue(models.Model):
 
     objects = DataValueManager() # override the default manager
 
+    class Meta():
+        unique_together = (('data_element', 'category_combo', 'org_unit', 'year', 'quarter', 'month'),)
+
     def __repr__(self):
         return 'DataValue<%s [%s], %s, %s, %d>' % (str(self.data_element), self.category_combo, self.site_str,  next(filter(None, (self.month, self.quarter, self.year))), self.numeric_value,)
 
