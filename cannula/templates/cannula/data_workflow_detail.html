@@ -1,12 +1,15 @@
 {% extends "cannula/base.html" %}
+{% load l10n %}
 
 {% block title %}Workflow Details{% endblock %}
 
 {% block content %}
 <h4>Workflow source: {{ srcdoc.orig_filename}} (Uploaded: {{srcdoc.uploaded_at}})</h4>
+<a href="{% url 'data_workflow_listing' %}">Back to list of Data Workflows</a>
+
 <form method="post" id="workflow_actions">{% csrf_token %}
 <div class="w3-panel">
-<p>Individual Data Values: {{ num_values }}</p>
+<p>Individual Data Values: {{ num_values|localize }}</p>
 
 <p>
 Data Elements
@@ -24,9 +27,9 @@ Data Elements
 </ul>
 </p>
 
-<p>
+<div>
 Validation Rules
-<ul>
+<ul style="column-count: 3">
 	{% for rule in validation_rules %}
 	<li>{{ rule.name }}: "{{ rule.expression }}"</li>
 	{% empty %}
@@ -37,6 +40,6 @@ Validation Rules
 	{% endif %}
 	{% endfor %}
 </ul>
-</p>
+</div>
 </div>
 {% endblock %}
