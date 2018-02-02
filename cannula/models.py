@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 import mimetypes
 from functools import lru_cache, partial
+from decimal import Decimal
 
 from mptt.models import MPTTModel, TreeForeignKey
 
@@ -322,12 +323,12 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
             dv_construct = partial(DataValue, site_str=location, org_unit=current_ou, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
             data_values = list()
             for (de, cc), dv in site_values:
-                if dv == '' or dv is None:
+                if dv is None or (isinstance(dv, str) and dv.strip() == ''):
                     continue # skip rows with empty values
                 if cc:
-                    data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=dv))
+                    data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=Decimal(dv)))
                 else:
-                    data_values.append(dv_construct(data_element=de, numeric_value=dv))
+                    data_values.append(dv_construct(data_element=de, numeric_value=Decimal(dv)))
 
             wb_loc_values[location].extend(data_values)
 
