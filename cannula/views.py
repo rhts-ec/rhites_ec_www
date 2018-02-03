@@ -27,7 +27,7 @@ def data_elements(request):
 
 # avoid strange behaviour from itertools.groupby by evaluating all the group iterables as lists
 def groupbylist(*args, **kwargs):
-    return [(k, list(g)) for k, g in groupby(*args, **kwargs)]
+    return [[k, list(g)] for k, g in groupby(*args, **kwargs)]
 
 def month2quarter(month_num):
     return ((month_num-1)//3+1)
