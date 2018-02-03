@@ -6,9 +6,11 @@ from django.template import RequestContext
 from django.core.urlresolvers import reverse
 
 from datetime import date
+from decimal import Decimal
 from itertools import groupby, tee, chain, product
 
 from . import dateutil, grabbag
+from .grabbag import default_zero, all_not_none
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
 from .forms import SourceDocumentForm, DataElementAliasForm
@@ -397,3 +399,783 @@ def data_element_alias(request):
         raise Http404("Data Element does not exist or data element id is missing/invalid")
 
     return render_to_response('cannula/data_element_edit_alias.html', context, context_instance=RequestContext(request))
+
+@login_required
+def hts_by_site(request):
+    from django.db.models import Value, CharField
+
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    hts_de_names = (
+        '105-4 Number of Individuals who received HIV test results',
+        '105-4 Number of Individuals who tested HIV positive',
+    )
+    hts_short_names = (
+        'Tested',
+        'HIV+',
+    )
+    subcategory_names = ['(<15, Female)', '(<15, Male)', '(15+, Female)', '(15+, Male)']
+    de_positivity_meta = list(product(hts_de_names, subcategory_names))
+
+    qs_positivity = DataValue.objects.what(*hts_de_names).filter(quarter=filter_period)
+
+    cc_lt_15 = ['18 Mths-<5 Years', '5-<10 Years', '10-<15 Years']
+    cc_ge_15 = ['15-<19 Years', '19-<49 Years', '>49 Years']
+    #TODO: cc_lt_15_f = CategoryCombo.from_cat_names(['Female', '<15']) gives a CategoryCombo instance that makes the Case statement clearer/safer
+    qs_positivity = qs_positivity.annotate(
+        cat_combo=Case(
+            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            default=None, output_field=CharField()
+        )
+    )
+    qs_positivity = qs_positivity.exclude(cat_combo__iexact=None)
+
+    qs_positivity = qs_positivity.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_positivity = qs_positivity.annotate(period=F('quarter'))
+    qs_positivity = qs_positivity.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_positivity = qs_positivity.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+    gen_raster = grabbag.rasterize(ou_list, de_positivity_meta, val_positivity, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_positivity2 = list(gen_raster)
+
+    pmtct_mother_de_names = (
+        '105-2.1 Pregnant Women newly tested for HIV this pregnancy(TR & TRR)',
+        '105-2.2a Women tested for HIV in labour (1st time this Pregnancy)',
+        '105-2.3a Breastfeeding mothers tested for HIV(1st test)',
+    )
+    de_pmtct_mother_meta = list(product(('Pregnant Women tested for HIV',), (None,)))
+
+    qs_pmtct_mother = DataValue.objects.what(*pmtct_mother_de_names).filter(quarter=filter_period)
+    qs_pmtct_mother = qs_pmtct_mother.annotate(de_name=Value('Pregnant Women tested for HIV', output_field=CharField()))
+    qs_pmtct_mother = qs_pmtct_mother.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_pmtct_mother = qs_pmtct_mother.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_pmtct_mother = qs_pmtct_mother.annotate(period=F('quarter'))
+    qs_pmtct_mother = qs_pmtct_mother.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_pmtct_mother = qs_pmtct_mother.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_pmtct_mother_meta, val_pmtct_mother, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pmtct_mother2 = list(gen_raster)
+
+    pmtct_mother_pos_de_names = (
+        '105-2.1 A19:Pregnant Women testing HIV+ on a retest (TRR+)',
+        '105-2.2a Women testing HIV+ in labour (1st time this Pregnancy)',
+        '105-2.2b Women testing HIV+ in labour (Retest this Pregnancy)',
+        '105-2.3a Breastfeeding mothers newly testing HIV+(1st test)',
+        '105-2.3b Breastfeeding mothers newly testing HIV+(retest)',
+    )
+    de_pmtct_mother_pos_meta = list(product(('Pregnant Women testing HIV+',), (None,)))
+
+    qs_pmtct_mother_pos = DataValue.objects.what(*pmtct_mother_pos_de_names).filter(quarter=filter_period)
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(de_name=Value('Pregnant Women testing HIV+', output_field=CharField()))
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(period=F('quarter'))
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_pmtct_mother_pos = qs_pmtct_mother_pos.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_pmtct_mother_pos_meta, val_pmtct_mother_pos, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pmtct_mother_pos2 = list(gen_raster)
+
+    pmtct_child_de_names = (
+        '105-2.4a Exposed Infants Tested for HIV Below 18 Months(by 1st PCR) ',
+        '105-2.4b 1st DNA PCR result returned(HIV+)',
+        '105-2.4b 2nd DNA PCR result returned(HIV+)',
+        '105-2.1a Male partners received HIV test results in eMTCT(Total)',
+        '105-2.1b Male partners received HIV test results in eMTCT(HIV+)',
+    )
+    pmtct_child_short_names = (
+        'PMTCT INFANT HIV+',
+        'PMTCT CHILD PCR1 HIV+',
+        'PMTCT CHILD PCR2 HIV+',
+        'PMTCT MALE PARTNERS TESTED',
+        'PMTCT MALE PARTNERS HIV+',
+    )
+    de_pmtct_child_meta = list(product(pmtct_child_de_names, (None,)))
+
+    qs_pmtct_child = DataValue.objects.what(*pmtct_child_de_names).filter(quarter=filter_period)
+    qs_pmtct_child = qs_pmtct_child.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_pmtct_child = qs_pmtct_child.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_pmtct_child = qs_pmtct_child.annotate(period=F('quarter'))
+    qs_pmtct_child = qs_pmtct_child.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_pmtct_child = qs_pmtct_child.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_pmtct_child = list(val_pmtct_child)
+
+    gen_raster = grabbag.rasterize(ou_list, de_pmtct_child_meta, val_pmtct_child, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pmtct_child2 = list(gen_raster)
+
+    target_de_names = (
+        'HTC_TST_TARGET',
+        'HTC_TST_POS_TARGET',
+    )
+    de_target_meta = list(product(target_de_names, subcategory_names))
+
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    qs_target = DataValue.objects.what(*target_de_names).filter(year=filter_period[:4])
+
+    qs_target = qs_target.annotate(cat_combo=F('category_combo__name'))
+    qs_target = qs_target.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_target = qs_target.annotate(period=F('quarter'))
+    qs_target = qs_target.order_by('district', 'subcounty', 'facility', '-de_name', 'cat_combo', 'period') # note reversed order of data element names
+    val_target = qs_target.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+
+    gen_raster = grabbag.rasterize(ou_list, de_target_meta, val_target, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_target2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_positivity2, val_pmtct_mother2, val_pmtct_mother_pos2, val_pmtct_child2, val_target2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        under15_f_sum = default_zero(tst_under15_f['numeric_sum']) + Decimal(default_zero(pos_infant['numeric_sum'])/2)
+        under15_f_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': under15_f_sum,
+        }
+        calculated_vals.append(under15_f_val)
+        
+        under15_m_sum = default_zero(tst_under15_m['numeric_sum']) + Decimal(default_zero(pos_infant['numeric_sum'])/2)
+        under15_m_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': under15_m_sum,
+        }
+        calculated_vals.append(under15_m_val)
+        
+        over15_f_sum = default_zero(tst_over15_f['numeric_sum']) + default_zero(tst_pregnant['numeric_sum'])
+        over15_f_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': over15_f_sum,
+        }
+        calculated_vals.append(over15_f_val)
+        
+        over15_m_sum = default_zero(tst_over15_m['numeric_sum']) + default_zero(tst_male_partner['numeric_sum'])
+        over15_m_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': over15_m_sum,
+        }
+        calculated_vals.append(over15_m_val)
+        
+        half_pos_pcr = Decimal(default_zero(pos_pcr1['numeric_sum']) + default_zero(pos_pcr1['numeric_sum']))/2
+        pos_under15_f_sum = default_zero(pos_under15_f['numeric_sum']) + half_pos_pcr
+        pos_under15_f_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': pos_under15_f_sum,
+        }
+        calculated_vals.append(pos_under15_f_val)
+        
+        pos_under15_m_sum = default_zero(pos_under15_m['numeric_sum']) + half_pos_pcr
+        pos_under15_m_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': pos_under15_m_sum,
+        }
+        calculated_vals.append(pos_under15_m_val)
+        
+        pos_over15_f_sum = default_zero(pos_over15_f['numeric_sum']) + Decimal(default_zero(pos_pregnant['numeric_sum']))
+        pos_over15_f_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': pos_over15_f_sum,
+        }
+        calculated_vals.append(pos_over15_f_val)
+        
+        pos_over15_m_sum = default_zero(pos_over15_m['numeric_sum']) + Decimal(default_zero(pos_male_partner['numeric_sum']))
+        pos_over15_m_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': pos_over15_m_sum,
+        }
+        calculated_vals.append(pos_over15_m_val)
+
+        tested_total = sum([under15_f_sum, under15_m_sum, over15_f_sum, over15_m_sum])
+        pos_total = sum([pos_under15_f_sum, pos_under15_m_sum, pos_over15_f_sum, pos_over15_m_sum])
+        tested_total_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested',
+            'cat_combo': None,
+            'numeric_sum': tested_total,
+        }
+        pos_total_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+',
+            'cat_combo': None,
+            'numeric_sum': pos_total,
+        }
+        calculated_vals.append(tested_total_val)
+        calculated_vals.append(pos_total_val)
+
+        # calculate the percentages
+        target_under15_f, target_under15_m, target_over15_f, target_over15_m, target_pos_under15_f, target_pos_under15_m, target_pos_over15_f, target_pos_over15_m, *further_vals = other_vals
+
+        if all_not_none(under15_f_sum, target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
+            under15_f_percent = (under15_f_sum * 100) / target_under15_f['numeric_sum']
+        else:
+            under15_f_percent = None
+        under15_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': under15_f_percent,
+        }
+        calculated_vals.append(under15_f_percent_val)
+
+        if all_not_none(under15_m_sum, target_under15_m['numeric_sum']) and target_under15_m['numeric_sum']:
+            under15_m_percent = (under15_m_sum * 100) / target_under15_m['numeric_sum']
+        else:
+            under15_m_percent = None
+        under15_m_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': under15_m_percent,
+        }
+        calculated_vals.append(under15_m_percent_val)
+
+        if all_not_none(over15_f_sum, target_over15_f['numeric_sum']) and target_over15_f['numeric_sum']:
+            over15_f_percent = (over15_f_sum * 100) / target_over15_f['numeric_sum']
+        else:
+            over15_f_percent = None
+        over15_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': over15_f_percent,
+        }
+        calculated_vals.append(over15_f_percent_val)
+
+        if all_not_none(over15_m_sum, target_over15_m['numeric_sum']) and target_over15_m['numeric_sum']:
+            over15_m_percent = (over15_m_sum * 100) / target_over15_m['numeric_sum']
+        else:
+            over15_m_percent = None
+        over15_m_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': over15_m_percent,
+        }
+        calculated_vals.append(over15_m_percent_val)
+
+        if all_not_none(pos_under15_f_sum, target_pos_under15_f['numeric_sum']) and target_pos_under15_f['numeric_sum']:
+            pos_under15_f_percent = (pos_under15_f_sum * 100) / target_pos_under15_f['numeric_sum']
+        else:
+            pos_under15_f_percent = None
+        pos_under15_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': pos_under15_f_percent,
+        }
+        calculated_vals.append(pos_under15_f_percent_val)
+
+        if all_not_none(pos_under15_m_sum, target_pos_under15_m['numeric_sum']) and target_pos_under15_m['numeric_sum']:
+            pos_under15_m_percent = (pos_under15_m_sum * 100) / target_pos_under15_m['numeric_sum']
+        else:
+            pos_under15_m_percent = None
+        pos_under15_m_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': pos_under15_m_percent,
+        }
+        calculated_vals.append(pos_under15_m_percent_val)
+
+        if all_not_none(pos_over15_f_sum, target_pos_over15_f['numeric_sum']) and target_pos_over15_f['numeric_sum']:
+            pos_over15_f_percent = (pos_over15_f_sum * 100) / target_pos_over15_f['numeric_sum']
+        else:
+            pos_over15_f_percent = None
+        pos_over15_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': pos_over15_f_percent,
+        }
+        calculated_vals.append(pos_over15_f_percent_val)
+
+        if all_not_none(pos_over15_m_sum, target_pos_over15_m['numeric_sum']) and target_pos_over15_m['numeric_sum']:
+            pos_over15_m_percent = (pos_over15_m_sum * 100) / target_pos_over15_m['numeric_sum']
+        else:
+            pos_over15_m_percent = None
+        pos_over15_m_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': pos_over15_m_percent,
+        }
+        calculated_vals.append(pos_over15_m_percent_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals
+    
+    data_element_names = list()
+    # data_element_names += list(product(hts_short_names, subcategory_names))
+    # data_element_names += de_pmtct_mother_meta
+    # data_element_names += de_pmtct_mother_pos_meta
+    # data_element_names += list(product(pmtct_child_short_names, (None,)))
+    # data_element_names += de_target_meta
+    data_element_names += list(product(['Tested',], subcategory_names))
+    data_element_names += list(product(['HIV+',], subcategory_names))
+    data_element_names += list(product(['Tested',], [None,]))
+    data_element_names += list(product(['HIV+',], [None,]))
+    data_element_names += list(product(['Tested (%)',], subcategory_names))
+    data_element_names += list(product(['HIV+ (%)',], subcategory_names))
+
+    context = {
+        'grouped_data': grouped_vals,
+        'val_pmtct_child': list(val_pmtct_child),
+        'val_pmtct_child2': list(val_pmtct_child2),
+        # 'grouped_data_size': len(grouped_vals),
+        'data_element_names': data_element_names,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/hts_sites.html', context)
+
+@login_required
+def hts_by_district(request):
+    from django.db.models import Value, CharField
+
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YRS = ['%d' % (y,) for y in range(this_year, this_year-6, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d' % (this_year,)
+
+    period_desc = filter_period
+
+    hts_de_names = (
+        '105-4 Number of Individuals who received HIV test results',
+        '105-4 Number of Individuals who tested HIV positive',
+    )
+    hts_short_names = (
+        'Tested',
+        'HIV+',
+    )
+    subcategory_names = ['(<15, Female)', '(<15, Male)', '(15+, Female)', '(15+, Male)']
+    de_positivity_meta = list(product(hts_de_names, subcategory_names))
+
+    qs_positivity = DataValue.objects.what(*hts_de_names).filter(year=filter_period)
+
+    cc_lt_15 = ['18 Mths-<5 Years', '5-<10 Years', '10-<15 Years']
+    cc_ge_15 = ['15-<19 Years', '19-<49 Years', '>49 Years']
+    #TODO: cc_lt_15_f = CategoryCombo.from_cat_names(['Female', '<15']) gives a CategoryCombo instance that makes the Case statement clearer/safer
+    qs_positivity = qs_positivity.annotate(
+        cat_combo=Case(
+            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            default=None, output_field=CharField()
+        )
+    )
+    qs_positivity = qs_positivity.exclude(cat_combo__iexact=None)
+
+    qs_positivity = qs_positivity.annotate(district=F('org_unit__parent__parent__name'))
+    qs_positivity = qs_positivity.annotate(period=F('year'))
+    qs_positivity = qs_positivity.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_positivity = qs_positivity.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_positivity = list(val_positivity)
+    
+    # all districts (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
+    ou_list = list(v for v in qs_ou.values_list('district'))
+
+    def val_with_subcat_fun(row, col):
+        district, = row
+        de_name, subcategory = col
+        return { 'district': district, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+    gen_raster = grabbag.rasterize(ou_list, de_positivity_meta, val_positivity, lambda x: (x['district'],), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_positivity2 = list(gen_raster)
+
+    pmtct_mother_de_names = (
+        '105-2.1 Pregnant Women newly tested for HIV this pregnancy(TR & TRR)',
+        '105-2.2a Women tested for HIV in labour (1st time this Pregnancy)',
+        '105-2.3a Breastfeeding mothers tested for HIV(1st test)',
+    )
+    de_pmtct_mother_meta = list(product(('Pregnant Women tested for HIV',), (None,)))
+
+    qs_pmtct_mother = DataValue.objects.what(*pmtct_mother_de_names).filter(year=filter_period)
+    qs_pmtct_mother = qs_pmtct_mother.annotate(de_name=Value('Pregnant Women tested for HIV', output_field=CharField()))
+    qs_pmtct_mother = qs_pmtct_mother.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_pmtct_mother = qs_pmtct_mother.annotate(district=F('org_unit__parent__parent__name'))
+    qs_pmtct_mother = qs_pmtct_mother.annotate(period=F('year'))
+    qs_pmtct_mother = qs_pmtct_mother.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_pmtct_mother = qs_pmtct_mother.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_pmtct_mother_meta, val_pmtct_mother, lambda x: (x['district'],), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pmtct_mother2 = list(gen_raster)
+
+    pmtct_mother_pos_de_names = (
+        '105-2.1 A19:Pregnant Women testing HIV+ on a retest (TRR+)',
+        '105-2.2a Women testing HIV+ in labour (1st time this Pregnancy)',
+        '105-2.2b Women testing HIV+ in labour (Retest this Pregnancy)',
+        '105-2.3a Breastfeeding mothers newly testing HIV+(1st test)',
+        '105-2.3b Breastfeeding mothers newly testing HIV+(retest)',
+    )
+    de_pmtct_mother_pos_meta = list(product(('Pregnant Women testing HIV+',), (None,)))
+
+    qs_pmtct_mother_pos = DataValue.objects.what(*pmtct_mother_pos_de_names).filter(year=filter_period)
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(de_name=Value('Pregnant Women testing HIV+', output_field=CharField()))
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(district=F('org_unit__parent__parent__name'))
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(period=F('year'))
+    qs_pmtct_mother_pos = qs_pmtct_mother_pos.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_pmtct_mother_pos = qs_pmtct_mother_pos.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_pmtct_mother_pos_meta, val_pmtct_mother_pos, lambda x: (x['district'],), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pmtct_mother_pos2 = list(gen_raster)
+
+    pmtct_child_de_names = (
+        '105-2.4a Exposed Infants Tested for HIV Below 18 Months(by 1st PCR) ',
+        '105-2.4b 1st DNA PCR result returned(HIV+)',
+        '105-2.4b 2nd DNA PCR result returned(HIV+)',
+        '105-2.1a Male partners received HIV test results in eMTCT(Total)',
+        '105-2.1b Male partners received HIV test results in eMTCT(HIV+)',
+    )
+    pmtct_child_short_names = (
+        'PMTCT INFANT HIV+',
+        'PMTCT CHILD PCR1 HIV+',
+        'PMTCT CHILD PCR2 HIV+',
+        'PMTCT MALE PARTNERS TESTED',
+        'PMTCT MALE PARTNERS HIV+',
+    )
+    de_pmtct_child_meta = list(product(pmtct_child_de_names, (None,)))
+
+    qs_pmtct_child = DataValue.objects.what(*pmtct_child_de_names).filter(year=filter_period)
+    qs_pmtct_child = qs_pmtct_child.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_pmtct_child = qs_pmtct_child.annotate(district=F('org_unit__parent__parent__name'))
+    qs_pmtct_child = qs_pmtct_child.annotate(period=F('year'))
+    qs_pmtct_child = qs_pmtct_child.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_pmtct_child = qs_pmtct_child.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_pmtct_child_meta, val_pmtct_child, lambda x: (x['district'],), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pmtct_child2 = list(gen_raster)
+
+    target_de_names = (
+        'HTC_TST_TARGET',
+        'HTC_TST_POS_TARGET',
+    )
+    de_target_meta = list(product(target_de_names, subcategory_names))
+
+    # targets are annual, so filter by year component of period
+    qs_target = DataValue.objects.what(*target_de_names).filter(year=filter_period[:4])
+
+    qs_target = qs_target.annotate(cat_combo=F('category_combo__name'))
+    qs_target = qs_target.annotate(district=F('org_unit__parent__parent__name'))
+    qs_target = qs_target.annotate(period=F('year'))
+    qs_target = qs_target.order_by('district', '-de_name', 'cat_combo', 'period') # note reversed order of data element names
+    val_target = qs_target.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_target = list(val_target)
+
+    gen_raster = grabbag.rasterize(ou_list, de_target_meta, val_target, lambda x: (x['district'],), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_target2 = list(gen_raster)
+
+    # combine the data and group by district
+    grouped_vals = groupbylist(sorted(chain(val_positivity2, val_pmtct_mother2, val_pmtct_mother_pos2, val_pmtct_child2, val_target2), key=lambda x: (x['district'],)), key=lambda x: (x['district'],))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (ou_path_list, (tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        under15_f_sum = default_zero(tst_under15_f['numeric_sum']) + Decimal(default_zero(pos_infant['numeric_sum'])/2)
+        under15_f_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': under15_f_sum,
+        }
+        calculated_vals.append(under15_f_val)
+        
+        under15_m_sum = default_zero(tst_under15_m['numeric_sum']) + Decimal(default_zero(pos_infant['numeric_sum'])/2)
+        under15_m_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': under15_m_sum,
+        }
+        calculated_vals.append(under15_m_val)
+        
+        over15_f_sum = default_zero(tst_over15_f['numeric_sum']) + default_zero(tst_pregnant['numeric_sum'])
+        over15_f_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': over15_f_sum,
+        }
+        calculated_vals.append(over15_f_val)
+        
+        over15_m_sum = default_zero(tst_over15_m['numeric_sum']) + default_zero(tst_male_partner['numeric_sum'])
+        over15_m_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': over15_m_sum,
+        }
+        calculated_vals.append(over15_m_val)
+        
+        half_pos_pcr = Decimal(default_zero(pos_pcr1['numeric_sum']) + default_zero(pos_pcr1['numeric_sum']))/2
+        pos_under15_f_sum = default_zero(pos_under15_f['numeric_sum']) + half_pos_pcr
+        pos_under15_f_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': pos_under15_f_sum,
+        }
+        calculated_vals.append(pos_under15_f_val)
+        
+        pos_under15_m_sum = default_zero(pos_under15_m['numeric_sum']) + half_pos_pcr
+        pos_under15_m_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': pos_under15_m_sum,
+        }
+        calculated_vals.append(pos_under15_m_val)
+        
+        pos_over15_f_sum = default_zero(pos_over15_f['numeric_sum']) + Decimal(default_zero(pos_pregnant['numeric_sum']))
+        pos_over15_f_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': pos_over15_f_sum,
+        }
+        calculated_vals.append(pos_over15_f_val)
+        
+        pos_over15_m_sum = default_zero(pos_over15_m['numeric_sum']) + Decimal(default_zero(pos_male_partner['numeric_sum']))
+        pos_over15_m_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': pos_over15_m_sum,
+        }
+        calculated_vals.append(pos_over15_m_val)
+
+        tested_total = sum([under15_f_sum, under15_m_sum, over15_f_sum, over15_m_sum])
+        pos_total = sum([pos_under15_f_sum, pos_under15_m_sum, pos_over15_f_sum, pos_over15_m_sum])
+        tested_total_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested',
+            'cat_combo': None,
+            'numeric_sum': tested_total,
+        }
+        pos_total_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+',
+            'cat_combo': None,
+            'numeric_sum': pos_total,
+        }
+        calculated_vals.append(tested_total_val)
+        calculated_vals.append(pos_total_val)
+
+        # calculate the percentages
+        target_under15_f, target_under15_m, target_over15_f, target_over15_m, target_pos_under15_f, target_pos_under15_m, target_pos_over15_f, target_pos_over15_m, *further_vals = other_vals
+
+        if all_not_none(under15_f_sum, target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
+            under15_f_percent = (under15_f_sum * 100) / target_under15_f['numeric_sum']
+        else:
+            under15_f_percent = None
+        under15_f_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': under15_f_percent,
+        }
+        calculated_vals.append(under15_f_percent_val)
+
+        if all_not_none(under15_m_sum, target_under15_m['numeric_sum']) and target_under15_m['numeric_sum']:
+            under15_m_percent = (under15_m_sum * 100) / target_under15_m['numeric_sum']
+        else:
+            under15_m_percent = None
+        under15_m_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': under15_m_percent,
+        }
+        calculated_vals.append(under15_m_percent_val)
+
+        if all_not_none(over15_f_sum, target_over15_f['numeric_sum']) and target_over15_f['numeric_sum']:
+            over15_f_percent = (over15_f_sum * 100) / target_over15_f['numeric_sum']
+        else:
+            over15_f_percent = None
+        over15_f_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': over15_f_percent,
+        }
+        calculated_vals.append(over15_f_percent_val)
+
+        if all_not_none(over15_m_sum, target_over15_m['numeric_sum']) and target_over15_m['numeric_sum']:
+            over15_m_percent = (over15_m_sum * 100) / target_over15_m['numeric_sum']
+        else:
+            over15_m_percent = None
+        over15_m_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Tested (%)',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': over15_m_percent,
+        }
+        calculated_vals.append(over15_m_percent_val)
+
+        if all_not_none(pos_under15_f_sum, target_pos_under15_f['numeric_sum']) and target_pos_under15_f['numeric_sum']:
+            pos_under15_f_percent = (pos_under15_f_sum * 100) / target_pos_under15_f['numeric_sum']
+        else:
+            pos_under15_f_percent = None
+        pos_under15_f_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': pos_under15_f_percent,
+        }
+        calculated_vals.append(pos_under15_f_percent_val)
+
+        if all_not_none(pos_under15_m_sum, target_pos_under15_m['numeric_sum']) and target_pos_under15_m['numeric_sum']:
+            pos_under15_m_percent = (pos_under15_m_sum * 100) / target_pos_under15_m['numeric_sum']
+        else:
+            pos_under15_m_percent = None
+        pos_under15_m_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': pos_under15_m_percent,
+        }
+        calculated_vals.append(pos_under15_m_percent_val)
+
+        if all_not_none(pos_over15_f_sum, target_pos_over15_f['numeric_sum']) and target_pos_over15_f['numeric_sum']:
+            pos_over15_f_percent = (pos_over15_f_sum * 100) / target_pos_over15_f['numeric_sum']
+        else:
+            pos_over15_f_percent = None
+        pos_over15_f_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': pos_over15_f_percent,
+        }
+        calculated_vals.append(pos_over15_f_percent_val)
+
+        if all_not_none(pos_over15_m_sum, target_pos_over15_m['numeric_sum']) and target_pos_over15_m['numeric_sum']:
+            pos_over15_m_percent = (pos_over15_m_sum * 100) / target_pos_over15_m['numeric_sum']
+        else:
+            pos_over15_m_percent = None
+        pos_over15_m_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'HIV+ (%)',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': pos_over15_m_percent,
+        }
+        calculated_vals.append(pos_over15_m_percent_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals
+    
+    data_element_names = list()
+    
+    # data_element_names += list(product(hts_short_names, subcategory_names))
+    # data_element_names += de_pmtct_mother_meta
+    # data_element_names += de_pmtct_mother_pos_meta
+    # data_element_names += list(product(pmtct_child_short_names, (None,)))
+    # data_element_names += de_target_meta
+
+    data_element_names += list(product(['Tested',], subcategory_names))
+    data_element_names += list(product(['HIV+',], subcategory_names))
+    data_element_names += list(product(['Tested',], [None,]))
+    data_element_names += list(product(['HIV+',], [None,]))
+    data_element_names += list(product(['Tested (%)',], subcategory_names))
+    data_element_names += list(product(['HIV+ (%)',], subcategory_names))
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_list': ou_list,
+        'val_target': val_target,
+        'val_target2': val_target2,
+        # 'grouped_data_size': len(grouped_vals),
+        'data_element_names': data_element_names,
+        'period_desc': period_desc,
+        'period_list': PREV_5YRS,
+    }
+
+    return render(request, 'cannula/hts_districts.html', context)

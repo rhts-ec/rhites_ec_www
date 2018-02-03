@@ -7,6 +7,11 @@
 	<li><a href="{% url 'ipt_quarterly' %}?ou_level=2&period=2017-Q2">Malaria - IPT</a></li>
 </ul>
 
+<ul>
+	<li><a href="{% url 'hts_sites' %}">HTS - Sites</a></li>
+	<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
+</ul>
+
 <h4>Validation Reports</h4>
 <ul>
 {% for id, name in validation_rules %}

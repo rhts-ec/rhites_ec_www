@@ -93,3 +93,15 @@ def rasterize(rows, columns, values, row_index_func, col_index_func, default_fun
                 curr_val = next(i_values, default_func(row, col))
             else:
                 yield default_func(row, col)
+
+def default(*args, fillvalue=None):
+    try:
+        return next(filter(lambda x: x is not None, args))
+    except StopIteration as e:
+        return fillvalue
+
+def default_zero(*args):
+    return default(*args, fillvalue=0)
+
+def all_not_none(*args):
+    return all(map(lambda x: x is not None, args))
