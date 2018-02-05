@@ -30,6 +30,19 @@ addEvent( window, "load", function() {
   var a = document.getElementsByTagName("*") || document.all;
 
   for ( var i = 0; i < a.length; i++ )
+    if ( has( a[i].className, "green_yellow_orange_60_40_25_unbounded" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 60 ) percent_categ = "w3-green";
+        else if ( percent_val >= 40 ) percent_categ = "w3-light-green";
+        else if ( percent_val >= 20 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-orange";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
     if ( has( a[i].className, "traffic_light_90_75_unbounded" ) ) {
       var percent_val = extractNumber(a[i]);
 
