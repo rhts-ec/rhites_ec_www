@@ -21,10 +21,8 @@ function removeEvent( obj, type, fn ) {
 }
 
 function extractNumber(el) {
-  var matches = el.innerText.match('[0-9]+');
-  if ( matches == null )
-  	return null;
-  return matches[0];
+  //TODO: handle other locales which have different separators
+  return Number.parseFloat(el.innerText.replace(',', ''));
 }
 
 
