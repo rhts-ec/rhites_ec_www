@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, render_to_response, redirect
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
+from django.db.models import Value, CharField
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.template import RequestContext
@@ -402,8 +403,6 @@ def data_element_alias(request):
 
 @login_required
 def hts_by_site(request):
-    from django.db.models import Value, CharField
-
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -808,8 +807,6 @@ def hts_by_site(request):
 
 @login_required
 def hts_by_district(request):
-    from django.db.models import Value, CharField
-
     this_day = date.today()
     this_year = this_day.year
     PREV_5YRS = ['%d' % (y,) for y in range(this_year, this_year-6, -1)]
