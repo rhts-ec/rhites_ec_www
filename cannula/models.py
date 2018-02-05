@@ -313,7 +313,9 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
 
     wb_loc_values = defaultdict(list) # when a new key is encountered return a new empty list
 
-    for ws_name in ['Step1', 'Targets']: #wb.get_sheet_names()[:max_sheets]:
+    for ws_name in wb.get_sheet_names()[:max_sheets]: #['Step1', 'Targets']:
+        if ws_name in ['Validations']:
+            continue
         ws = wb[ws_name]
         logger.debug((ws_name, ws.max_row, ws.max_column))
 
@@ -375,7 +377,10 @@ def load_excel_to_validations(source_doc):
     wb = openpyxl.load_workbook(source_doc.file.path) #TODO: ensure we close the workbook file. use a context manager?
     logger.debug(wb.get_sheet_names())
 
-    for ws_name in ['Validations']:
+    for ws_name in wb.get_sheet_names():
+        if ws_name != 'Validations':
+            continue
+
         ws = wb[ws_name]
         logger.debug((ws_name, ws.max_row, ws.max_column))
 
