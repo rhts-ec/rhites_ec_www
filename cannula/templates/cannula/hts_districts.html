@@ -90,6 +90,8 @@
 		{% endif %}
 		{% if x.de_name == 'Tested (%)' or x.de_name == 'HIV+ (%)' %}
 		<td class="w3-right-align traffic_light_90_75_unbounded">{{ x.numeric_sum|floatformat }}</td>
+		{% elif x.de_name == 'Linked (%)' %}
+		<td class="w3-right-align traffic_light_90_80">{{ x.numeric_sum|floatformat }}</td>
 		{% else %}
 		<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
 		{% endif %}
