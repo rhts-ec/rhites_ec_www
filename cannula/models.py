@@ -189,6 +189,11 @@ CATEGORIES = [
     '5-59 Years',
     '60andAbove Years',
 
+    # VMMC
+    '2<5 Years',
+    '5-<15 Years',
+    '15-49 Years',
+
     '<15',
     '15+',
 ]

@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, render_to_response, redirect
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
 from django.db.models import Value, CharField
+from django.db.models.functions import Substr
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.template import RequestContext
@@ -1300,3 +1301,281 @@ def hts_by_district(request):
     }
 
     return render(request, 'cannula/hts_districts.html', context)
+
+@login_required
+def vmmc_by_site(request):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+
+    targets_de_names = (
+        'VMMC_CIRC_TARGET',
+        'VMMC_DEVICE_TARGET',
+        'VMMC_SURGICAL_TARGET',
+    )
+    targets_short_names = (
+        'TARGET: VMMC_CIRC',
+        'TARGET: Device-based',
+        'TARGET: Surgical',
+    )
+    de_targets_meta = list(product(targets_de_names, (None,)))
+
+    qs_targets = DataValue.objects.what(*targets_de_names).filter(quarter=filter_period)
+    qs_targets = qs_targets.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_targets = qs_targets.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_targets = qs_targets.annotate(period=F('quarter'))
+    qs_targets = qs_targets.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_targets = qs_targets.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_targets = list(val_targets)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_meta, val_targets, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_targets2 = list(gen_raster)
+
+    method_de_names = (
+        '105-5 Clients circumcised by circumcision Technique Device Based (DC)',
+        '105-5 Clients circumcised by circumcision Technique Other VMMC techniques',
+        '105-5 Clients circumcised by circumcision Technique Surgical(SC)',
+    )
+    method_short_names = (
+        'Circumcised by technique - Device Based',
+        'Circumcised by technique - Other',
+        'Circumcised by technique - Surgical',
+    )
+    de_method_meta = list(product(method_de_names, (None,)))
+
+    qs_method = DataValue.objects.what(*method_de_names).filter(quarter=filter_period)
+    qs_method = qs_method.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_method = qs_method.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_method = qs_method.annotate(period=F('quarter'))
+    qs_method = qs_method.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_method = qs_method.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_method_meta, val_method, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_method2 = list(gen_raster)
+
+    hiv_de_names = (
+        '105-5 SMC Clients Counseled, Tested and Circumcised for HIV at SMC site HIV Negative',
+        '105-5 SMC Clients Counseled, Tested and Circumcised for HIV at SMC site HIV Positive',
+    )
+    hiv_short_names = (
+        'Circumcised by HIV status - Negative',
+        'Circumcised by HIV status - Positive',
+    )
+    de_hiv_meta = list(product(hiv_de_names, (None,)))
+
+    qs_hiv = DataValue.objects.what(*hiv_de_names).filter(quarter=filter_period)
+    qs_hiv = qs_hiv.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_hiv = qs_hiv.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_hiv = qs_hiv.annotate(period=F('quarter'))
+    qs_hiv = qs_hiv.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_hiv = qs_hiv.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_hiv_meta, val_hiv, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_hiv2 = list(gen_raster)
+
+    location_de_names = (
+        '105-5 Number of Males Circumcised by Age group and Technique Facility, Device Based (DC)',
+        '105-5 Number of Males Circumcised by Age group and Technique Facility, Surgical(SC)',
+        '105-5 Number of Males Circumcised by Age group and Technique Outreach, Device Based (DC)',
+        '105-5 Number of Males Circumcised by Age group and Technique Outreach, Surgical(SC)',
+    )
+    location_de_names2 = (
+        '105-5 Number of Males Circumcised by Age group and Technique Facility',
+        '105-5 Number of Males Circumcised by Age group and Technique Outreach',
+    )
+    location_prefix_len = len('105-5 Number of Males Circumcised by Age group and Technique Facility')
+    location_short_names = (
+        'Circumcised by site type - Static',
+        'Circumcised by site type - Mobile',
+    )
+    de_location_meta = list(product(location_de_names2, (None,)))
+
+    qs_location = DataValue.objects.what(*location_de_names).filter(quarter=filter_period)
+    qs_location = qs_location.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    # drop the technique section from the returned data element name
+    qs_location = qs_location.annotate(de_name=Substr('data_element__name', 1, location_prefix_len))
+
+    qs_location = qs_location.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_location = qs_location.annotate(period=F('quarter'))
+    qs_location = qs_location.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_location = qs_location.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_location_meta, val_location, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_location2 = list(gen_raster)
+
+    followup_de_names = (
+        '105-5a Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Within 48 Hours)',
+        '105-5b Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Within 7 Days)',
+        '105-5c Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Beyond 7 Days)',
+    )
+    followup_short_names = (
+        'Follow up - Within 48 hours',
+        'Follow up - Within 7 days',
+        'Follow up - Beyond 7 days',
+    )
+    de_followup_meta = list(product(followup_de_names, (None,)))
+
+    qs_followup = DataValue.objects.what(*followup_de_names).filter(quarter=filter_period)
+    qs_followup = qs_followup.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_followup = qs_followup.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_followup = qs_followup.annotate(period=F('quarter'))
+    qs_followup = qs_followup.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_followup = qs_followup.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_followup_meta, val_followup, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_followup2 = list(gen_raster)
+
+    adverse_de_names = (
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Moderate',
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Severe',
+    )
+    adverse_short_names = (
+        'Adverse Events - Moderate',
+        'Adverse Events - Severe',
+    )
+    de_adverse_meta = list(product(adverse_de_names, (None,)))
+
+    qs_adverse = DataValue.objects.what(*adverse_de_names).filter(quarter=filter_period)
+    qs_adverse = qs_adverse.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_adverse = qs_adverse.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_adverse = qs_adverse.annotate(period=F('quarter'))
+    qs_adverse = qs_adverse.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_adverse = qs_adverse.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_adverse_meta, val_adverse, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_adverse2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_hiv2, val_location2, val_method2, val_followup2, val_adverse2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (target_total, target_device, target_surgical, hiv_negative, hiv_positive, location_facility, location_outreach, method_device, method_other, method_surgical, followup_48hrs, followup_7days, followup_plus7days, adverse_moderate, adverse_severe, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        method_sum = default_zero(method_device['numeric_sum']) + default_zero(method_surgical['numeric_sum']) + default_zero(method_other['numeric_sum'])
+
+        if all_not_none(target_total['numeric_sum'], method_sum) and target_total['numeric_sum']:
+            target_total_percent = (method_sum * 100) / target_total['numeric_sum']
+        else:
+            target_total_percent = None
+        target_total_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Perf% Circumcised',
+            'cat_combo': None,
+            'numeric_sum': target_total_percent,
+        }
+        calculated_vals.append(target_total_percent_val)
+
+        if all_not_none(target_device['numeric_sum'], method_device['numeric_sum']) and target_device['numeric_sum']:
+            if target_device['numeric_sum'] == 4:
+                tt = 1/0
+            target_device_percent = (method_device['numeric_sum'] * 100) / target_device['numeric_sum']
+        else:
+            target_device_percent = None
+        target_device_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Perf% Circumcised DC',
+            'cat_combo': None,
+            'numeric_sum': target_device_percent,
+        }
+        calculated_vals.append(target_device_percent_val)
+
+        if all_not_none(target_surgical['numeric_sum'], method_surgical['numeric_sum']) and target_surgical['numeric_sum']:
+            target_surgical_percent = (method_surgical['numeric_sum'] * 100) / target_surgical['numeric_sum']
+        else:
+            target_surgical_percent = None
+        target_surgical_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Perf% Circumcised Surgical',
+            'cat_combo': None,
+            'numeric_sum': target_surgical_percent,
+        }
+        calculated_vals.append(target_surgical_percent_val)
+
+        if all_not_none(followup_48hrs['numeric_sum'], method_sum) and method_sum:
+            followup_48hrs_percent = (followup_48hrs['numeric_sum'] * 100) / method_sum
+        else:
+            followup_48hrs_percent = None
+        followup_48hrs_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% who returned within 48 hours',
+            'cat_combo': None,
+            'numeric_sum': followup_48hrs_percent,
+        }
+        calculated_vals.append(followup_48hrs_percent_val)
+
+        adverse_sum = default_zero(adverse_moderate['numeric_sum']) + default_zero(adverse_severe['numeric_sum'])
+
+        if all_not_none(adverse_sum, method_sum) and method_sum:
+            adverse_percent = (adverse_sum * 100) / method_sum
+        else:
+            adverse_percent = None
+        adverse_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% with at least one adverse event',
+            'cat_combo': None,
+            'numeric_sum': adverse_percent,
+        }
+        calculated_vals.append(adverse_percent_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += list(product(targets_short_names, (None,)))
+    data_element_names += list(product(hiv_short_names, (None,)))
+    data_element_names += list(product(location_short_names, (None,)))
+    data_element_names += list(product(method_short_names, (None,)))
+    data_element_names += list(product(followup_short_names, (None,)))
+    data_element_names += list(product(adverse_short_names, (None,)))
+
+    data_element_names += list(product(['Perf% Circumcised'], (None,)))
+    data_element_names += list(product(['Perf% Circumcised DC'], (None,)))
+    data_element_names += list(product(['Perf% Circumcised Surgical'], (None,)))
+    data_element_names += list(product(['% who returned within 48 hours'], (None,)))
+    data_element_names += list(product(['% with at least one adverse event'], (None,)))
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_list': ou_list,
+        'val_targets': val_targets,
+        'val_targets2': val_targets2,
+        'data_element_names': data_element_names,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/vmmc_sites.html', context)
