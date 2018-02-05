@@ -415,10 +415,12 @@ def hts_by_site(request):
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
     hts_de_names = (
+        '105-4 Number of clients who have been linked to care',
         '105-4 Number of Individuals who received HIV test results',
         '105-4 Number of Individuals who tested HIV positive',
     )
     hts_short_names = (
+        'Linked',
         'Tested',
         'HIV+',
     )
@@ -548,7 +550,7 @@ def hts_by_site(request):
 
     # perform calculations
     for _group in grouped_vals:
-        (district_subcounty_facility, (tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
+        (district_subcounty_facility, (linked_under15_f, linked_under15_m, linked_over15_f, linked_over15_m, tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
         
         calculated_vals = list()
 
@@ -661,6 +663,12 @@ def hts_by_site(request):
         }
         calculated_vals.append(tested_total_val)
         calculated_vals.append(pos_total_val)
+
+        # copy linked to care totals over
+        calculated_vals.append(linked_under15_f)
+        calculated_vals.append(linked_under15_m)
+        calculated_vals.append(linked_over15_f)
+        calculated_vals.append(linked_over15_m)
 
         # calculate the percentages
         target_under15_f, target_under15_m, target_over15_f, target_over15_m, target_pos_under15_f, target_pos_under15_m, target_pos_over15_f, target_pos_over15_m, *further_vals = other_vals
@@ -777,6 +785,62 @@ def hts_by_site(request):
         }
         calculated_vals.append(pos_over15_m_percent_val)
 
+        if all_not_none(linked_under15_f['numeric_sum'], pos_under15_f['numeric_sum']) and pos_under15_f['numeric_sum']:
+            linked_under15_f_percent = (linked_under15_f['numeric_sum'] * 100) / pos_under15_f['numeric_sum']
+        else:
+            linked_under15_f_percent = None
+        linked_under15_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': linked_under15_f_percent,
+        }
+        calculated_vals.append(linked_under15_f_percent_val)
+
+        if all_not_none(linked_under15_m['numeric_sum'], pos_under15_m['numeric_sum']) and pos_under15_m['numeric_sum']:
+            linked_under15_m_percent = (linked_under15_m['numeric_sum'] * 100) / pos_under15_m['numeric_sum']
+        else:
+            linked_under15_m_percent = None
+        linked_under15_m_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': linked_under15_m_percent,
+        }
+        calculated_vals.append(linked_under15_m_percent_val)
+
+        if all_not_none(linked_over15_f['numeric_sum'], pos_over15_f['numeric_sum']) and pos_over15_f['numeric_sum']:
+            linked_over15_f_percent = (linked_over15_f['numeric_sum'] * 100) / pos_over15_f['numeric_sum']
+        else:
+            linked_over15_f_percent = None
+        linked_over15_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': linked_over15_f_percent,
+        }
+        calculated_vals.append(linked_over15_f_percent_val)
+
+        if all_not_none(linked_over15_m['numeric_sum'], pos_over15_m['numeric_sum']) and pos_over15_m['numeric_sum']:
+            linked_over15_m_percent = (linked_over15_m['numeric_sum'] * 100) / pos_over15_m['numeric_sum']
+        else:
+            linked_over15_m_percent = None
+        linked_over15_m_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': linked_over15_m_percent,
+        }
+        calculated_vals.append(linked_over15_m_percent_val)
+
         # _group[1].extend(calculated_vals)
         _group[1] = calculated_vals
     
@@ -790,8 +854,10 @@ def hts_by_site(request):
     data_element_names += list(product(['HIV+',], subcategory_names))
     data_element_names += list(product(['Tested',], [None,]))
     data_element_names += list(product(['HIV+',], [None,]))
+    data_element_names += list(product(['Linked',], subcategory_names))
     data_element_names += list(product(['Tested (%)',], subcategory_names))
     data_element_names += list(product(['HIV+ (%)',], subcategory_names))
+    data_element_names += list(product(['Linked (%)',], subcategory_names))
 
     context = {
         'grouped_data': grouped_vals,
@@ -819,10 +885,12 @@ def hts_by_district(request):
     period_desc = filter_period
 
     hts_de_names = (
+        '105-4 Number of clients who have been linked to care',
         '105-4 Number of Individuals who received HIV test results',
         '105-4 Number of Individuals who tested HIV positive',
     )
     hts_short_names = (
+        'Linked',
         'Tested',
         'HIV+',
     )
@@ -953,7 +1021,7 @@ def hts_by_district(request):
 
     # perform calculations
     for _group in grouped_vals:
-        (ou_path_list, (tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
+        (ou_path_list, (linked_under15_f, linked_under15_m, linked_over15_f, linked_over15_m, tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
         
         calculated_vals = list()
 
@@ -1046,6 +1114,12 @@ def hts_by_district(request):
         }
         calculated_vals.append(tested_total_val)
         calculated_vals.append(pos_total_val)
+
+        # copy linked to care totals over
+        calculated_vals.append(linked_under15_f)
+        calculated_vals.append(linked_under15_m)
+        calculated_vals.append(linked_over15_f)
+        calculated_vals.append(linked_over15_m)
 
         # calculate the percentages
         target_under15_f, target_under15_m, target_over15_f, target_over15_m, target_pos_under15_f, target_pos_under15_m, target_pos_over15_f, target_pos_over15_m, *further_vals = other_vals
@@ -1146,6 +1220,54 @@ def hts_by_district(request):
         }
         calculated_vals.append(pos_over15_m_percent_val)
 
+        if all_not_none(linked_under15_f['numeric_sum'], pos_under15_f['numeric_sum']) and pos_under15_f['numeric_sum']:
+            linked_under15_f_percent = (linked_under15_f['numeric_sum'] * 100) / pos_under15_f['numeric_sum']
+        else:
+            linked_under15_f_percent = None
+        linked_under15_f_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': linked_under15_f_percent,
+        }
+        calculated_vals.append(linked_under15_f_percent_val)
+
+        if all_not_none(linked_under15_m['numeric_sum'], pos_under15_m['numeric_sum']) and pos_under15_m['numeric_sum']:
+            linked_under15_m_percent = (linked_under15_m['numeric_sum'] * 100) / pos_under15_m['numeric_sum']
+        else:
+            linked_under15_m_percent = None
+        linked_under15_m_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': linked_under15_m_percent,
+        }
+        calculated_vals.append(linked_under15_m_percent_val)
+
+        if all_not_none(linked_over15_f['numeric_sum'], pos_over15_f['numeric_sum']) and pos_over15_f['numeric_sum']:
+            linked_over15_f_percent = (linked_over15_f['numeric_sum'] * 100) / pos_over15_f['numeric_sum']
+        else:
+            linked_over15_f_percent = None
+        linked_over15_f_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(15+, Female)',
+            'numeric_sum': linked_over15_f_percent,
+        }
+        calculated_vals.append(linked_over15_f_percent_val)
+
+        if all_not_none(linked_over15_m['numeric_sum'], pos_over15_m['numeric_sum']) and pos_over15_m['numeric_sum']:
+            linked_over15_m_percent = (linked_over15_m['numeric_sum'] * 100) / pos_over15_m['numeric_sum']
+        else:
+            linked_over15_m_percent = None
+        linked_over15_m_percent_val = {
+            'district': ou_path_list[0],
+            'de_name': 'Linked (%)',
+            'cat_combo': '(15+, Male)',
+            'numeric_sum': linked_over15_m_percent,
+        }
+        calculated_vals.append(linked_over15_m_percent_val)
+
         # _group[1].extend(calculated_vals)
         _group[1] = calculated_vals
     
@@ -1161,8 +1283,10 @@ def hts_by_district(request):
     data_element_names += list(product(['HIV+',], subcategory_names))
     data_element_names += list(product(['Tested',], [None,]))
     data_element_names += list(product(['HIV+',], [None,]))
+    data_element_names += list(product(['Linked',], subcategory_names))
     data_element_names += list(product(['Tested (%)',], subcategory_names))
     data_element_names += list(product(['HIV+ (%)',], subcategory_names))
+    data_element_names += list(product(['Linked (%)',], subcategory_names))
 
     context = {
         'grouped_data': grouped_vals,
