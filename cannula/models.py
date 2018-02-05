@@ -196,9 +196,18 @@ CATEGORIES = [
 import re
 SEP_REGEX = '[\s,]+' # one or more of these characters in sequence
 CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for categ in CATEGORIES)
+SEXLESS_CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
+
+ICKY_CATEGS = (
+    'Number of Male',
+    'Male partners',
+)
 
 def unpack_data_element(de_long):
-    m = re.split(CATEGORY_REGEX, de_long)
+    if any([de_long.upper().find(s.upper()) >=0 for s in ICKY_CATEGS]):
+        m = re.split(SEXLESS_CATEGORY_REGEX, de_long)
+    else:
+        m = re.split(CATEGORY_REGEX, de_long)
     # squash list of matches by removing blank and None entries (and False and numeric zeroes)
     de_name, *category_list = tuple(filter(None, m))
     cat_str = ', '.join(category_list)
