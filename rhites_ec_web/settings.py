@@ -115,3 +115,5 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
 SOURCE_DOC_DIR = os.path.join(BASE_DIR, 'source_doc_storage')
+
+LOGIN_REDIRECT_URL = '/'
