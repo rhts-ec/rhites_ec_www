@@ -194,6 +194,10 @@ CATEGORIES = [
     '5-<15 Years',
     '15-49 Years',
 
+    # HMIS 105 Laboratory
+    'Under 5 years',
+    '5 years and above',
+
     '<15',
     '15+',
 ]
