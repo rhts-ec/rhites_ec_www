@@ -1579,3 +1579,278 @@ def vmmc_by_site(request):
     }
 
     return render(request, 'cannula/vmmc_sites.html', context)
+
+@login_required
+def lab_by_site(request):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+
+    malaria_de_names = (
+        '105-7.3 Lab Malaria Microscopy  Number Done',
+        '105-7.3 Lab Malaria RDTs Number Done',
+    )
+    malaria_short_names = (
+        'Malaria Microscopy Done',
+        'Malaria RDTs Done',
+    )
+    de_malaria_meta = list(product(malaria_de_names, (None,)))
+
+    qs_malaria = DataValue.objects.what(*malaria_de_names).filter(quarter=filter_period)
+    qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_malaria = qs_malaria.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_malaria = qs_malaria.annotate(period=F('quarter'))
+    qs_malaria = qs_malaria.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_malaria = qs_malaria.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_malaria = list(val_malaria)
+
+    gen_raster = grabbag.rasterize(ou_list, de_malaria_meta, val_malaria, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_malaria2 = list(gen_raster)
+
+    hiv_determine_de_names = (
+        '105-7.8 Lab Determine Clinical Diagnosis',
+        '105-7.8 Lab Determine HCT',
+        '105-7.8 Lab Determine PMTCT',
+        '105-7.8 Lab Determine Quality Control',
+        '105-7.8 Lab Determine SMC',
+    )
+    hiv_determine_short_names = (
+        'HIV tests done using Determine',
+    )
+    de_hiv_determine_meta = list(product(['HIV tests done using Determine'], (None,)))
+
+    qs_hiv_determine = DataValue.objects.what(*hiv_determine_de_names).filter(quarter=filter_period)
+    qs_hiv_determine = qs_hiv_determine.annotate(de_name=Value('HIV tests done using Determine', output_field=CharField()))
+    qs_hiv_determine = qs_hiv_determine.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_hiv_determine = qs_hiv_determine.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_hiv_determine = qs_hiv_determine.annotate(period=F('quarter'))
+    qs_hiv_determine = qs_hiv_determine.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_hiv_determine = qs_hiv_determine.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_hiv_determine = list(val_hiv_determine)
+
+    gen_raster = grabbag.rasterize(ou_list, de_hiv_determine_meta, val_hiv_determine, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_hiv_determine2 = list(gen_raster)
+
+    hiv_statpak_de_names = (
+        '105-7.8 Lab Stat pak  Clinical Diagnosis',
+        '105-7.8 Lab Stat pak  HCT',
+        '105-7.8 Lab Stat pak  PMTCT',
+        '105-7.8 Lab Stat pak  Quality Control',
+        '105-7.8 Lab Stat pak  SMC',
+    )
+    hiv_statpak_short_names = (
+        'HIV tests done using Stat Pak',
+    )
+    de_hiv_statpak_meta = list(product(['HIV tests done using Stat Pak'], (None,)))
+
+    qs_hiv_statpak = DataValue.objects.what(*hiv_statpak_de_names).filter(quarter=filter_period)
+    qs_hiv_statpak = qs_hiv_statpak.annotate(de_name=Value('HIV tests done using Stat Pak', output_field=CharField()))
+    qs_hiv_statpak = qs_hiv_statpak.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_hiv_statpak = qs_hiv_statpak.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_hiv_statpak = qs_hiv_statpak.annotate(period=F('quarter'))
+    qs_hiv_statpak = qs_hiv_statpak.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_hiv_statpak = qs_hiv_statpak.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_hiv_statpak = list(val_hiv_statpak)
+
+    gen_raster = grabbag.rasterize(ou_list, de_hiv_statpak_meta, val_hiv_statpak, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_hiv_statpak2 = list(gen_raster)
+
+    hiv_unigold_de_names = (
+        '105-7.8 Lab Unigold Clinical Diagnosis',
+        '105-7.8 Lab Unigold HCT',
+        '105-7.8 Lab Unigold PMTCT',
+        '105-7.8 Lab Unigold Quality Control',
+        '105-7.8 Lab Unigold SMC',
+    )
+    hiv_unigold_short_names = (
+        'HIV tests done using Unigold',
+    )
+    de_hiv_unigold_meta = list(product(['HIV tests done using Unigold'], (None,)))
+
+    qs_hiv_unigold = DataValue.objects.what(*hiv_unigold_de_names).filter(quarter=filter_period)
+    qs_hiv_unigold = qs_hiv_unigold.annotate(de_name=Value('HIV tests done using Unigold', output_field=CharField()))
+    qs_hiv_unigold = qs_hiv_unigold.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_hiv_unigold = qs_hiv_unigold.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_hiv_unigold = qs_hiv_unigold.annotate(period=F('quarter'))
+    qs_hiv_unigold = qs_hiv_unigold.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_hiv_unigold = qs_hiv_unigold.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_hiv_unigold = list(val_hiv_unigold)
+
+    gen_raster = grabbag.rasterize(ou_list, de_hiv_unigold_meta, val_hiv_unigold, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_hiv_unigold2 = list(gen_raster)
+
+    tb_smear_de_names = (
+        '105-7.6 Lab ZN for AFBs  Number Done',
+    )
+    tb_smear_short_names = (
+        'TB Smear',
+    )
+    de_tb_smear_meta = list(product(tb_smear_de_names, (None,)))
+
+    qs_tb_smear = DataValue.objects.what(*tb_smear_de_names).filter(quarter=filter_period)
+    qs_tb_smear = qs_tb_smear.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_tb_smear = qs_tb_smear.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_tb_smear = qs_tb_smear.annotate(period=F('quarter'))
+    qs_tb_smear = qs_tb_smear.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_tb_smear = qs_tb_smear.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_tb_smear = list(val_tb_smear)
+
+    gen_raster = grabbag.rasterize(ou_list, de_tb_smear_meta, val_tb_smear, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_tb_smear2 = list(gen_raster)
+
+    syphilis_de_names = (
+        '105-7.4 Lab VDRL/RPR Number Done',
+        '105-7.4 Lab TPHA  Number Done',
+    )
+    syphilis_short_names = (
+        'Syphilis tests',
+    )
+    de_syphilis_meta = list(product(['Syphilis tests'], (None,)))
+
+    qs_syphilis = DataValue.objects.what(*syphilis_de_names).filter(quarter=filter_period)
+    qs_syphilis = qs_syphilis.annotate(de_name=Value('Syphilis tests', output_field=CharField()))
+    qs_syphilis = qs_syphilis.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_syphilis = qs_syphilis.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_syphilis = qs_syphilis.annotate(period=F('quarter'))
+    qs_syphilis = qs_syphilis.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_syphilis = qs_syphilis.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_syphilis = list(val_syphilis)
+
+    gen_raster = grabbag.rasterize(ou_list, de_syphilis_meta, val_syphilis, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_syphilis2 = list(gen_raster)
+
+    liver_de_names = (
+        '105-7.7 Lab ALT Number Done',
+        '105-7.7 Lab AST Number Done',
+        '105-7.7 Lab Albumin  Number Done',
+    )
+    liver_short_names = (
+        'LFTs',
+    )
+    de_liver_meta = list(product(['LFTs'], (None,)))
+
+    qs_liver = DataValue.objects.what(*liver_de_names).filter(quarter=filter_period)
+    qs_liver = qs_liver.annotate(de_name=Value('LFTs', output_field=CharField()))
+    qs_liver = qs_liver.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_liver = qs_liver.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_liver = qs_liver.annotate(period=F('quarter'))
+    qs_liver = qs_liver.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_liver = qs_liver.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_liver = list(val_liver)
+
+    gen_raster = grabbag.rasterize(ou_list, de_liver_meta, val_liver, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_liver2 = list(gen_raster)
+
+    renal_de_names = (
+        '105-7.7 Lab Calcium  Number Done',
+        '105-7.7 Lab Creatinine Number Done',
+        '105-7.7 Lab Potassium Number Done',
+        '105-7.7 Lab Sodium Number Done',
+        '105-7.7 Lab Total Protein Number Done',
+        '105-7.7 Lab Urea Number Done',
+    )
+    renal_short_names = (
+        'RFTs',
+    )
+    de_renal_meta = list(product(['RFTs'], (None,)))
+
+    qs_renal = DataValue.objects.what(*renal_de_names).filter(quarter=filter_period)
+    qs_renal = qs_renal.annotate(de_name=Value('RFTs', output_field=CharField()))
+    qs_renal = qs_renal.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_renal = qs_renal.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_renal = qs_renal.annotate(period=F('quarter'))
+    qs_renal = qs_renal.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_renal = qs_renal.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_renal = list(val_renal)
+
+    gen_raster = grabbag.rasterize(ou_list, de_renal_meta, val_renal, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_renal2 = list(gen_raster)
+
+    other_haem_de_names = (
+        'All Other Haematology - Lab - OPD  Number Done',
+    )
+    other_haem_short_names = (
+        'All other Haematology',
+    )
+    de_other_haem_meta = list(product(other_haem_de_names, (None,)))
+
+    qs_other_haem = DataValue.objects.what(*other_haem_de_names).filter(quarter=filter_period)
+    qs_other_haem = qs_other_haem.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_other_haem = qs_other_haem.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_other_haem = qs_other_haem.annotate(period=F('quarter'))
+    qs_other_haem = qs_other_haem.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_other_haem = qs_other_haem.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_other_haem = list(val_other_haem)
+
+    gen_raster = grabbag.rasterize(ou_list, de_other_haem_meta, val_other_haem, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_other_haem2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_malaria2, val_hiv_determine2, val_hiv_statpak2, val_hiv_unigold2, val_tb_smear2, val_syphilis2, val_liver2,val_renal2, val_other_haem2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (malaria_microscopy, malaria_rdt, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        malaria_sum = default_zero(malaria_microscopy['numeric_sum']) + default_zero(malaria_rdt['numeric_sum'])
+        malaria_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Malaria (Smear & RDTs)',
+            'cat_combo': None,
+            'numeric_sum': malaria_sum,
+        }
+        calculated_vals.append(malaria_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += list(product(malaria_short_names, (None,)))
+    data_element_names += list(product(hiv_determine_short_names, (None,)))
+    data_element_names += list(product(hiv_statpak_short_names, (None,)))
+    data_element_names += list(product(hiv_unigold_short_names, (None,)))
+    data_element_names += list(product(tb_smear_short_names, (None,)))
+    data_element_names += list(product(syphilis_short_names, (None,)))
+    data_element_names += list(product(liver_short_names, (None,)))
+    data_element_names += list(product(renal_short_names, (None,)))
+    data_element_names += list(product(other_haem_short_names, (None,)))
+
+    data_element_names += list(product(['Malaria (Smear & RDTs)'], (None,)))
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_list': ou_list,
+        'data_element_names': data_element_names,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/lab_sites.html', context)
