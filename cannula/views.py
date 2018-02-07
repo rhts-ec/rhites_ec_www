@@ -33,6 +33,12 @@ def data_elements(request):
 def groupbylist(*args, **kwargs):
     return [[k, list(g)] for k, g in groupby(*args, **kwargs)]
 
+def filter_empty_rows(grouped_vals):
+    for row in grouped_vals:
+        row_heading, row_values = row
+        if any(v['numeric_sum'] for v in row_values):
+            yield row
+
 def month2quarter(month_num):
     return ((month_num-1)//3+1)
 
@@ -104,6 +110,8 @@ def ipt_quarterly(request, output_format='HTML'):
 
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(chain(val_dicts3, val_dicts, val_dicts2), key=lambda x: (x['district'], x['subcounty'])), key=lambda x: (x['district'], x['subcounty']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
     
     # calculate the IPT rate for the IPT1/IPT2 values (without subcategories)
     for _group in grouped_vals:
@@ -249,6 +257,8 @@ def malaria_compliance(request):
 
     # combine the data and group by district and subcounty
     grouped_vals = groupbylist(sorted(val_dicts, key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
 
     for _group in grouped_vals:
         (district_subcounty_facility, other_vals) = _group
@@ -548,6 +558,8 @@ def hts_by_site(request):
 
     # combine the data and group by district, subcounty and facility
     grouped_vals = groupbylist(sorted(chain(val_positivity2, val_pmtct_mother2, val_pmtct_mother_pos2, val_pmtct_child2, val_target2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
@@ -1469,6 +1481,8 @@ def vmmc_by_site(request):
 
     # combine the data and group by district, subcounty and facility
     grouped_vals = groupbylist(sorted(chain(val_targets2, val_hiv2, val_location2, val_method2, val_followup2, val_adverse2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
@@ -1812,6 +1826,8 @@ def lab_by_site(request):
 
     # combine the data and group by district, subcounty and facility
     grouped_vals = groupbylist(sorted(chain(val_malaria2, val_hiv_determine2, val_hiv_statpak2, val_hiv_unigold2, val_tb_smear2, val_syphilis2, val_liver2,val_renal2, val_other_haem2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
