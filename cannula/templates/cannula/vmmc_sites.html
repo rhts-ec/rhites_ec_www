@@ -109,6 +109,8 @@
 		{% endif %}
 		{% if x.de_name == 'Perf% Circumcised' or  x.de_name == 'Perf% Circumcised DC' or x.de_name == 'Perf% Circumcised Surgical' %}
 		<td class="w3-right-align green_yellow_orange_60_40_25_unbounded">{{ x.numeric_sum|floatformat }}</td>
+		{% elif x.de_name == '% with at least one adverse event' %}
+		<td class="w3-right-align unary_bad_half_percent">{{ x.numeric_sum|floatformat }}</td>
 		{% else %}
 		<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
 		{% endif %}
