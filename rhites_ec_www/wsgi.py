@@ -1,5 +1,5 @@
 """
-WSGI config for rhites_ec_web project.
+WSGI config for rhites_ec_www project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rhites_ec_web.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rhites_ec_www.settings")
 
 application = get_wsgi_application()

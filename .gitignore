@@ -8,3 +8,5 @@ rhites_ec_web_models*.png
 #vscode
 .vscode
 local_settings.py
+uwsgi_params
+static
