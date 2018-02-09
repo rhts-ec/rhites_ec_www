@@ -198,6 +198,14 @@ CATEGORIES = [
     'Under 5 years',
     '5 years and above',
 
+    # HMIS 105 Family Planning
+    'Group I',
+    'Group J',
+    'Group O',
+    'Group Z',
+    'New Users',
+    'Revisits',
+
     '<15',
     '15+',
 ]
@@ -210,6 +218,8 @@ SEXLESS_CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for 
 ICKY_CATEGS = (
     'Number of Male',
     'Male partners',
+    'Female Condom',
+    'Male Condom',
 )
 
 def unpack_data_element(de_long):

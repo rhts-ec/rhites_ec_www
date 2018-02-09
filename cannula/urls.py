@@ -16,4 +16,5 @@ urlpatterns = [
     url(r'dash_hts_districts.php', views.hts_by_district, name='hts_districts'),
     url(r'dash_vmmc_sites.php', views.vmmc_by_site, name='vmmc_sites'),
     url(r'dash_lab_sites.php', views.lab_by_site, name='lab_sites'),
+    url(r'dash_fp_sites.php', views.fp_by_site, name='fp_sites'),
 ]
