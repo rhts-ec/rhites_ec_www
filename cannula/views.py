@@ -139,7 +139,8 @@ def ipt_quarterly(request, output_format='HTML'):
         import openpyxl
 
         wb = openpyxl.workbook.Workbook()
-        ws = wb.create_sheet()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
