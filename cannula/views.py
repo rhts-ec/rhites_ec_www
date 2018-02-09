@@ -195,7 +195,6 @@ def ipt_quarterly(request, output_format='HTML'):
         'data_element_names': data_element_names,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
-        'level_list': level_list,
     }
 
     if output_format == 'JSON':
