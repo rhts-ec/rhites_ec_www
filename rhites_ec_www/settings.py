@@ -82,9 +82,9 @@ WSGI_APPLICATION = 'rhites_ec_www.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'rhitesec',
-        'USER': 'rhitesec',
-        'PASSWORD': 'rhitesec',
+        'NAME': 'somedb',
+        'USER': 'dbuser',
+        'PASSWORD': 'dbpass',
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'ATOMIC_REQUESTS': True,
