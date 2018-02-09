@@ -17,6 +17,8 @@ from .grabbag import default_zero, all_not_none
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
 from .forms import SourceDocumentForm, DataElementAliasForm
 
+from .dashboards import LegendSet
+
 @login_required
 def index(request):
     context = {
@@ -135,8 +137,6 @@ def ipt_quarterly(request, output_format='HTML'):
     if output_format == 'EXCEL':
         from django.http import HttpResponse
         import openpyxl
-        from openpyxl.styles import Color, PatternFill, Font, Border
-        from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, Rule
 
         wb = openpyxl.workbook.Workbook()
         ws = wb.create_sheet()
@@ -170,19 +170,12 @@ def ipt_quarterly(request, output_format='HTML'):
         # use old-school column/row limit as stand-in for entire row
         ipt1_percent_range = 'E1:E16384'
         ipt2_percent_range = 'G1:G16384'
-        yellow_fill = PatternFill(start_color='FFEB3B', end_color='FFEB3B', fill_type='solid')
-        green_fill = PatternFill(start_color='4CAF50', end_color='4CAF50', fill_type='solid')
-        rule_lt_71 = CellIsRule(operator='between', formula=['0','70'], stopIfTrue=True, fill=yellow_fill)
-        rule_lt_71_unbounded = CellIsRule(operator='lessThan', formula=['71'], stopIfTrue=True, fill=yellow_fill)
-        rule_ge_71 = CellIsRule(operator='between', formula=['71','100'], stopIfTrue=True, fill=green_fill)
-        rule_ge_71_unbounded = CellIsRule(operator='greaterThanOrEqual', formula=['71'], stopIfTrue=True, fill=green_fill)
-        rule_ignore_blanks = Rule(type="containsBlanks", stopIfTrue=True)
-        ws.conditional_formatting.add(ipt1_percent_range, rule_ignore_blanks)
-        ws.conditional_formatting.add(ipt1_percent_range, rule_lt_71)
-        ws.conditional_formatting.add(ipt1_percent_range, rule_ge_71_unbounded)
-        ws.conditional_formatting.add(ipt2_percent_range, rule_ignore_blanks)
-        ws.conditional_formatting.add(ipt2_percent_range, rule_lt_71)
-        ws.conditional_formatting.add(ipt2_percent_range, rule_ge_71_unbounded)
+        ls = LegendSet()
+        ls.add_interval('yellow', 0, 71)
+        ls.add_interval('green', 71, None)
+        for rule in ls.openpyxl_rules():
+            ws.conditional_formatting.add(ipt1_percent_range, rule)
+            ws.conditional_formatting.add(ipt2_percent_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
