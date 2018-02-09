@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 import django.core.files.storage
+from django.conf import settings
 import cannula.models
 
 
@@ -41,7 +42,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(serialize=False, verbose_name='ID', primary_key=True, auto_created=True)),
                 ('orig_filename', models.CharField(null=True, max_length=128, blank=True)),
-                ('file', models.FileField(storage=django.core.files.storage.FileSystemStorage(location='/mnt/c/Users/ebichete/Documents/Assey-Muhereza/RHITES-EC/rhites_ec_web/source_doc_storage'), upload_to=cannula.models.make_random_filename)),
+                ('file', models.FileField(storage=django.core.files.storage.FileSystemStorage(location=settings.SOURCE_DOC_DIR), upload_to=cannula.models.make_random_filename)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),
