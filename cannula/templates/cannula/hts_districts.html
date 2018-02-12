@@ -68,6 +68,12 @@
 {% endfor %}
 </div>
 
+
+<div class="w3-container">
+<span class="w3-small no-print">
+<a href="{% url 'hts_districts_excel' %}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+</span>
+
 <div class="w3-container">
 	{{ tt }}
 	<table class="w3-table w3-border w3-bordered" border="1">

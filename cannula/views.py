@@ -12,7 +12,7 @@ from decimal import Decimal
 from itertools import groupby, tee, chain, product
 
 from . import dateutil, grabbag
-from .grabbag import default_zero, all_not_none
+from .grabbag import default_zero, all_not_none, excel_column_name
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
 from .forms import SourceDocumentForm, DataElementAliasForm
@@ -410,7 +410,7 @@ def data_element_alias(request):
     return render_to_response('cannula/data_element_edit_alias.html', context, context_instance=RequestContext(request))
 
 @login_required
-def hts_by_site(request):
+def hts_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -869,12 +869,76 @@ def hts_by_site(request):
     data_element_names += list(product(['HIV+ (%)',], subcategory_names))
     data_element_names += list(product(['Linked (%)',], subcategory_names))
 
+    legend_sets = list()
+    test_and_pos_ls = LegendSet()
+    test_and_pos_ls.add_interval('red', 0, 75)
+    test_and_pos_ls.add_interval('yellow', 75, 90)
+    test_and_pos_ls.add_interval('green', 90, None)
+    legend_sets.append(test_and_pos_ls.legends())
+    linked_ls = LegendSet()
+    linked_ls.add_interval('red', 0, 80)
+    linked_ls.add_interval('yellow', 80, 90)
+    linked_ls.add_interval('green', 90, 100)
+    legend_sets.append(linked_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            offset = 0
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        test_and_pos_ranges = ['%s1:%s16384' % (excel_column_name(17), excel_column_name(17+7))]
+        linked_ranges = ['%s1:%s16384' % (excel_column_name(17+8), excel_column_name(17+8+3))]
+        for rule in test_and_pos_ls.openpyxl_rules():
+            for cell_range in test_and_pos_ranges:
+                print(cell_range, test_and_pos_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+        for rule in linked_ls.openpyxl_rules():
+            for cell_range in linked_ranges:
+                print(cell_range, linked_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="hts_districts_scorecard.xlsx"'
+
+        return response
+
     context = {
         'grouped_data': grouped_vals,
         'val_pmtct_child': list(val_pmtct_child),
         'val_pmtct_child2': list(val_pmtct_child2),
         # 'grouped_data_size': len(grouped_vals),
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
@@ -882,7 +946,7 @@ def hts_by_site(request):
     return render(request, 'cannula/hts_sites.html', context)
 
 @login_required
-def hts_by_district(request):
+def hts_by_district(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YRS = ['%d' % (y,) for y in range(this_year, this_year-6, -1)]
@@ -1309,6 +1373,55 @@ def hts_by_district(request):
     linked_ls.add_interval('yellow', 80, 90)
     linked_ls.add_interval('green', 90, 100)
     legend_sets.append(linked_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District',] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district,), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            offset = 0
+            for j, g_val in enumerate(g_val_list, start=2):
+                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        test_and_pos_ranges = ['%s1:%s16384' % (excel_column_name(15), excel_column_name(15+7))]
+        linked_ranges = ['%s1:%s16384' % (excel_column_name(15+8), excel_column_name(15+8+3))]
+        for rule in test_and_pos_ls.openpyxl_rules():
+            for cell_range in test_and_pos_ranges:
+                print(cell_range, test_and_pos_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+        for rule in linked_ls.openpyxl_rules():
+            for cell_range in linked_ranges:
+                print(cell_range, linked_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="hts_districts_scorecard.xlsx"'
+
+        return response
 
     context = {
         'grouped_data': grouped_vals,
