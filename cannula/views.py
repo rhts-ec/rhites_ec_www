@@ -134,6 +134,12 @@ def ipt_quarterly(request, output_format='HTML'):
         data_element_names.append(('%', None))
     data_element_names.extend(subcategory_names)
 
+    legend_sets = list()
+    ipt_ls = LegendSet()
+    ipt_ls.add_interval('yellow', 0, 71)
+    ipt_ls.add_interval('green', 71, None)
+    legend_sets.append(ipt_ls.legends())
+
     if output_format == 'EXCEL':
         from django.http import HttpResponse
         import openpyxl
@@ -171,10 +177,7 @@ def ipt_quarterly(request, output_format='HTML'):
         # use old-school column/row limit as stand-in for entire row
         ipt1_percent_range = 'E1:E16384'
         ipt2_percent_range = 'G1:G16384'
-        ls = LegendSet()
-        ls.add_interval('yellow', 0, 71)
-        ls.add_interval('green', 71, None)
-        for rule in ls.openpyxl_rules():
+        for rule in ipt_ls.openpyxl_rules():
             ws.conditional_formatting.add(ipt1_percent_range, rule)
             ws.conditional_formatting.add(ipt2_percent_range, rule)
 
@@ -187,6 +190,7 @@ def ipt_quarterly(request, output_format='HTML'):
     context = {
         'grouped_data': grouped_vals,
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
@@ -1294,6 +1298,18 @@ def hts_by_district(request):
     data_element_names += list(product(['HIV+ (%)',], subcategory_names))
     data_element_names += list(product(['Linked (%)',], subcategory_names))
 
+    legend_sets = list()
+    test_and_pos_ls = LegendSet()
+    test_and_pos_ls.add_interval('red', 0, 75)
+    test_and_pos_ls.add_interval('yellow', 75, 90)
+    test_and_pos_ls.add_interval('green', 90, None)
+    legend_sets.append(test_and_pos_ls.legends())
+    linked_ls = LegendSet()
+    linked_ls.add_interval('red', 0, 80)
+    linked_ls.add_interval('yellow', 80, 90)
+    linked_ls.add_interval('green', 90, 100)
+    legend_sets.append(linked_ls.legends())
+
     context = {
         'grouped_data': grouped_vals,
         'ou_list': ou_list,
@@ -1301,6 +1317,7 @@ def hts_by_district(request):
         'val_target2': val_target2,
         # 'grouped_data_size': len(grouped_vals),
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YRS,
     }

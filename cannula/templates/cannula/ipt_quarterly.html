@@ -48,15 +48,22 @@
 </form>
 
 <div class="w3-bar-item w3-right">
+{% for legends in legend_sets %}
+{% for l in legends reversed %}
+{% if forloop.first %}
 <table class="w3-table w3-border w3-bordered" border="1">
 	<thead>
 		<tr><th>Legend</th></tr>
 	</thead>
 	<tbody>
-		<tr><td class="w3-green w3-right-align">71+%</td></tr>
-		<tr><td class="w3-yellow w3-right-align">&lt;71%</td></tr>
+{% endif %}
+		<tr><td class="w3-{{l.color}} w3-right-align">{{l.start|default_if_none:"<"}} to {{l.end|default_if_none:"+"}} %</td></tr>
+{% if forloop.last %}
 	</tbody>
 </table>
+{% endif %}
+{% endfor %}
+{% endfor %}
 </div>
 </div>
 
