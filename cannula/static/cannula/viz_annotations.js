@@ -153,11 +153,11 @@ addEvent( window, "load", function() {
           if ( current_val > previous_val ) percent_categ = "rise";
           else if ( current_val < previous_val ) percent_categ = "fall";
           if (percent_categ == "rise")
-          	a[i].innerHTML = a[i].innerHTML + " &uArr;";
+          	a[i].innerHTML = a[i].innerHTML + " <span style='color:green;'>&uArr;</span>";
           else if (percent_categ == "fall")
-          	a[i].innerHTML = a[i].innerHTML + " &dArr;";
+          	a[i].innerHTML = a[i].innerHTML + " <span style='color:red;'>&dArr;</span>";
           else
-          	a[i].innerHTML = a[i].innerHTML + " &hArr;";
+          	a[i].innerHTML = a[i].innerHTML + " <span style='color:orange;'>&hArr;</span>";
     //      alert( a[i].innerHTML + ": " + percent_categ );
         }
       }
