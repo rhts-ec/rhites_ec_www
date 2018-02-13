@@ -1398,9 +1398,8 @@ def hts_by_district(request, output_format='HTML'):
         for i, g in enumerate(grouped_vals, start=2):
             (district,), g_val_list = g
             ws.cell(row=i, column=1, value=district)
-            offset = 0
             for j, g_val in enumerate(g_val_list, start=2):
-                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
 
         # Add conditional formatting to MS Excel output
