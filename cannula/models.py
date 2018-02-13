@@ -207,6 +207,12 @@ CATEGORIES = [
     'New Users',
     'Revisits',
 
+    # HMIS 106a Nutrition
+    '< 6 Months',
+    '6-59 Months',
+    '5-12 Years',
+    '12+ Years',
+
     '<15',
     '15+',
 ]

@@ -79,6 +79,30 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
+    if ( has( a[i].className, "traffic_light_80_50_unbounded" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 80 ) percent_categ = "w3-green";
+        else if ( percent_val >= 50 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else 
+    if ( has( a[i].className, "traffic_light_50_25_unbounded" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 50 ) percent_categ = "w3-green";
+        else if ( percent_val >= 25 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else 
     if ( has( a[i].className, "traffic_light_71_unbounded" ) ) {
       var percent_val = extractNumber(a[i]);
 

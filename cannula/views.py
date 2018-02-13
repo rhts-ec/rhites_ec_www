@@ -2333,3 +2333,429 @@ def fp_by_site(request):
     }
 
     return render(request, 'cannula/fp_sites.html', context)
+
+@login_required
+def nutrition_by_hospital(request, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+   
+    opd_attend_de_names = (
+        '105-1.1 OPD New Attendance',
+        '105-1.1 OPD Re-Attendance',
+    )
+    opd_attend_short_names = (
+        'Total OPD attendence',
+    )
+    de_opd_attend_meta = list(product(opd_attend_short_names, (None,)))
+
+    qs_opd_attend = DataValue.objects.what(*opd_attend_de_names).filter(quarter=filter_period)
+    qs_opd_attend = qs_opd_attend.annotate(de_name=Value(opd_attend_short_names[0], output_field=CharField()))
+    qs_opd_attend = qs_opd_attend.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_opd_attend = qs_opd_attend.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_opd_attend = qs_opd_attend.filter(facility__icontains='Hospital')
+    qs_opd_attend = qs_opd_attend.annotate(period=F('quarter'))
+    qs_opd_attend = qs_opd_attend.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_opd_attend = qs_opd_attend.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_opd_attend_meta, val_opd_attend, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_opd_attend2 = list(gen_raster)
+   
+    muac_de_names = (
+        '106a Nutri No. 1 of clients who received nutrition assessment in this quarter using color coded MUAC tapes/Z score chart',
+    )
+    muac_short_names = (
+        'Clients assessed using MUAC/Z score in OPD',
+    )
+    de_muac_meta = list(product(muac_short_names, (None,)))
+
+    qs_muac = DataValue.objects.what(*muac_de_names).filter(quarter=filter_period)
+    qs_muac = qs_muac.annotate(de_name=Value(muac_short_names[0], output_field=CharField()))
+    qs_muac = qs_muac.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_muac = qs_muac.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_muac = qs_muac.filter(facility__icontains='Hospital')
+    qs_muac = qs_muac.annotate(period=F('quarter'))
+    qs_muac = qs_muac.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_muac = qs_muac.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_muac_meta, val_muac, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_muac2 = list(gen_raster)
+   
+    muac_mothers_de_names = (
+        '106a Nutri No. 1 of clients who received nutrition assessment in this quarter using color coded MUAC tapes/Z score chart Pregnant/Lactating Women',
+    )
+    muac_mothers_short_names = (
+        'Clients assessed using MUAC/Z score in OPD - Pregnant/Lactating Women',
+    )
+    de_muac_mothers_meta = list(product(muac_mothers_short_names, (None,)))
+
+    qs_muac_mothers = DataValue.objects.what(*muac_mothers_de_names).filter(quarter=filter_period)
+    qs_muac_mothers = qs_muac_mothers.annotate(de_name=Value(muac_mothers_short_names[0], output_field=CharField()))
+    qs_muac_mothers = qs_muac_mothers.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_muac_mothers = qs_muac_mothers.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_muac_mothers = qs_muac_mothers.filter(facility__icontains='Hospital')
+    qs_muac_mothers = qs_muac_mothers.annotate(period=F('quarter'))
+    qs_muac_mothers = qs_muac_mothers.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_muac_mothers = qs_muac_mothers.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_muac_mothers_meta, val_muac_mothers, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_muac_mothers2 = list(gen_raster)
+   
+    mothers_total_de_names = (
+        '105-2.1 A3:Total ANC visits (New clients + Re-attendances)',
+        '105-2.3 Postnatal Attendances',
+    )
+    mothers_total_short_names = (
+        'Total number of pregnant and lactating mothers',
+    )
+    de_mothers_total_meta = list(product(mothers_total_short_names, (None,)))
+
+    qs_mothers_total = DataValue.objects.what(*mothers_total_de_names).filter(quarter=filter_period)
+    qs_mothers_total = qs_mothers_total.annotate(de_name=Value(mothers_total_short_names[0], output_field=CharField()))
+    qs_mothers_total = qs_mothers_total.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_mothers_total = qs_mothers_total.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_mothers_total = qs_mothers_total.filter(facility__icontains='Hospital')
+    qs_mothers_total = qs_mothers_total.annotate(period=F('quarter'))
+    qs_mothers_total = qs_mothers_total.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_mothers_total = qs_mothers_total.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_mothers_total_meta, val_mothers_total, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_mothers_total2 = list(gen_raster)
+   
+    i_f_counsel_de_names = (
+        '106a Nutri N7-No. of pregnant and lactating women who received infant feeding counseling - Total',
+    )
+    i_f_counsel_short_names = (
+        '106a Nutri N7-No. of pregnant and lactating women who received infant feeding counseling - Total',
+    )
+    de_i_f_counsel_meta = list(product(i_f_counsel_short_names, (None,)))
+
+    qs_i_f_counsel = DataValue.objects.what(*i_f_counsel_de_names).filter(quarter=filter_period)
+    qs_i_f_counsel = qs_i_f_counsel.annotate(de_name=Value(i_f_counsel_short_names[0], output_field=CharField()))
+    qs_i_f_counsel = qs_i_f_counsel.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_i_f_counsel = qs_i_f_counsel.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_i_f_counsel = qs_i_f_counsel.filter(facility__icontains='Hospital')
+    qs_i_f_counsel = qs_i_f_counsel.annotate(period=F('quarter'))
+    qs_i_f_counsel = qs_i_f_counsel.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_i_f_counsel = qs_i_f_counsel.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_i_f_counsel_meta, val_i_f_counsel, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_i_f_counsel2 = list(gen_raster)
+   
+    m_n_counsel_de_names = (
+        '106a Nutri N6-No. of pregnant and lactating women who received maternal nutrition counseling - Total',
+    )
+    m_n_counsel_short_names = (
+        '106a Nutri N6-No. of pregnant and lactating women who received maternal nutrition counseling - Total',
+    )
+    de_m_n_counsel_meta = list(product(m_n_counsel_short_names, (None,)))
+
+    qs_m_n_counsel = DataValue.objects.what(*m_n_counsel_de_names).filter(quarter=filter_period)
+    qs_m_n_counsel = qs_m_n_counsel.annotate(de_name=Value(m_n_counsel_short_names[0], output_field=CharField()))
+    qs_m_n_counsel = qs_m_n_counsel.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_m_n_counsel = qs_m_n_counsel.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_m_n_counsel = qs_m_n_counsel.filter(facility__icontains='Hospital')
+    qs_m_n_counsel = qs_m_n_counsel.annotate(period=F('quarter'))
+    qs_m_n_counsel = qs_m_n_counsel.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_m_n_counsel = qs_m_n_counsel.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_m_n_counsel_meta, val_m_n_counsel, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_m_n_counsel2 = list(gen_raster)
+   
+    active_art_de_names = (
+        '106a ART No. active on ART on 1st line ARV regimen',
+        '106a ART No. active on ART on 2nd line ARV regimen',
+        '106a ART No. active on ART on 3rd line or higher ARV regimen',
+    )
+    active_art_short_names = (
+        'Total No. active on ART in the quarter',
+    )
+    de_active_art_meta = list(product(active_art_short_names, (None,)))
+
+    qs_active_art = DataValue.objects.what(*active_art_de_names).filter(quarter=filter_period)
+    qs_active_art = qs_active_art.annotate(de_name=Value(active_art_short_names[0], output_field=CharField()))
+    qs_active_art = qs_active_art.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_active_art = qs_active_art.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_active_art = qs_active_art.filter(facility__icontains='Hospital')
+    qs_active_art = qs_active_art.annotate(period=F('quarter'))
+    qs_active_art = qs_active_art.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_active_art = qs_active_art.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_active_art_meta, val_active_art, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_active_art2 = list(gen_raster)
+   
+    active_art_malnourish_de_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+    )
+    active_art_malnourish_short_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+    )
+    de_active_art_malnourish_meta = list(product(active_art_malnourish_short_names, (None,)))
+
+    qs_active_art_malnourish = DataValue.objects.what(*active_art_malnourish_de_names).filter(quarter=filter_period)
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(de_name=Value(active_art_malnourish_short_names[0], output_field=CharField()))
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_active_art_malnourish = qs_active_art_malnourish.filter(facility__icontains='Hospital')
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(period=F('quarter'))
+    qs_active_art_malnourish = qs_active_art_malnourish.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_active_art_malnourish = qs_active_art_malnourish.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_active_art_malnourish_meta, val_active_art_malnourish, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_active_art_malnourish2 = list(gen_raster)
+   
+    new_malnourish_de_names = (
+        '106a Nutri N4-No. of newly identified malnourished cases in this quarter - Total',
+    )
+    new_malnourish_short_names = (
+        'No of newly identified malnourished cases in this quarter',
+    )
+    de_new_malnourish_meta = list(product(new_malnourish_short_names, (None,)))
+
+    qs_new_malnourish = DataValue.objects.what(*new_malnourish_de_names).filter(quarter=filter_period)
+    qs_new_malnourish = qs_new_malnourish.annotate(de_name=Value(new_malnourish_short_names[0], output_field=CharField()))
+    qs_new_malnourish = qs_new_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_new_malnourish = qs_new_malnourish.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_new_malnourish = qs_new_malnourish.filter(facility__icontains='Hospital')
+    qs_new_malnourish = qs_new_malnourish.annotate(period=F('quarter'))
+    qs_new_malnourish = qs_new_malnourish.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_new_malnourish = qs_new_malnourish.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_new_malnourish_meta, val_new_malnourish, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_new_malnourish2 = list(gen_raster)
+   
+    supp_feeding_de_names = (
+        '106a Nutri N5-No. of clients who received nutrition supplementary / therapeutic feeds - Total',
+    )
+    supp_feeding_short_names = (
+        'No. of clients who received nutrition suplementary/therapeutic feeds',
+    )
+    de_supp_feeding_meta = list(product(supp_feeding_short_names, (None,)))
+
+    qs_supp_feeding = DataValue.objects.what(*supp_feeding_de_names).filter(quarter=filter_period)
+    qs_supp_feeding = qs_supp_feeding.annotate(de_name=Value(supp_feeding_short_names[0], output_field=CharField()))
+    qs_supp_feeding = qs_supp_feeding.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_supp_feeding = qs_supp_feeding.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_supp_feeding = qs_supp_feeding.filter(facility__icontains='Hospital')
+    qs_supp_feeding = qs_supp_feeding.annotate(period=F('quarter'))
+    qs_supp_feeding = qs_supp_feeding.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_supp_feeding = qs_supp_feeding.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_supp_feeding_meta, val_supp_feeding, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_supp_feeding2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_opd_attend2, val_muac2, val_muac_mothers2, val_mothers_total2, val_i_f_counsel2, val_m_n_counsel2, val_active_art2, val_active_art_malnourish2, val_new_malnourish2, val_supp_feeding2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (opd_attend, muac, muac_mothers, mothers, infant_feeding, maternal_nutrition, active_art, active_art_malnourish, new_malnourish, supp_feeding, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(muac['numeric_sum'], opd_attend['numeric_sum']) and opd_attend['numeric_sum']:
+            assessment_percent = (muac['numeric_sum'] * 100) / opd_attend['numeric_sum']
+        else:
+            assessment_percent = None
+        assessment_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% of clients who received nutrition asssessment  in OPD',
+            'cat_combo': None,
+            'numeric_sum': assessment_percent,
+        }
+        calculated_vals.append(assessment_percent_val)
+
+        if all_not_none(mothers['numeric_sum'], muac_mothers['numeric_sum']) and mothers['numeric_sum']:
+            assessment_mothers_percent = (muac_mothers['numeric_sum'] * 100) / mothers['numeric_sum']
+        else:
+            assessment_mothers_percent = None
+        assessment_mothers_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% of clients who received nutrition assessment   Pregnant/Lactating Women',
+            'cat_combo': None,
+            'numeric_sum': assessment_mothers_percent,
+        }
+        calculated_vals.append(assessment_mothers_percent_val)
+
+        if all_not_none(active_art['numeric_sum'], active_art_malnourish['numeric_sum']) and active_art['numeric_sum']:
+            active_art_malnourish_percent = (active_art_malnourish['numeric_sum'] * 100) / active_art['numeric_sum']
+        else:
+            active_art_malnourish_percent = None
+        active_art_malnourish_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% of active on ART assessed for Malnutrition at their visit in quarter',
+            'cat_combo': None,
+            'numeric_sum': active_art_malnourish_percent,
+        }
+        calculated_vals.append(active_art_malnourish_percent_val)
+
+        if all_not_none(mothers['numeric_sum'], infant_feeding['numeric_sum']) and mothers['numeric_sum']:
+            mothers_i_f_percent = (infant_feeding['numeric_sum'] * 100) / mothers['numeric_sum']
+        else:
+            mothers_i_f_percent = None
+        mothers_i_f_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% of pregnant and lactating women who received infant feeding counseling ',
+            'cat_combo': None,
+            'numeric_sum': mothers_i_f_percent,
+        }
+        calculated_vals.append(mothers_i_f_percent_val)
+
+        if all_not_none(mothers['numeric_sum'], maternal_nutrition['numeric_sum']) and mothers['numeric_sum']:
+            mothers_m_n_percent = (maternal_nutrition['numeric_sum'] * 100) / mothers['numeric_sum']
+        else:
+            mothers_m_n_percent = None
+        mothers_m_n_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% of pregnant and lactating women who received maternal nutrition counseling ',
+            'cat_combo': None,
+            'numeric_sum': mothers_m_n_percent,
+        }
+        calculated_vals.append(mothers_m_n_percent_val)
+
+        if all_not_none(new_malnourish['numeric_sum'], supp_feeding['numeric_sum']) and new_malnourish['numeric_sum']:
+            supp_feeding_percent = (supp_feeding['numeric_sum'] * 100) / new_malnourish['numeric_sum']
+        else:
+            supp_feeding_percent = None
+        supp_feeding_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% of newly identified malnorished cases who received nutrition suplementary/ therapeutic feeds',
+            'cat_combo': None,
+            'numeric_sum': supp_feeding_percent,
+        }
+        calculated_vals.append(supp_feeding_percent_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += list(product(opd_attend_short_names, (None,)))
+    data_element_names += list(product(muac_short_names, (None,)))
+    data_element_names += list(product(muac_mothers_short_names, (None,)))
+    data_element_names += list(product(mothers_total_short_names, (None,)))
+    data_element_names += list(product(i_f_counsel_short_names, (None,)))
+    data_element_names += list(product(m_n_counsel_short_names, (None,)))
+    data_element_names += list(product(active_art_short_names, (None,)))
+    data_element_names += list(product(active_art_malnourish_short_names, (None,)))
+    data_element_names += list(product(new_malnourish_short_names, (None,)))
+    data_element_names += list(product(supp_feeding_short_names, (None,)))
+
+    data_element_names += list(product(['% of clients who received nutrition asssessment  in OPD'], (None,)))
+    data_element_names += list(product(['% of clients who received nutrition assessment   Pregnant/Lactating Women'], (None,)))
+    data_element_names += list(product(['% of active on ART assessed for Malnutrition at their visit in quarter'], (None,)))
+    data_element_names += list(product(['% of pregnant and lactating women who received infant feeding counseling '], (None,)))
+    data_element_names += list(product(['% of pregnant and lactating women who received maternal nutrition counseling '], (None,)))
+    data_element_names += list(product(['% of newly identified malnorished cases who received nutrition suplementary/ therapeutic feeds'], (None,)))
+
+    legend_sets = list()
+    muac_ls = LegendSet()
+    muac_ls.add_interval('red', 0, 25)
+    muac_ls.add_interval('yellow', 25, 50)
+    muac_ls.add_interval('green', 50, None)
+    legend_sets.append(muac_ls.legends())
+    malnourished_ls = LegendSet()
+    malnourished_ls.add_interval('red', 0, 50)
+    malnourished_ls.add_interval('yellow', 50, 80)
+    malnourished_ls.add_interval('green', 80, None)
+    legend_sets.append(malnourished_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            offset = 0
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        muac_ranges = ['%s1:%s16384' % (excel_column_name(13), excel_column_name(13+0))]
+        malnourished_ranges = ['%s1:%s16384' % (excel_column_name(13+1), excel_column_name(13+1+4))]
+        for rule in muac_ls.openpyxl_rules():
+            for cell_range in muac_ranges:
+                print(cell_range, muac_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+        for rule in malnourished_ls.openpyxl_rules():
+            for cell_range in malnourished_ranges:
+                print(cell_range, malnourished_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="nutrition_hospitals_scorecard.xlsx"'
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_list': ou_list,
+        'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/nutrition_hospitals.html', context)

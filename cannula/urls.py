@@ -24,4 +24,7 @@ urlpatterns = [
     url(r'dashboards/lab/sites\.php', views.lab_by_site, name='lab_sites'),
     url(r'dashboards/fp/$', views.index, name='thematic_fp'),
     url(r'dashboards/fp/sites\.php', views.fp_by_site, name='fp_sites'),
+    url(r'dashboards/nutrition/$', views.index, name='thematic_nutrition'),
+    url(r'dashboards/nutrition/hospitals\.php', views.nutrition_by_hospital, name='nutrition_hospitals'),
+    url(r'dashboards/nutrition/hospitals\.xls', views.nutrition_by_hospital, {'output_format': 'EXCEL'}, name='nutrition_hospitals_excel'),
 ]
