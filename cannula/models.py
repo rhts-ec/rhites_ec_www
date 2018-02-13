@@ -327,7 +327,7 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
 
     DE_COLUMN_START = 4 # 0-based index of first dataelement column in worksheet
 
-    wb = openpyxl.load_workbook(source_doc.file.path)
+    wb = openpyxl.load_workbook(source_doc.file.path, read_only=True)
     logger.debug(wb.get_sheet_names())
 
     wb_loc_values = defaultdict(list) # when a new key is encountered return a new empty list
@@ -336,15 +336,18 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
         if ws_name in ['Validations']:
             continue
         ws = wb[ws_name]
+        if ws.calculate_dimension() == 'A1:A1': # check for (one kind of) invalid dimensions
+            ws.max_row = ws.max_column = None
         logger.debug((ws_name, ws.max_row, ws.max_column))
 
-        headers = [cell.value for cell in ws.rows[0]]
-        # discard the month (and space) prefix on the data element names
+        iter_rows = iter(ws.rows)
+        first_row = next(iter_rows)
+        headers = [cell.value for cell in first_row]
         clean_headers = (re.sub(MONTH_PREFIX_REGEX, '', h) for h in headers[DE_COLUMN_START:] if h is not None)
         data_elements = tuple(unpack_data_element(de) for de in clean_headers)
 
 
-        for row in ws.rows[1:]: # skip header row
+        for row in iter_rows:
             period, *location_parts = [c.value for c in row[:DE_COLUMN_START]]
             if not period or not any(location_parts):
                 continue # ignore rows where period or location is missing
