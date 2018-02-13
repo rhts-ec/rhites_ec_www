@@ -97,7 +97,7 @@ class DataElement(models.Model):
     )
     
     dhis2_uid = models.CharField(max_length=11, blank=True, null=True) #TODO: add unique check and check for a minimum length of 11 as well
-    name = models.CharField(max_length=128, unique=True)
+    name = models.CharField(max_length=160, unique=True)
     alias = models.CharField(max_length=128, blank=True, null=True)
     value_type = models.CharField(max_length=8, choices=VALUE_TYPES)
     value_min = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Minimum Value', blank=True, null=True)
