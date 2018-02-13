@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 import mimetypes
 from functools import lru_cache, partial
 from decimal import Decimal
+import decimal
 
 from mptt.models import MPTTModel, TreeForeignKey
 
@@ -364,10 +365,13 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
             for (de, cc), dv in site_values:
                 if dv is None or (isinstance(dv, str) and dv.strip() == ''):
                     continue # skip rows with empty values
-                if cc:
-                    data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=Decimal(dv)))
-                else:
-                    data_values.append(dv_construct(data_element=de, numeric_value=Decimal(dv)))
+                try:
+                    if cc:
+                        data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=Decimal(dv)))
+                    else:
+                        data_values.append(dv_construct(data_element=de, numeric_value=Decimal(dv)))
+                except decimal.InvalidOperation as e:
+                    pass # not convertible to a Decimal, ignore
 
             wb_loc_values[location].extend(data_values)
 
