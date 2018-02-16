@@ -36,7 +36,7 @@ addEvent( window, "load", function() {
       if ( percent_val != null && percent_val >= 0) {
         if ( percent_val >= 60 ) percent_categ = "w3-green";
         else if ( percent_val >= 40 ) percent_categ = "w3-light-green";
-        else if ( percent_val >= 20 ) percent_categ = "w3-yellow";
+        else if ( percent_val >= 25 ) percent_categ = "w3-yellow";
         else percent_categ = "w3-orange";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";
