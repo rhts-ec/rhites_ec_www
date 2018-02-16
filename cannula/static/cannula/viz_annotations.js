@@ -160,6 +160,18 @@ addEvent( window, "load", function() {
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
       }
+    } else 
+    if ( has( a[i].className, "unary_bad_4_orange" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
+        if ( percent_val > 4 ) {
+          percent_categ = "w3-orange";
+          a[i].className += (" " + percent_categ);
+        }
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
     }
 } );
 

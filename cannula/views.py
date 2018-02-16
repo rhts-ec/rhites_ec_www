@@ -2759,3 +2759,215 @@ def nutrition_by_hospital(request, output_format='HTML'):
     }
 
     return render(request, 'cannula/nutrition_hospitals.html', context)
+
+@login_required
+def vl_by_site(request, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+
+    viral_load_de_names = (
+        'VL samples rejected',
+        'VL samples sent',
+    )
+    viral_load_short_names = (
+        'VL samples rejected',
+        'VL samples sent',
+    )
+    de_viral_load_meta = list(product(viral_load_short_names, (None,)))
+
+    qs_viral_load = DataValue.objects.what(*viral_load_de_names).filter(quarter=filter_period)
+    qs_viral_load = qs_viral_load.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_viral_load = qs_viral_load.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_viral_load = qs_viral_load.annotate(period=F('quarter'))
+    qs_viral_load = qs_viral_load.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_viral_load = qs_viral_load.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_viral_load = list(val_viral_load)
+
+    gen_raster = grabbag.rasterize(ou_list, de_viral_load_meta, val_viral_load, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_viral_load2 = list(gen_raster)
+
+    viral_target_de_names = (
+        'VL_TARGET',
+    )
+    viral_target_short_names = (
+        'Annual target',
+    )
+    de_viral_target_meta = list(product(viral_target_short_names, (None,)))
+
+    qs_viral_target = DataValue.objects.what(*viral_target_de_names).filter(year=filter_period[:4])
+    qs_viral_target = qs_viral_target.annotate(de_name=Value(viral_target_short_names[0], output_field=CharField()))
+    qs_viral_target = qs_viral_target.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_viral_target = qs_viral_target.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_viral_target = qs_viral_target.annotate(period=F('year'))
+    qs_viral_target = qs_viral_target.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_viral_target = qs_viral_target.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_viral_target = list(val_viral_target)
+
+    gen_raster = grabbag.rasterize(ou_list, de_viral_target_meta, val_viral_target, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_viral_target2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_viral_target2, val_viral_load2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (vl_target, vl_rejected, vl_sent, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(vl_target['numeric_sum'], vl_sent['numeric_sum']) and vl_target['numeric_sum']:
+            vl_sent_percent = (vl_sent['numeric_sum'] * 100) / (vl_target['numeric_sum']/Decimal(4))
+        else:
+            vl_sent_percent = None
+        vl_sent_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% Achievement (sent)',
+            'cat_combo': None,
+            'numeric_sum': vl_sent_percent,
+        }
+        calculated_vals.append(vl_sent_percent_val)
+
+        if all_not_none(vl_sent['numeric_sum'], vl_rejected['numeric_sum']) and vl_sent['numeric_sum']:
+            vl_rejected_percent = (vl_rejected['numeric_sum'] * 100) / vl_sent['numeric_sum']
+        else:
+            vl_rejected_percent = None
+        vl_rejected_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% Sample rejection',
+            'cat_combo': None,
+            'numeric_sum': vl_rejected_percent,
+        }
+        calculated_vals.append(vl_rejected_percent_val)
+
+        vl_returned = default_zero(vl_sent['numeric_sum']) - default_zero(vl_rejected['numeric_sum'])
+        vl_returned_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'Samples returned',
+            'cat_combo': 'None',
+            'numeric_sum': vl_returned,
+        }
+        calculated_vals.append(vl_returned_val)
+
+        if all_not_none(vl_sent['numeric_sum'], vl_returned) and vl_sent['numeric_sum']:
+            vl_returned_percent = (vl_returned * 100) / vl_sent['numeric_sum']
+        else:
+            vl_returned_percent = None
+        vl_returned_percent_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': '% Achievement (returned)',
+            'cat_combo': None,
+            'numeric_sum': vl_returned_percent,
+        }
+        calculated_vals.append(vl_returned_percent_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += de_viral_target_meta
+    data_element_names += de_viral_load_meta
+
+    data_element_names += list(product(['% Achievement'], (None,)))
+    data_element_names += list(product(['% Sample rejection'], (None,)))
+    data_element_names += list(product(['Samples returned'], (None,)))
+    data_element_names += list(product(['% Achievement'], (None,)))
+
+    legend_sets = list()
+    achievement_ls = LegendSet()
+    achievement_ls.add_interval('orange', 0, 25)
+    achievement_ls.add_interval('yellow', 25, 40)
+    achievement_ls.add_interval('light-green', 40, 60)
+    achievement_ls.add_interval('green', 60, None)
+    legend_sets.append(achievement_ls.legends())
+    rejection_ls = LegendSet()
+    rejection_ls.add_interval('orange', 4, None)
+    legend_sets.append(rejection_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            offset = 0
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        achievement_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
+        achievement_ranges += ['%s1:%s16384' % (excel_column_name(9), excel_column_name(9))]
+        rejection_ranges = ['%s1:%s16384' % (excel_column_name(7), excel_column_name(7))]
+        for rule in achievement_ls.openpyxl_rules():
+            for cell_range in achievement_ranges:
+                ws.conditional_formatting.add(cell_range, rule)
+        for rule in rejection_ls.openpyxl_rules():
+            for cell_range in rejection_ranges:
+                ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="viral_load_sites_scorecard.xlsx"'
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_list': ou_list,
+        'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/vl_sites.html', context)
