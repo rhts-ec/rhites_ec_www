@@ -323,7 +323,7 @@ def extract_periods(period_str):
     dates = period_to_dates(period_str)
     return dates_to_iso_periods(*dates)
 
-def load_excel_to_datavalues(source_doc, max_sheets=4):
+def load_excel_to_datavalues(source_doc):
     from collections import defaultdict
     import re
     import calendar
@@ -339,7 +339,7 @@ def load_excel_to_datavalues(source_doc, max_sheets=4):
 
     wb_loc_values = defaultdict(list) # when a new key is encountered return a new empty list
 
-    for ws_name in wb.get_sheet_names()[:max_sheets]: #['Step1', 'Targets']:
+    for ws_name in wb.get_sheet_names():
         if ws_name in ['Validations']:
             continue
         ws = wb[ws_name]
