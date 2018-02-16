@@ -12,6 +12,11 @@ _COLOR_MAP = {
     'ORANGE': 'FF9800',
 }
 
+_CONTRAST_MAP = {
+    'RED': 'FFFFFF',
+    'GREEN': 'FFFFFF',
+}
+
 NEG_INF, POS_INF = Decimal('-Inf'), Decimal('Inf') # a couple of infinities
 
 LegendInterval = namedtuple('LegendInterval', ('color', 'start', 'end'))
@@ -37,7 +42,7 @@ class LegendSet():
     def legends(self):
         return [l_i._asdict() for l_i in sorted(self.__legends, key=legend_sort_key)]
 
-    def openpyxl_rules(self):
+    def openpyxl_rules(self, contrast_text=True):
         if self.ignore_blanks:
             rule_ignore_blanks = Rule(type="containsBlanks", stopIfTrue=True)
             yield rule_ignore_blanks
@@ -45,16 +50,21 @@ class LegendSet():
         for l_i in self.__legends:
             interval_color = _COLOR_MAP.get(l_i.color.upper(), l_i.color)
             color_fill = PatternFill(start_color=interval_color, end_color=interval_color, fill_type='solid')
+            # use a contrasting text colour, like white, against dark coloured fills
+            if contrast_text and l_i.color.upper() in _CONTRAST_MAP:
+                interval_font = Font(color=_CONTRAST_MAP[l_i.color.upper()], bold=True)
+            else:
+                interval_font = Font(bold=True)
 
             if l_i.start is None and l_i.end is None:
                 # make everything the same colour
-                rule = ColorScaleRule(start_type='percentile', start_value=0, start_color=interval_color, end_type='percentile', end_value=100, end_color=interval_color)
+                rule = ColorScaleRule(start_type='percentile', start_value=0, start_color=interval_color, end_type='percentile', end_value=100, end_color=interval_color, font=interval_font)
             elif l_i.start is None:
-                rule = CellIsRule(operator='lessThan', formula=[str(l_i.end)], stopIfTrue=True, fill=color_fill)
+                rule = CellIsRule(operator='lessThan', formula=[str(l_i.end)], stopIfTrue=True, fill=color_fill, font=interval_font)
             elif l_i.end is None:
-                rule = CellIsRule(operator='greaterThanOrEqual', formula=[str(l_i.start)], stopIfTrue=True, fill=color_fill)
+                rule = CellIsRule(operator='greaterThanOrEqual', formula=[str(l_i.start)], stopIfTrue=True, fill=color_fill, font=interval_font)
             else:
-                rule = CellIsRule(operator='between', formula=[str(l_i.start),str(l_i.end)], stopIfTrue=True, fill=color_fill)
+                rule = CellIsRule(operator='between', formula=[str(l_i.start),str(l_i.end)], stopIfTrue=True, fill=color_fill, font=interval_font)
 
             yield rule
 
