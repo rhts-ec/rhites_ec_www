@@ -1629,8 +1629,6 @@ def vmmc_by_site(request):
         calculated_vals.append(target_total_percent_val)
 
         if all_not_none(target_device['numeric_sum'], method_device['numeric_sum']) and target_device['numeric_sum']:
-            if target_device['numeric_sum'] == 4:
-                tt = 1/0
             target_device_percent = (method_device['numeric_sum'] * 100) / target_device['numeric_sum']
         else:
             target_device_percent = None
