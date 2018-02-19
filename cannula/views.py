@@ -1442,7 +1442,7 @@ def hts_by_district(request, output_format='HTML'):
     return render(request, 'cannula/hts_districts.html', context)
 
 @login_required
-def vmmc_by_site(request):
+def vmmc_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -1718,6 +1718,56 @@ def vmmc_by_site(request):
     adverse_ls.add_interval('red', 0.5, None)
     legend_sets.append(adverse_ls.legends())
 
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        vmmc_ranges = ['%s1:%s16384' % (excel_column_name(18), excel_column_name(18+2))]
+        adverse_ranges = ['%s1:%s16384' % (excel_column_name(22), excel_column_name(22))]
+        for rule in vmmc_ls.openpyxl_rules():
+            for cell_range in vmmc_ranges:
+                print(cell_range, vmmc_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+        for rule in adverse_ls.openpyxl_rules():
+            for cell_range in adverse_ranges:
+                print(cell_range, adverse_ls)
+                ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="vmmc_scorecard.xlsx"'
+
+        return response
+
     context = {
         'grouped_data': grouped_vals,
         'ou_list': ou_list,
@@ -1732,7 +1782,7 @@ def vmmc_by_site(request):
     return render(request, 'cannula/vmmc_sites.html', context)
 
 @login_required
-def lab_by_site(request):
+def lab_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -2006,6 +2056,51 @@ def lab_by_site(request):
     lab_ls.add_interval('green', 60, None)
     legend_sets.append(lab_ls.legends())
 
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        # lab_ranges = ['%s1:%s16384' % (excel_column_name(18), excel_column_name(18+2))]
+        # for rule in lab_ls.openpyxl_rules():
+        #     for cell_range in lab_ranges:
+        #         print(cell_range, lab_ls)
+        #         ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="lab_scorecard.xlsx"'
+
+        return response
+
     context = {
         'grouped_data': grouped_vals,
         'ou_list': ou_list,
@@ -2018,7 +2113,7 @@ def lab_by_site(request):
     return render(request, 'cannula/lab_sites.html', context)
 
 @login_required
-def fp_by_site(request):
+def fp_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -2355,6 +2450,50 @@ def fp_by_site(request):
     fp_ls.add_interval('light-green', 50, 60)
     fp_ls.add_interval('green', 60, None)
     legend_sets.append(fp_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        # fp_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
+        # for rule in fp_ls.openpyxl_rules():
+        #     for cell_range in fp_ranges:
+        #         ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="family_planning_sites_scorecard.xlsx"'
+
+        return response
 
     context = {
         'grouped_data': grouped_vals,

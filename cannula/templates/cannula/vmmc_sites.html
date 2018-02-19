@@ -69,6 +69,10 @@
 </div>
 
 <div class="w3-container">
+<span class="w3-small no-print">
+<a href="{% url 'vmmc_sites_excel' %}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+</span>
+
 	<table class="w3-table w3-border w3-bordered" border="1">
 	<thead class="w3-gray">
 	<tr>
