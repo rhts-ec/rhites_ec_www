@@ -276,9 +276,15 @@ def malaria_compliance(request):
     for de_n in cases_de_names:
         data_element_names.append((de_n, None))
 
+    legend_sets = list()
+    compliance_ls = LegendSet()
+    compliance_ls.add_interval('green', 80, None)
+    legend_sets.append(compliance_ls.legends())
+
     context = {
         'grouped_data': grouped_vals,
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'start_period': start_quarter,
         'end_period': end_quarter,
         'periods': periods,
@@ -1702,12 +1708,24 @@ def vmmc_by_site(request):
     data_element_names += list(product(['% who returned within 48 hours'], (None,)))
     data_element_names += list(product(['% with at least one adverse event'], (None,)))
 
+    legend_sets = list()
+    vmmc_ls = LegendSet()
+    vmmc_ls.add_interval('orange', 0, 25)
+    vmmc_ls.add_interval('yellow', 25, 40)
+    vmmc_ls.add_interval('light-green', 50, 60)
+    vmmc_ls.add_interval('green', 60, None)
+    legend_sets.append(vmmc_ls.legends())
+    adverse_ls = LegendSet()
+    adverse_ls.add_interval('red', 0.5, None)
+    legend_sets.append(adverse_ls.legends())
+
     context = {
         'grouped_data': grouped_vals,
         'ou_list': ou_list,
         'val_targets': val_targets,
         'val_targets2': val_targets2,
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
@@ -1981,10 +1999,19 @@ def lab_by_site(request):
 
     data_element_names += list(product(['Malaria (Smear & RDTs)'], (None,)))
 
+    legend_sets = list()
+    lab_ls = LegendSet()
+    lab_ls.add_interval('orange', 0, 25)
+    lab_ls.add_interval('yellow', 25, 40)
+    lab_ls.add_interval('light-green', 50, 60)
+    lab_ls.add_interval('green', 60, None)
+    legend_sets.append(lab_ls.legends())
+
     context = {
         'grouped_data': grouped_vals,
         'ou_list': ou_list,
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
@@ -2322,10 +2349,19 @@ def fp_by_site(request):
     data_element_names += list(product(['New Users - TOTAL'], (None,)))
     data_element_names += list(product(['Revisits - TOTAL'], (None,)))
 
+    legend_sets = list()
+    fp_ls = LegendSet()
+    fp_ls.add_interval('orange', 0, 25)
+    fp_ls.add_interval('yellow', 25, 40)
+    fp_ls.add_interval('light-green', 50, 60)
+    fp_ls.add_interval('green', 60, None)
+    legend_sets.append(fp_ls.legends())
+
     context = {
         'grouped_data': grouped_vals,
         'ou_list': ou_list,
         'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
     }
