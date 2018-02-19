@@ -913,9 +913,8 @@ def hts_by_site(request, output_format='HTML'):
             ws.cell(row=i, column=1, value=district)
             ws.cell(row=i, column=2, value=subcounty)
             ws.cell(row=i, column=3, value=facility)
-            offset = 0
             for j, g_val in enumerate(g_val_list, start=4):
-                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
 
         # Add conditional formatting to MS Excel output
@@ -2758,9 +2757,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
             ws.cell(row=i, column=1, value=district)
             ws.cell(row=i, column=2, value=subcounty)
             ws.cell(row=i, column=3, value=facility)
-            offset = 0
             for j, g_val in enumerate(g_val_list, start=4):
-                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
 
         # Add conditional formatting to MS Excel output
@@ -2971,9 +2969,8 @@ def vl_by_site(request, output_format='HTML'):
             ws.cell(row=i, column=1, value=district)
             ws.cell(row=i, column=2, value=subcounty)
             ws.cell(row=i, column=3, value=facility)
-            offset = 0
             for j, g_val in enumerate(g_val_list, start=4):
-                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
 
         # Add conditional formatting to MS Excel output
