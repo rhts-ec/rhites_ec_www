@@ -73,7 +73,9 @@
 	</thead>
 	<tbody>
 {% endif %}
-		<tr><td class="w3-{{l.color}} w3-right-align">{{l.start|default_if_none:"<"}} to {{l.end|default_if_none:"+"}} %</td></tr>
+		<tr><td class="w3-{{l.color}} w3-right-align">
+			{{l.start|yesno:",,<"}}{{l.start|default_if_none:""}}{% if l.start != None and l.end != None %} to {% endif %}{{l.end|default_if_none:""}}{{ l.end|yesno:",,+"}} %
+		</td></tr>
 {% if forloop.last %}
 	</tbody>
 </table>
