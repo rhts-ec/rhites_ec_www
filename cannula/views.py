@@ -44,6 +44,15 @@ def filter_empty_rows(grouped_vals):
 def month2quarter(month_num):
     return ((month_num-1)//3+1)
 
+def make_excel_url(request_path):
+    import os
+    import urllib
+
+    parts = urllib.parse.urlparse(request_path)
+    a, b, path, *others = parts
+    excel_path = ''.join([os.path.splitext(path)[0], '.xls'])
+    return urllib.parse.urlunparse([a, b, excel_path, *others])
+
 @login_required
 def ipt_quarterly(request, output_format='HTML'):
     ipt_de_names = (
@@ -2510,6 +2519,7 @@ def fp_cyp_by_site(request, output_format='HTML'):
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -2853,7 +2863,7 @@ def fp_cyp_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -2889,10 +2899,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'excel_url': make_excel_url(request.path)
     }
 
     return render(request, 'cannula/fp_cyp_sites.html', context)
@@ -2913,6 +2925,7 @@ def fp_cyp_by_district(request, output_format='HTML'):
     # # all districts (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
     ou_list = list(qs_ou.values_list('district'))
+    ou_headers = ['District',]
 
     def val_with_subcat_fun(row, col):
         district, = row
@@ -3243,7 +3256,7 @@ def fp_cyp_by_district(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District',] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -3277,10 +3290,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'excel_url': make_excel_url(request.path)
     }
 
     return render(request, 'cannula/fp_cyp_districts.html', context)
