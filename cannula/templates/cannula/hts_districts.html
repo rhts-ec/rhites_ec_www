@@ -96,15 +96,6 @@
 	</tr>
 	</thead>
 	<tbody>
-	{% comment %}
-	{% for val in val_dicts %}
-	<tr>
-		<td>{{val.district}}</td>
-		<td>{{val}}</td>
-	</tr>
-	{% endfor %}
-	{% endcomment %}
-
 	{% for org_path,group in grouped_data %}
 	<tr>
 		{% for op in org_path %}

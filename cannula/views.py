@@ -939,9 +939,6 @@ def hts_by_site(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'val_pmtct_child': list(val_pmtct_child),
-        'val_pmtct_child2': list(val_pmtct_child2),
-        # 'grouped_data_size': len(grouped_vals),
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
@@ -1429,10 +1426,6 @@ def hts_by_district(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'ou_list': ou_list,
-        'val_target': val_target,
-        'val_target2': val_target2,
-        # 'grouped_data_size': len(grouped_vals),
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
@@ -1770,9 +1763,6 @@ def vmmc_by_site(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'ou_list': ou_list,
-        'val_targets': val_targets,
-        'val_targets2': val_targets2,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
@@ -2103,7 +2093,6 @@ def lab_by_site(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'ou_list': ou_list,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
@@ -2497,7 +2486,6 @@ def fp_by_site(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'ou_list': ou_list,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
