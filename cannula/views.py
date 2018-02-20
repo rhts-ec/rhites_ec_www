@@ -2495,6 +2495,797 @@ def fp_by_site(request, output_format='HTML'):
     return render(request, 'cannula/fp_sites.html', context)
 
 @login_required
+def fp_cyp_by_site(request, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+
+    oral_de_names = (
+        '105-2.5 Oral: Microgynon',
+        '105-2.5 Oral: Lo-Feminal',
+        '105-2.5 Oral : Ovrette or Another POP',
+    )
+    oral_short_names = (
+        'Oral dispensed (cycles)',
+    )
+    de_oral_meta = list(product(oral_short_names, (None,)))
+
+    qs_oral = DataValue.objects.what(*oral_de_names).filter(quarter=filter_period)
+    qs_oral = qs_oral.annotate(de_name=Value(oral_short_names[0], output_field=CharField()))
+    qs_oral = qs_oral.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_oral = qs_oral.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_oral = qs_oral.annotate(period=F('quarter'))
+    qs_oral = qs_oral.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_oral = qs_oral.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_oral = list(val_oral)
+
+    gen_raster = grabbag.rasterize(ou_list, de_oral_meta, val_oral, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_oral2 = list(gen_raster)
+
+    condoms_de_names = (
+        '105-2.5 Female Condom',
+        '105-2.5 Male Condom',
+    )
+    condoms_short_names = (
+        'Condoms dispensed (pieces)',
+    )
+    de_condoms_meta = list(product(condoms_short_names, (None,)))
+
+    qs_condoms = DataValue.objects.what(*condoms_de_names).filter(quarter=filter_period)
+    qs_condoms = qs_condoms.annotate(de_name=Value(condoms_short_names[0], output_field=CharField()))
+    qs_condoms = qs_condoms.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_condoms = qs_condoms.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_condoms = qs_condoms.annotate(period=F('quarter'))
+    qs_condoms = qs_condoms.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_condoms = qs_condoms.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_condoms = list(val_condoms)
+
+    gen_raster = grabbag.rasterize(ou_list, de_condoms_meta, val_condoms, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_condoms2 = list(gen_raster)
+
+    implants_new_de_names = (
+        '105-2.7 Implant',
+    )
+    implants_new_short_names = (
+        'New users - Implants',
+    )
+    de_implants_new_meta = list(product(implants_new_short_names, (None,)))
+
+    qs_implants_new = DataValue.objects.what(*implants_new_de_names).filter(quarter=filter_period)
+    qs_implants_new = qs_implants_new.annotate(de_name=Value(implants_new_short_names[0], output_field=CharField()))
+    qs_implants_new = qs_implants_new.filter(category_combo__categories__name='New Users')
+    qs_implants_new = qs_implants_new.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_implants_new = qs_implants_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_implants_new = qs_implants_new.annotate(period=F('quarter'))
+    qs_implants_new = qs_implants_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_implants_new = qs_implants_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_implants_new = list(val_implants_new)
+
+    gen_raster = grabbag.rasterize(ou_list, de_implants_new_meta, val_implants_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_implants_new2 = list(gen_raster)
+
+    injectable_de_names = (
+        '105-2.5 Injectable',
+    )
+    injectable_short_names = (
+        'Injectable dispensed (doses)',
+    )
+    de_injectable_meta = list(product(injectable_short_names, (None,)))
+
+    qs_injectable = DataValue.objects.what(*injectable_de_names).filter(quarter=filter_period)
+    qs_injectable = qs_injectable.annotate(de_name=Value(injectable_short_names[0], output_field=CharField()))
+    qs_injectable = qs_injectable.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_injectable = qs_injectable.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_injectable = qs_injectable.annotate(period=F('quarter'))
+    qs_injectable = qs_injectable.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_injectable = qs_injectable.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_injectable = list(val_injectable)
+
+    gen_raster = grabbag.rasterize(ou_list, de_injectable_meta, val_injectable, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_injectable2 = list(gen_raster)
+
+    iud_de_names = (
+        '105-2.5 IUDs',
+    )
+    iud_short_names = (
+        'IUD inserted',
+    )
+    de_iud_meta = list(product(iud_short_names, (None,)))
+
+    qs_iud = DataValue.objects.what(*iud_de_names).filter(quarter=filter_period)
+    qs_iud = qs_iud.annotate(de_name=Value(iud_short_names[0], output_field=CharField()))
+    qs_iud = qs_iud.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_iud = qs_iud.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_iud = qs_iud.annotate(period=F('quarter'))
+    qs_iud = qs_iud.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_iud = qs_iud.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_iud = list(val_iud)
+
+    gen_raster = grabbag.rasterize(ou_list, de_iud_meta, val_iud, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_iud2 = list(gen_raster)
+
+    sterile_new_de_names = (
+        '105-2.7 Female Sterilisation (TubeLigation)',
+        '105-2.7 Male Sterilisation (Vasectomy)',
+    )
+    sterile_new_short_names = (
+        'New users - Sterilisation (male and female)',
+    )
+    de_sterile_new_meta = list(product(sterile_new_short_names, (None,)))
+
+    qs_sterile_new = DataValue.objects.what(*sterile_new_de_names).filter(quarter=filter_period)
+    qs_sterile_new = qs_sterile_new.annotate(de_name=Value(sterile_new_short_names[0], output_field=CharField()))
+    qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
+    qs_sterile_new = qs_sterile_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_sterile_new = qs_sterile_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_sterile_new = list(val_sterile_new)
+
+    gen_raster = grabbag.rasterize(ou_list, de_sterile_new_meta, val_sterile_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_sterile_new2 = list(gen_raster)
+
+    natural_de_names = (
+        '105-2.5 Natural',
+    )
+    natural_short_names = (
+        'Natural methods',
+    )
+    de_natural_meta = list(product(natural_short_names, (None,)))
+
+    qs_natural = DataValue.objects.what(*natural_de_names).filter(quarter=filter_period)
+    qs_natural = qs_natural.annotate(de_name=Value(natural_short_names[0], output_field=CharField()))
+    qs_natural = qs_natural.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_natural = qs_natural.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_natural = qs_natural.annotate(period=F('quarter'))
+    qs_natural = qs_natural.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_natural = qs_natural.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_natural = list(val_natural)
+
+    gen_raster = grabbag.rasterize(ou_list, de_natural_meta, val_natural, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_natural2 = list(gen_raster)
+
+    emergency_de_names = (
+        '105-2.6 Emergency contraceptives  No. Dispensed by CBD',
+        '105-2.6 Emergency contraceptives  No. Dispensed at Unit',
+        '105-2.6 Emergency contraceptives  No. Disp. At Outreach',
+    )
+    emergency_short_names = (
+        'Emergency contraceptives dispensed (doses)',
+    )
+    de_emergency_meta = list(product(emergency_short_names, (None,)))
+
+    qs_emergency = DataValue.objects.what(*emergency_de_names).filter(quarter=filter_period)
+    qs_emergency = qs_emergency.annotate(de_name=Value(emergency_short_names[0], output_field=CharField()))
+    qs_emergency = qs_emergency.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_emergency = qs_emergency.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_emergency = qs_emergency.annotate(period=F('quarter'))
+    qs_emergency = qs_emergency.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_emergency = qs_emergency.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_emergency = list(val_emergency)
+
+    gen_raster = grabbag.rasterize(ou_list, de_emergency_meta, val_emergency, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_emergency2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_oral2, val_condoms2, val_implants_new2, val_injectable2, val_iud2, val_sterile_new2, val_natural2, val_emergency2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (oral, condoms, implants_new, injectable, iud, sterile_new, natural, emergency, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(oral['numeric_sum']):
+            cyp_oral = oral['numeric_sum'] / 15
+        else:
+            cyp_oral = None
+        cyp_oral_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs Oral',
+            'cat_combo': None,
+            'numeric_sum': cyp_oral,
+        }
+        calculated_vals.append(cyp_oral_val)
+
+        if all_not_none(condoms['numeric_sum']):
+            cyp_condoms = condoms['numeric_sum'] / 120
+        else:
+            cyp_condoms = None
+        cyp_condoms_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs Condoms',
+            'cat_combo': None,
+            'numeric_sum': cyp_condoms,
+        }
+        calculated_vals.append(cyp_condoms_val)
+
+        if all_not_none(implants_new['numeric_sum']):
+            cyp_implants = implants_new['numeric_sum'] * Decimal(2.5)
+        else:
+            cyp_implants = None
+        cyp_implants_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs Implants',
+            'cat_combo': None,
+            'numeric_sum': cyp_implants,
+        }
+        calculated_vals.append(cyp_implants_val)
+
+        if all_not_none(injectable['numeric_sum']):
+            cyp_injectable = injectable['numeric_sum'] / 4
+        else:
+            cyp_injectable = None
+        cyp_injectable_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs Injectable',
+            'cat_combo': None,
+            'numeric_sum': cyp_injectable,
+        }
+        calculated_vals.append(cyp_injectable_val)
+
+        if all_not_none(iud['numeric_sum']):
+            cyp_iud = iud['numeric_sum'] * Decimal(4.6)
+        else:
+            cyp_iud = None
+        cyp_iud_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs IUD',
+            'cat_combo': None,
+            'numeric_sum': cyp_iud,
+        }
+        calculated_vals.append(cyp_iud_val)
+
+        if all_not_none(sterile_new['numeric_sum']):
+            cyp_sterile = sterile_new['numeric_sum'] * Decimal(10)
+        else:
+            cyp_sterile = None
+        cyp_sterile_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs sterile',
+            'cat_combo': None,
+            'numeric_sum': cyp_sterile,
+        }
+        calculated_vals.append(cyp_sterile_val)
+
+        if all_not_none(natural['numeric_sum']):
+            cyp_natural = natural['numeric_sum'] / 4
+        else:
+            cyp_natural = None
+        cyp_natural_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs Natural Methods',
+            'cat_combo': None,
+            'numeric_sum': cyp_natural,
+        }
+        calculated_vals.append(cyp_natural_val)
+
+        if all_not_none(emergency['numeric_sum']):
+            cyp_emergency = emergency['numeric_sum'] / 20
+        else:
+            cyp_emergency = None
+        cyp_emergency_val = {
+            'district': district_subcounty_facility[0],
+            'subcounty': district_subcounty_facility[1],
+            'facility': district_subcounty_facility[2],
+            'de_name': 'CYPs Emergency Contraceptives',
+            'cat_combo': None,
+            'numeric_sum': cyp_emergency,
+        }
+        calculated_vals.append(cyp_emergency_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += list(product(oral_short_names, (None,)))
+    data_element_names += list(product(condoms_short_names, (None,)))
+    data_element_names += list(product(implants_new_short_names, (None,)))
+    data_element_names += list(product(injectable_short_names, (None,)))
+    data_element_names += list(product(iud_short_names, (None,)))
+    data_element_names += list(product(sterile_new_short_names, (None,)))
+    data_element_names += list(product(natural_short_names, (None,)))
+    data_element_names += list(product(emergency_short_names, (None,)))
+
+    data_element_names += list(product(['CYPs Oral'], (None,)))
+    data_element_names += list(product(['CYPs Condoms'], (None,)))
+    data_element_names += list(product(['CYPs Implants'], (None,)))
+    data_element_names += list(product(['CYPs Injectable'], (None,)))
+    data_element_names += list(product(['CYPs IUD'], (None,)))
+    data_element_names += list(product(['CYP Sterilisation'], (None,)))
+    data_element_names += list(product(['CYPs Natural Methods'], (None,)))
+    data_element_names += list(product(['CYPs Emergency contraceptives'], (None,)))
+
+    legend_sets = list()
+    fp_cyp_ls = LegendSet()
+    fp_cyp_ls.add_interval('orange', 0, 25)
+    fp_cyp_ls.add_interval('yellow', 25, 40)
+    fp_cyp_ls.add_interval('light-green', 50, 60)
+    fp_cyp_ls.add_interval('green', 60, None)
+    legend_sets.append(fp_cyp_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district, subcounty, facility), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            ws.cell(row=i, column=2, value=subcounty)
+            ws.cell(row=i, column=3, value=facility)
+            for j, g_val in enumerate(g_val_list, start=4):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        # fp_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
+        # for rule in fp_ls.openpyxl_rules():
+        #     for cell_range in fp_ranges:
+        #         ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="fp_cyp_sites_scorecard.xlsx"'
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/fp_cyp_sites.html', context)
+
+@login_required
+def fp_cyp_by_district(request, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    # # all districts (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
+    ou_list = list(qs_ou.values_list('district'))
+
+    def val_with_subcat_fun(row, col):
+        district, = row
+        de_name, subcategory = col
+        return { 'district': district, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+
+    def get_ou_path(val):
+        return (val['district'],)
+
+    oral_de_names = (
+        '105-2.5 Oral: Microgynon',
+        '105-2.5 Oral: Lo-Feminal',
+        '105-2.5 Oral : Ovrette or Another POP',
+    )
+    oral_short_names = (
+        'Oral dispensed (cycles)',
+    )
+    de_oral_meta = list(product(oral_short_names, (None,)))
+
+    qs_oral = DataValue.objects.what(*oral_de_names).filter(quarter=filter_period)
+    qs_oral = qs_oral.annotate(de_name=Value(oral_short_names[0], output_field=CharField()))
+    qs_oral = qs_oral.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_oral = qs_oral.annotate(district=F('org_unit__parent__parent__name'))
+    qs_oral = qs_oral.annotate(period=F('quarter'))
+    qs_oral = qs_oral.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_oral = qs_oral.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_oral = list(val_oral)
+
+    gen_raster = grabbag.rasterize(ou_list, de_oral_meta, val_oral, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_oral2 = list(gen_raster)
+
+    condoms_de_names = (
+        '105-2.5 Female Condom',
+        '105-2.5 Male Condom',
+    )
+    condoms_short_names = (
+        'Condoms dispensed (pieces)',
+    )
+    de_condoms_meta = list(product(condoms_short_names, (None,)))
+
+    qs_condoms = DataValue.objects.what(*condoms_de_names).filter(quarter=filter_period)
+    qs_condoms = qs_condoms.annotate(de_name=Value(condoms_short_names[0], output_field=CharField()))
+    qs_condoms = qs_condoms.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_condoms = qs_condoms.annotate(district=F('org_unit__parent__parent__name'))
+    qs_condoms = qs_condoms.annotate(period=F('quarter'))
+    qs_condoms = qs_condoms.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_condoms = qs_condoms.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_condoms = list(val_condoms)
+
+    gen_raster = grabbag.rasterize(ou_list, de_condoms_meta, val_condoms, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_condoms2 = list(gen_raster)
+
+    implants_new_de_names = (
+        '105-2.7 Implant',
+    )
+    implants_new_short_names = (
+        'New users - Implants',
+    )
+    de_implants_new_meta = list(product(implants_new_short_names, (None,)))
+
+    qs_implants_new = DataValue.objects.what(*implants_new_de_names).filter(quarter=filter_period)
+    qs_implants_new = qs_implants_new.annotate(de_name=Value(implants_new_short_names[0], output_field=CharField()))
+    qs_implants_new = qs_implants_new.filter(category_combo__categories__name='New Users')
+    qs_implants_new = qs_implants_new.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_implants_new = qs_implants_new.annotate(district=F('org_unit__parent__parent__name'))
+    qs_implants_new = qs_implants_new.annotate(period=F('quarter'))
+    qs_implants_new = qs_implants_new.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_implants_new = qs_implants_new.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_implants_new = list(val_implants_new)
+
+    gen_raster = grabbag.rasterize(ou_list, de_implants_new_meta, val_implants_new, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_implants_new2 = list(gen_raster)
+
+    injectable_de_names = (
+        '105-2.5 Injectable',
+    )
+    injectable_short_names = (
+        'Injectable dispensed (doses)',
+    )
+    de_injectable_meta = list(product(injectable_short_names, (None,)))
+
+    qs_injectable = DataValue.objects.what(*injectable_de_names).filter(quarter=filter_period)
+    qs_injectable = qs_injectable.annotate(de_name=Value(injectable_short_names[0], output_field=CharField()))
+    qs_injectable = qs_injectable.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_injectable = qs_injectable.annotate(district=F('org_unit__parent__parent__name'))
+    qs_injectable = qs_injectable.annotate(period=F('quarter'))
+    qs_injectable = qs_injectable.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_injectable = qs_injectable.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_injectable = list(val_injectable)
+
+    gen_raster = grabbag.rasterize(ou_list, de_injectable_meta, val_injectable, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_injectable2 = list(gen_raster)
+
+    iud_de_names = (
+        '105-2.5 IUDs',
+    )
+    iud_short_names = (
+        'IUD inserted',
+    )
+    de_iud_meta = list(product(iud_short_names, (None,)))
+
+    qs_iud = DataValue.objects.what(*iud_de_names).filter(quarter=filter_period)
+    qs_iud = qs_iud.annotate(de_name=Value(iud_short_names[0], output_field=CharField()))
+    qs_iud = qs_iud.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_iud = qs_iud.annotate(district=F('org_unit__parent__parent__name'))
+    qs_iud = qs_iud.annotate(period=F('quarter'))
+    qs_iud = qs_iud.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_iud = qs_iud.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_iud = list(val_iud)
+
+    gen_raster = grabbag.rasterize(ou_list, de_iud_meta, val_iud, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_iud2 = list(gen_raster)
+
+    sterile_new_de_names = (
+        '105-2.7 Female Sterilisation (TubeLigation)',
+        '105-2.7 Male Sterilisation (Vasectomy)',
+    )
+    sterile_new_short_names = (
+        'New users - Sterilisation (male and female)',
+    )
+    de_sterile_new_meta = list(product(sterile_new_short_names, (None,)))
+
+    qs_sterile_new = DataValue.objects.what(*sterile_new_de_names).filter(quarter=filter_period)
+    qs_sterile_new = qs_sterile_new.annotate(de_name=Value(sterile_new_short_names[0], output_field=CharField()))
+    qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'))
+    qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
+    qs_sterile_new = qs_sterile_new.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_sterile_new = qs_sterile_new.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_sterile_new = list(val_sterile_new)
+
+    gen_raster = grabbag.rasterize(ou_list, de_sterile_new_meta, val_sterile_new, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_sterile_new2 = list(gen_raster)
+
+    natural_de_names = (
+        '105-2.5 Natural',
+    )
+    natural_short_names = (
+        'Natural methods',
+    )
+    de_natural_meta = list(product(natural_short_names, (None,)))
+
+    qs_natural = DataValue.objects.what(*natural_de_names).filter(quarter=filter_period)
+    qs_natural = qs_natural.annotate(de_name=Value(natural_short_names[0], output_field=CharField()))
+    qs_natural = qs_natural.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_natural = qs_natural.annotate(district=F('org_unit__parent__parent__name'))
+    qs_natural = qs_natural.annotate(period=F('quarter'))
+    qs_natural = qs_natural.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_natural = qs_natural.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_natural = list(val_natural)
+
+    gen_raster = grabbag.rasterize(ou_list, de_natural_meta, val_natural, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_natural2 = list(gen_raster)
+
+    emergency_de_names = (
+        '105-2.6 Emergency contraceptives  No. Dispensed by CBD',
+        '105-2.6 Emergency contraceptives  No. Dispensed at Unit',
+        '105-2.6 Emergency contraceptives  No. Disp. At Outreach',
+    )
+    emergency_short_names = (
+        'Emergency contraceptives dispensed (doses)',
+    )
+    de_emergency_meta = list(product(emergency_short_names, (None,)))
+
+    qs_emergency = DataValue.objects.what(*emergency_de_names).filter(quarter=filter_period)
+    qs_emergency = qs_emergency.annotate(de_name=Value(emergency_short_names[0], output_field=CharField()))
+    qs_emergency = qs_emergency.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_emergency = qs_emergency.annotate(district=F('org_unit__parent__parent__name'))
+    qs_emergency = qs_emergency.annotate(period=F('quarter'))
+    qs_emergency = qs_emergency.order_by('district', 'de_name', 'cat_combo', 'period')
+    val_emergency = qs_emergency.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_emergency = list(val_emergency)
+
+    gen_raster = grabbag.rasterize(ou_list, de_emergency_meta, val_emergency, get_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_emergency2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_oral2, val_condoms2, val_implants_new2, val_injectable2, val_iud2, val_sterile_new2, val_natural2, val_emergency2), key=lambda x: (x['district'],)), key=lambda x: (x['district'],))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (ou_path, (oral, condoms, implants_new, injectable, iud, sterile_new, natural, emergency, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(oral['numeric_sum']):
+            cyp_oral = oral['numeric_sum'] / 15
+        else:
+            cyp_oral = None
+        cyp_oral_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs Oral',
+            'cat_combo': None,
+            'numeric_sum': cyp_oral,
+        }
+        calculated_vals.append(cyp_oral_val)
+
+        if all_not_none(condoms['numeric_sum']):
+            cyp_condoms = condoms['numeric_sum'] / 120
+        else:
+            cyp_condoms = None
+        cyp_condoms_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs Condoms',
+            'cat_combo': None,
+            'numeric_sum': cyp_condoms,
+        }
+        calculated_vals.append(cyp_condoms_val)
+
+        if all_not_none(implants_new['numeric_sum']):
+            cyp_implants = implants_new['numeric_sum'] * Decimal(2.5)
+        else:
+            cyp_implants = None
+        cyp_implants_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs Implants',
+            'cat_combo': None,
+            'numeric_sum': cyp_implants,
+        }
+        calculated_vals.append(cyp_implants_val)
+
+        if all_not_none(injectable['numeric_sum']):
+            cyp_injectable = injectable['numeric_sum'] / 4
+        else:
+            cyp_injectable = None
+        cyp_injectable_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs Injectable',
+            'cat_combo': None,
+            'numeric_sum': cyp_injectable,
+        }
+        calculated_vals.append(cyp_injectable_val)
+
+        if all_not_none(iud['numeric_sum']):
+            cyp_iud = iud['numeric_sum'] * Decimal(4.6)
+        else:
+            cyp_iud = None
+        cyp_iud_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs IUD',
+            'cat_combo': None,
+            'numeric_sum': cyp_iud,
+        }
+        calculated_vals.append(cyp_iud_val)
+
+        if all_not_none(sterile_new['numeric_sum']):
+            cyp_sterile = sterile_new['numeric_sum'] * Decimal(10)
+        else:
+            cyp_sterile = None
+        cyp_sterile_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs sterile',
+            'cat_combo': None,
+            'numeric_sum': cyp_sterile,
+        }
+        calculated_vals.append(cyp_sterile_val)
+
+        if all_not_none(natural['numeric_sum']):
+            cyp_natural = natural['numeric_sum'] / 4
+        else:
+            cyp_natural = None
+        cyp_natural_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs Natural Methods',
+            'cat_combo': None,
+            'numeric_sum': cyp_natural,
+        }
+        calculated_vals.append(cyp_natural_val)
+
+        if all_not_none(emergency['numeric_sum']):
+            cyp_emergency = emergency['numeric_sum'] / 20
+        else:
+            cyp_emergency = None
+        cyp_emergency_val = {
+            'district': ou_path[0],
+            'de_name': 'CYPs Emergency Contraceptives',
+            'cat_combo': None,
+            'numeric_sum': cyp_emergency,
+        }
+        calculated_vals.append(cyp_emergency_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += list(product(oral_short_names, (None,)))
+    data_element_names += list(product(condoms_short_names, (None,)))
+    data_element_names += list(product(implants_new_short_names, (None,)))
+    data_element_names += list(product(injectable_short_names, (None,)))
+    data_element_names += list(product(iud_short_names, (None,)))
+    data_element_names += list(product(sterile_new_short_names, (None,)))
+    data_element_names += list(product(natural_short_names, (None,)))
+    data_element_names += list(product(emergency_short_names, (None,)))
+
+    data_element_names += list(product(['CYPs Oral'], (None,)))
+    data_element_names += list(product(['CYPs Condoms'], (None,)))
+    data_element_names += list(product(['CYPs Implants'], (None,)))
+    data_element_names += list(product(['CYPs Injectable'], (None,)))
+    data_element_names += list(product(['CYPs IUD'], (None,)))
+    data_element_names += list(product(['CYP Sterilisation'], (None,)))
+    data_element_names += list(product(['CYPs Natural Methods'], (None,)))
+    data_element_names += list(product(['CYPs Emergency contraceptives'], (None,)))
+
+    legend_sets = list()
+    fp_cyp_ls = LegendSet()
+    fp_cyp_ls.add_interval('orange', 0, 25)
+    fp_cyp_ls.add_interval('yellow', 25, 40)
+    fp_cyp_ls.add_interval('light-green', 50, 60)
+    fp_cyp_ls.add_interval('green', 60, None)
+    legend_sets.append(fp_cyp_ls.legends())
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ['District',] + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            (district,), g_val_list = g
+            ws.cell(row=i, column=1, value=district)
+            for j, g_val in enumerate(g_val_list, start=2):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+
+        # Add conditional formatting to MS Excel output
+        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        # fp_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
+        # for rule in fp_ls.openpyxl_rules():
+        #     for cell_range in fp_ranges:
+        #         ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="fp_cyp_districts_scorecard.xlsx"'
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+    }
+
+    return render(request, 'cannula/fp_cyp_districts.html', context)
+
+@login_required
 def nutrition_by_hospital(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
@@ -2910,7 +3701,6 @@ def nutrition_by_hospital(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'ou_list': ou_list,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
@@ -3121,7 +3911,6 @@ def vl_by_site(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
-        'ou_list': ou_list,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
