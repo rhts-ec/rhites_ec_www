@@ -38,9 +38,15 @@
 <label>Period</label>
 </div>
 <div class="w3-cell w3-quarter">
-<select class="w3-input w3-border">
-	<option>All districts</option>
-	<option>RHITES EC districts only</option>
+<select class="w3-input w3-border" name="district">
+	<option value="">All districts</option>
+	{% for district in district_list %}
+	{% if district == request.GET.district %}
+	<option selected="selected">{{ district }}</option>
+	{% else %}
+	<option>{{ district }}</option>
+	{% endif %}
+	{% endfor %}
 </select>
 <label>Coverage</label>
 </div>

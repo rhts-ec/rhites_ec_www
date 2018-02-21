@@ -2508,6 +2508,7 @@ def fp_cyp_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -2516,8 +2517,15 @@ def fp_cyp_by_site(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = request.GET['district']
+    else:
+        filter_district = None
+
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(district=filter_district)
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
     ou_headers = ['District', 'Subcounty', 'Facility']
 
@@ -2541,6 +2549,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_oral = qs_oral.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_oral = qs_oral.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_oral = qs_oral.filter(district=filter_district)
     qs_oral = qs_oral.annotate(period=F('quarter'))
     qs_oral = qs_oral.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_oral = qs_oral.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2563,6 +2573,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_condoms = qs_condoms.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_condoms = qs_condoms.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_condoms = qs_condoms.filter(district=filter_district)
     qs_condoms = qs_condoms.annotate(period=F('quarter'))
     qs_condoms = qs_condoms.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_condoms = qs_condoms.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2585,6 +2597,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_implants_new = qs_implants_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_implants_new = qs_implants_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_implants_new = qs_implants_new.filter(district=filter_district)
     qs_implants_new = qs_implants_new.annotate(period=F('quarter'))
     qs_implants_new = qs_implants_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_implants_new = qs_implants_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2606,6 +2620,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_injectable = qs_injectable.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_injectable = qs_injectable.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_injectable = qs_injectable.filter(district=filter_district)
     qs_injectable = qs_injectable.annotate(period=F('quarter'))
     qs_injectable = qs_injectable.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_injectable = qs_injectable.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2627,6 +2643,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_iud = qs_iud.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_iud = qs_iud.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_iud = qs_iud.filter(district=filter_district)
     qs_iud = qs_iud.annotate(period=F('quarter'))
     qs_iud = qs_iud.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_iud = qs_iud.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2649,6 +2667,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_sterile_new = qs_sterile_new.filter(district=filter_district)
     qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
     qs_sterile_new = qs_sterile_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_sterile_new = qs_sterile_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2670,6 +2690,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_natural = qs_natural.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_natural = qs_natural.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_natural = qs_natural.filter(district=filter_district)
     qs_natural = qs_natural.annotate(period=F('quarter'))
     qs_natural = qs_natural.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_natural = qs_natural.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2693,6 +2715,8 @@ def fp_cyp_by_site(request, output_format='HTML'):
     qs_emergency = qs_emergency.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_emergency = qs_emergency.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    if filter_district:
+        qs_emergency = qs_emergency.filter(district=filter_district)
     qs_emergency = qs_emergency.annotate(period=F('quarter'))
     qs_emergency = qs_emergency.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_emergency = qs_emergency.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2904,6 +2928,7 @@ def fp_cyp_by_site(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path)
     }
 
@@ -2914,6 +2939,7 @@ def fp_cyp_by_district(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -2921,6 +2947,11 @@ def fp_cyp_by_district(request, output_format='HTML'):
         filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = request.GET['district']
+    else:
+        filter_district = None
 
     # # all districts (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
@@ -2950,6 +2981,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_oral = qs_oral.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_oral = qs_oral.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_oral = qs_oral.filter(district=filter_district)
     qs_oral = qs_oral.annotate(period=F('quarter'))
     qs_oral = qs_oral.order_by('district', 'de_name', 'cat_combo', 'period')
     val_oral = qs_oral.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2972,6 +3005,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_condoms = qs_condoms.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_condoms = qs_condoms.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_condoms = qs_condoms.filter(district=filter_district)
     qs_condoms = qs_condoms.annotate(period=F('quarter'))
     qs_condoms = qs_condoms.order_by('district', 'de_name', 'cat_combo', 'period')
     val_condoms = qs_condoms.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2994,6 +3029,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_implants_new = qs_implants_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_implants_new = qs_implants_new.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_implants_new = qs_implants_new.filter(district=filter_district)
     qs_implants_new = qs_implants_new.annotate(period=F('quarter'))
     qs_implants_new = qs_implants_new.order_by('district', 'de_name', 'cat_combo', 'period')
     val_implants_new = qs_implants_new.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3015,6 +3052,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_injectable = qs_injectable.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_injectable = qs_injectable.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_injectable = qs_injectable.filter(district=filter_district)
     qs_injectable = qs_injectable.annotate(period=F('quarter'))
     qs_injectable = qs_injectable.order_by('district', 'de_name', 'cat_combo', 'period')
     val_injectable = qs_injectable.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3036,6 +3075,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_iud = qs_iud.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_iud = qs_iud.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_iud = qs_iud.filter(district=filter_district)
     qs_iud = qs_iud.annotate(period=F('quarter'))
     qs_iud = qs_iud.order_by('district', 'de_name', 'cat_combo', 'period')
     val_iud = qs_iud.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3058,6 +3099,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_sterile_new = qs_sterile_new.filter(district=filter_district)
     qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
     qs_sterile_new = qs_sterile_new.order_by('district', 'de_name', 'cat_combo', 'period')
     val_sterile_new = qs_sterile_new.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3079,6 +3122,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_natural = qs_natural.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_natural = qs_natural.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_natural = qs_natural.filter(district=filter_district)
     qs_natural = qs_natural.annotate(period=F('quarter'))
     qs_natural = qs_natural.order_by('district', 'de_name', 'cat_combo', 'period')
     val_natural = qs_natural.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3102,6 +3147,8 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_emergency = qs_emergency.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_emergency = qs_emergency.annotate(district=F('org_unit__parent__parent__name'))
+    if filter_district:
+        qs_emergency = qs_emergency.filter(district=filter_district)
     qs_emergency = qs_emergency.annotate(period=F('quarter'))
     qs_emergency = qs_emergency.order_by('district', 'de_name', 'cat_combo', 'period')
     val_emergency = qs_emergency.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3295,6 +3342,7 @@ def fp_cyp_by_district(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path)
     }
 
