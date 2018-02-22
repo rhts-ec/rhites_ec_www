@@ -145,9 +145,10 @@ def ipt_quarterly(request, output_format='HTML'):
 
     legend_sets = list()
     ipt_ls = LegendSet()
+    ipt_ls.name = 'IPT rate'
     ipt_ls.add_interval('yellow', 0, 71)
     ipt_ls.add_interval('green', 71, None)
-    legend_sets.append(ipt_ls.legends())
+    legend_sets.append(ipt_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -287,8 +288,9 @@ def malaria_compliance(request):
 
     legend_sets = list()
     compliance_ls = LegendSet()
+    compliance_ls.name = 'Compliance'
     compliance_ls.add_interval('green', 80, None)
-    legend_sets.append(compliance_ls.legends())
+    legend_sets.append(compliance_ls)
 
     context = {
         'grouped_data': grouped_vals,
@@ -886,15 +888,17 @@ def hts_by_site(request, output_format='HTML'):
 
     legend_sets = list()
     test_and_pos_ls = LegendSet()
+    test_and_pos_ls.name = 'Testing/Positivity'
     test_and_pos_ls.add_interval('red', 0, 75)
     test_and_pos_ls.add_interval('yellow', 75, 90)
     test_and_pos_ls.add_interval('green', 90, None)
-    legend_sets.append(test_and_pos_ls.legends())
+    legend_sets.append(test_and_pos_ls)
     linked_ls = LegendSet()
+    linked_ls.name = 'Link to Care'
     linked_ls.add_interval('red', 0, 80)
     linked_ls.add_interval('yellow', 80, 90)
     linked_ls.add_interval('green', 90, 100)
-    legend_sets.append(linked_ls.legends())
+    legend_sets.append(linked_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -1375,15 +1379,17 @@ def hts_by_district(request, output_format='HTML'):
 
     legend_sets = list()
     test_and_pos_ls = LegendSet()
+    test_and_pos_ls.name = 'Testing/Positivity'
     test_and_pos_ls.add_interval('red', 0, 75)
     test_and_pos_ls.add_interval('yellow', 75, 90)
     test_and_pos_ls.add_interval('green', 90, None)
-    legend_sets.append(test_and_pos_ls.legends())
+    legend_sets.append(test_and_pos_ls)
     linked_ls = LegendSet()
+    linked_ls.name = 'Link to Care'
     linked_ls.add_interval('red', 0, 80)
     linked_ls.add_interval('yellow', 80, 90)
     linked_ls.add_interval('green', 90, 100)
-    legend_sets.append(linked_ls.legends())
+    legend_sets.append(linked_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -1711,14 +1717,16 @@ def vmmc_by_site(request, output_format='HTML'):
 
     legend_sets = list()
     vmmc_ls = LegendSet()
+    vmmc_ls.name = 'Perf Circumcised'
     vmmc_ls.add_interval('orange', 0, 25)
     vmmc_ls.add_interval('yellow', 25, 40)
     vmmc_ls.add_interval('light-green', 50, 60)
     vmmc_ls.add_interval('green', 60, None)
-    legend_sets.append(vmmc_ls.legends())
+    legend_sets.append(vmmc_ls)
     adverse_ls = LegendSet()
+    adverse_ls.name = 'Adverse Events'
     adverse_ls.add_interval('red', 0.5, None)
-    legend_sets.append(adverse_ls.legends())
+    legend_sets.append(adverse_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -2048,12 +2056,12 @@ def lab_by_site(request, output_format='HTML'):
     data_element_names += list(product(['Malaria (Smear & RDTs)'], (None,)))
 
     legend_sets = list()
-    lab_ls = LegendSet()
-    lab_ls.add_interval('orange', 0, 25)
-    lab_ls.add_interval('yellow', 25, 40)
-    lab_ls.add_interval('light-green', 50, 60)
-    lab_ls.add_interval('green', 60, None)
-    legend_sets.append(lab_ls.legends())
+    # lab_ls = LegendSet()
+    # lab_ls.add_interval('orange', 0, 25)
+    # lab_ls.add_interval('yellow', 25, 40)
+    # lab_ls.add_interval('light-green', 50, 60)
+    # lab_ls.add_interval('green', 60, None)
+    # legend_sets.append(lab_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -2442,12 +2450,12 @@ def fp_by_site(request, output_format='HTML'):
     data_element_names += list(product(['Revisits - TOTAL'], (None,)))
 
     legend_sets = list()
-    fp_ls = LegendSet()
-    fp_ls.add_interval('orange', 0, 25)
-    fp_ls.add_interval('yellow', 25, 40)
-    fp_ls.add_interval('light-green', 50, 60)
-    fp_ls.add_interval('green', 60, None)
-    legend_sets.append(fp_ls.legends())
+    # fp_ls = LegendSet()
+    # fp_ls.add_interval('orange', 0, 25)
+    # fp_ls.add_interval('yellow', 25, 40)
+    # fp_ls.add_interval('light-green', 50, 60)
+    # fp_ls.add_interval('green', 60, None)
+    # legend_sets.append(fp_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -2870,12 +2878,13 @@ def fp_cyp_by_site(request, output_format='HTML'):
     data_element_names += list(product(['CYPs Emergency contraceptives'], (None,)))
 
     legend_sets = list()
-    fp_cyp_ls = LegendSet()
-    fp_cyp_ls.add_interval('orange', 0, 25)
-    fp_cyp_ls.add_interval('yellow', 25, 40)
-    fp_cyp_ls.add_interval('light-green', 50, 60)
-    fp_cyp_ls.add_interval('green', 60, None)
-    legend_sets.append(fp_cyp_ls.legends())
+    # fp_cyp_ls = LegendSet()
+    # fp_cyp_ls.name = 'FP CYP'
+    # fp_cyp_ls.add_interval('orange', 0, 25)
+    # fp_cyp_ls.add_interval('yellow', 25, 40)
+    # fp_cyp_ls.add_interval('light-green', 50, 60)
+    # fp_cyp_ls.add_interval('green', 60, None)
+    # legend_sets.append(fp_cyp_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -3287,11 +3296,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
 
     legend_sets = list()
     fp_cyp_ls = LegendSet()
+    fp_cyp_ls.name = 'FP CYP'
     fp_cyp_ls.add_interval('orange', 0, 25)
     fp_cyp_ls.add_interval('yellow', 25, 40)
     fp_cyp_ls.add_interval('light-green', 50, 60)
     fp_cyp_ls.add_interval('green', 60, None)
-    legend_sets.append(fp_cyp_ls.legends())
+    legend_sets.append(fp_cyp_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -3702,15 +3712,17 @@ def nutrition_by_hospital(request, output_format='HTML'):
 
     legend_sets = list()
     muac_ls = LegendSet()
+    muac_ls.name = 'Nutrition Assessment'
     muac_ls.add_interval('red', 0, 25)
     muac_ls.add_interval('yellow', 25, 50)
     muac_ls.add_interval('green', 50, None)
-    legend_sets.append(muac_ls.legends())
+    legend_sets.append(muac_ls)
     malnourished_ls = LegendSet()
+    malnourished_ls.name = 'Assessed for Malnutrition'
     malnourished_ls.add_interval('red', 0, 50)
     malnourished_ls.add_interval('yellow', 50, 80)
     malnourished_ls.add_interval('green', 80, None)
-    legend_sets.append(malnourished_ls.legends())
+    legend_sets.append(malnourished_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -3914,14 +3926,16 @@ def vl_by_site(request, output_format='HTML'):
 
     legend_sets = list()
     achievement_ls = LegendSet()
+    achievement_ls.name = 'Achievement'
     achievement_ls.add_interval('orange', 0, 25)
     achievement_ls.add_interval('yellow', 25, 40)
     achievement_ls.add_interval('light-green', 40, 60)
     achievement_ls.add_interval('green', 60, None)
-    legend_sets.append(achievement_ls.legends())
+    legend_sets.append(achievement_ls)
     rejection_ls = LegendSet()
+    rejection_ls.name = 'Sample Rejection'
     rejection_ls.add_interval('orange', 4, None)
-    legend_sets.append(rejection_ls.legends())
+    legend_sets.append(rejection_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse

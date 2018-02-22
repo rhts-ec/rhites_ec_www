@@ -64,12 +64,12 @@
 </div>
 
 <div class="w3-bar-item w3-right">
-{% for legends in legend_sets %}
-{% for l in legends reversed %}
+{% for ls in legend_sets %}
+{% for l in ls.legends reversed %}
 {% if forloop.first %}
 <table class="w3-table w3-border w3-bordered" border="1">
 	<thead>
-		<tr><th>Legend</th></tr>
+		<tr><th>Legend: {{ ls.name }}</th></tr>
 	</thead>
 	<tbody>
 {% endif %}
