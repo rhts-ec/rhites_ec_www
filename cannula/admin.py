@@ -50,6 +50,6 @@ admin.site.register(Category)
 admin.site.register(CategoryCombo, CategoryComboAdmin)
 admin.site.register(ValidationRule, ValidationRuleAdmin)
 
-admin.site.site_title = 'RHITES-EC Data Validation Administrative Interface'
-admin.site.site_header = 'RHITES-EC Data Validation Admin'
+admin.site.site_title = 'RHITES-EC Performance Monitoring Tool Administrative Interface'
+admin.site.site_header = 'RHITES-EC Performance Monitoring Tool Admin'
 admin.site.index_title = 'System Configuration & Administration'
