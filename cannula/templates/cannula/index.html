@@ -11,30 +11,30 @@
 
 {% if 'hts' in request.path %}
 <ul>
-	<li><a href="{% url 'hts_sites' %}">HTS - Sites</a></li>
+	<li><a href="{% url 'hts_sites' %}">HTS - Facilities</a></li>
 	<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
 </ul>
 <ul>
-	<li><a href="{% url 'vl_sites' %}">Viral Load - Sites</a></li>
+	<li><a href="{% url 'vl_sites' %}">Viral Load - Facilities</a></li>
 </ul>
 {% endif %}
 
 {% if 'vmmc' in request.path %}
 <ul>
-	<li><a href="{% url 'vmmc_sites' %}">VMMC - Sites</a></li>
+	<li><a href="{% url 'vmmc_sites' %}">VMMC - Facilities</a></li>
 </ul>
 {% endif %}
 
 {% if 'lab' in request.path %}
 <ul>
-	<li><a href="{% url 'lab_sites' %}">Lab. Tests - Sites</a></li>
+	<li><a href="{% url 'lab_sites' %}">Lab. Tests - Facilities</a></li>
 </ul>
 {% endif %}
 
 {% if 'fp' in request.path %}
 <ul>
-	<li><a href="{% url 'fp_sites' %}">Family Planning - Sites</a></li>
-	<li><a href="{% url 'fp_cyp_sites' %}">Family Planning: CYP - Sites</a></li>
+	<li><a href="{% url 'fp_sites' %}">Family Planning - Facilities</a></li>
+	<li><a href="{% url 'fp_cyp_sites' %}">Family Planning: CYP - Facilities</a></li>
 	<li><a href="{% url 'fp_cyp_districts' %}">Family Planning: CYP - Districts</a></li>
 </ul>
 {% endif %}
