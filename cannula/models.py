@@ -272,8 +272,22 @@ class DataValueQuerySet(models.QuerySet):
             qs = qs.filter(de_filters)
         return qs
 
-    def where(self):
-        raise NotImplementedError()
+    def where(self, *names_or_objects):
+        import functools
+        import operator
+        if isinstance(names_or_objects[0], OrgUnit):
+            # we were passed a list of OrgUnit instances
+            orgunits = names_or_objects
+        else:
+            # we were passed a list of OrgUnit names
+            ou_filters = [Q(name__iexact=ou_name) for ou_name in names_or_objects if ou_name is not None]
+            ou_filters_combined = functools.reduce(operator.__or__, ou_filters)
+            orgunits = OrgUnit.objects.filter(ou_filters_combined)
+
+        qs = self
+        for ou in orgunits:
+            qs = qs.filter(Q(org_unit__lft__gte=ou.lft) & Q(org_unit__rght__lte=ou.rght))
+        return qs
 
     def when(self):
         raise NotImplementedError()
@@ -286,8 +300,8 @@ class DataValueManager(models.Manager):
     def what(self, *names):
         return self.get_queryset().what(*names)
 
-    def where(self):
-        raise NotImplementedError()
+    def where(self, *names_or_objects):
+        return self.get_queryset().where(*names_or_objects)
 
     def when(self):
         raise NotImplementedError()

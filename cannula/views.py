@@ -63,6 +63,7 @@ def ipt_quarterly(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -71,8 +72,15 @@ def ipt_quarterly(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
     # get IPT1 and IPT2 without subcategory disaggregation
     qs = DataValue.objects.what(*ipt_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs = qs.where(filter_district)
     # use clearer aliases for the unwieldy names
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
@@ -81,6 +89,8 @@ def ipt_quarterly(request, output_format='HTML'):
     
     # all subcounties (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=2).annotate(district=F('parent__name'), subcounty=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = qs_ou.values_list('district', 'subcounty')
 
     def val_fun(row, col):
@@ -94,6 +104,8 @@ def ipt_quarterly(request, output_format='HTML'):
 
     # get IPT2 with subcategory disaggregation
     qs2 = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').filter(quarter=filter_period)
+    if filter_district:
+        qs2 = qs2.where(filter_district)
     # use clearer aliases for the unwieldy names
     qs2 = qs2.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
     qs2 = qs2.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
@@ -110,6 +122,8 @@ def ipt_quarterly(request, output_format='HTML'):
 
     # get expected pregnancies
     qs3 = DataValue.objects.what('Expected Pregnancies')
+    if filter_district:
+        qs3 = qs3.where(filter_district)
     # use clearer aliases for the unwieldy names
     qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
     qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
@@ -203,6 +217,7 @@ def ipt_quarterly(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     if output_format == 'JSON':
@@ -222,6 +237,7 @@ def malaria_compliance(request):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'start_period' in request.GET and request.GET['start_period'] in PREV_5YR_QTRS and 'end_period' in request.GET and request.GET['end_period']:
         start_quarter = request.GET['start_period']
@@ -241,13 +257,22 @@ def malaria_compliance(request):
     periods = dateutil.get_quarters(start_quarter, end_quarter)
     if start_quarter == end_quarter:
         periods = periods[:1]
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
     
     # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = qs_ou.values_list('district', 'subcounty', 'facility')
 
     # get data values without subcategory disaggregation
     qs = DataValue.objects.what(*cases_de_names)
+    if filter_district:
+        qs = qs.where(filter_district)
     qs = qs.filter(quarter__gte=start_quarter).filter(quarter__lte=end_quarter)
     # use clearer aliases for the unwieldy names
     qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -301,6 +326,7 @@ def malaria_compliance(request):
         'periods': periods,
         'period_desc': dateutil.DateSpan.fromquarter(start_quarter).combine(dateutil.DateSpan.fromquarter(end_quarter)).format_long(),
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/malaria_compliance.html', context)
@@ -431,6 +457,7 @@ def hts_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -438,6 +465,11 @@ def hts_by_site(request, output_format='HTML'):
         filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
 
     hts_de_names = (
         '105-4 Number of clients who have been linked to care',
@@ -453,6 +485,8 @@ def hts_by_site(request, output_format='HTML'):
     de_positivity_meta = list(product(hts_de_names, subcategory_names))
 
     qs_positivity = DataValue.objects.what(*hts_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_positivity = qs_positivity.where(filter_district)
 
     cc_lt_15 = ['18 Mths-<5 Years', '5-<10 Years', '10-<15 Years']
     cc_ge_15 = ['15-<19 Years', '19-<49 Years', '>49 Years']
@@ -475,6 +509,8 @@ def hts_by_site(request, output_format='HTML'):
     
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
 
     def val_with_subcat_fun(row, col):
@@ -492,6 +528,8 @@ def hts_by_site(request, output_format='HTML'):
     de_pmtct_mother_meta = list(product(('Pregnant Women tested for HIV',), (None,)))
 
     qs_pmtct_mother = DataValue.objects.what(*pmtct_mother_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_pmtct_mother = qs_pmtct_mother.where(filter_district)
     qs_pmtct_mother = qs_pmtct_mother.annotate(de_name=Value('Pregnant Women tested for HIV', output_field=CharField()))
     qs_pmtct_mother = qs_pmtct_mother.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -513,6 +551,8 @@ def hts_by_site(request, output_format='HTML'):
     de_pmtct_mother_pos_meta = list(product(('Pregnant Women testing HIV+',), (None,)))
 
     qs_pmtct_mother_pos = DataValue.objects.what(*pmtct_mother_pos_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_pmtct_mother_pos = qs_pmtct_mother_pos.where(filter_district)
     qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(de_name=Value('Pregnant Women testing HIV+', output_field=CharField()))
     qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -541,6 +581,8 @@ def hts_by_site(request, output_format='HTML'):
     de_pmtct_child_meta = list(product(pmtct_child_de_names, (None,)))
 
     qs_pmtct_child = DataValue.objects.what(*pmtct_child_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_pmtct_child = qs_pmtct_child.where(filter_district)
     qs_pmtct_child = qs_pmtct_child.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_pmtct_child = qs_pmtct_child.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -560,6 +602,8 @@ def hts_by_site(request, output_format='HTML'):
 
     # targets are annual, so filter by year component of period and divide result by 4 to get quarter
     qs_target = DataValue.objects.what(*target_de_names).filter(year=filter_period[:4])
+    if filter_district:
+        qs_target = qs_target.where(filter_district)
 
     qs_target = qs_target.annotate(cat_combo=F('category_combo__name'))
     qs_target = qs_target.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -956,6 +1000,7 @@ def hts_by_site(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/hts_sites.html', context)
@@ -965,6 +1010,7 @@ def hts_by_district(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YRS = ['%d' % (y,) for y in range(this_year, this_year-6, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YRS:
         filter_period=request.GET['period']
@@ -972,6 +1018,11 @@ def hts_by_district(request, output_format='HTML'):
         filter_period = '%d' % (this_year,)
 
     period_desc = filter_period
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
 
     hts_de_names = (
         '105-4 Number of clients who have been linked to care',
@@ -987,6 +1038,8 @@ def hts_by_district(request, output_format='HTML'):
     de_positivity_meta = list(product(hts_de_names, subcategory_names))
 
     qs_positivity = DataValue.objects.what(*hts_de_names).filter(year=filter_period)
+    if filter_district:
+        qs_positivity = qs_positivity.where(filter_district)
 
     cc_lt_15 = ['18 Mths-<5 Years', '5-<10 Years', '10-<15 Years']
     cc_ge_15 = ['15-<19 Years', '19-<49 Years', '>49 Years']
@@ -1010,6 +1063,8 @@ def hts_by_district(request, output_format='HTML'):
     
     # all districts (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(v for v in qs_ou.values_list('district'))
 
     def val_with_subcat_fun(row, col):
@@ -1027,6 +1082,8 @@ def hts_by_district(request, output_format='HTML'):
     de_pmtct_mother_meta = list(product(('Pregnant Women tested for HIV',), (None,)))
 
     qs_pmtct_mother = DataValue.objects.what(*pmtct_mother_de_names).filter(year=filter_period)
+    if filter_district:
+        qs_pmtct_mother = qs_pmtct_mother.where(filter_district)
     qs_pmtct_mother = qs_pmtct_mother.annotate(de_name=Value('Pregnant Women tested for HIV', output_field=CharField()))
     qs_pmtct_mother = qs_pmtct_mother.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1048,6 +1105,8 @@ def hts_by_district(request, output_format='HTML'):
     de_pmtct_mother_pos_meta = list(product(('Pregnant Women testing HIV+',), (None,)))
 
     qs_pmtct_mother_pos = DataValue.objects.what(*pmtct_mother_pos_de_names).filter(year=filter_period)
+    if filter_district:
+        qs_pmtct_mother_pos = qs_pmtct_mother_pos.where(filter_district)
     qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(de_name=Value('Pregnant Women testing HIV+', output_field=CharField()))
     qs_pmtct_mother_pos = qs_pmtct_mother_pos.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1076,6 +1135,8 @@ def hts_by_district(request, output_format='HTML'):
     de_pmtct_child_meta = list(product(pmtct_child_de_names, (None,)))
 
     qs_pmtct_child = DataValue.objects.what(*pmtct_child_de_names).filter(year=filter_period)
+    if filter_district:
+        qs_pmtct_child = qs_pmtct_child.where(filter_district)
     qs_pmtct_child = qs_pmtct_child.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_pmtct_child = qs_pmtct_child.annotate(district=F('org_unit__parent__parent__name'))
@@ -1094,6 +1155,8 @@ def hts_by_district(request, output_format='HTML'):
 
     # targets are annual, so filter by year component of period
     qs_target = DataValue.objects.what(*target_de_names).filter(year=filter_period[:4])
+    if filter_district:
+        qs_target = qs_target.where(filter_district)
 
     qs_target = qs_target.annotate(cat_combo=F('category_combo__name'))
     qs_target = qs_target.annotate(district=F('org_unit__parent__parent__name'))
@@ -1445,6 +1508,7 @@ def hts_by_district(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/hts_districts.html', context)
@@ -1454,6 +1518,7 @@ def vmmc_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -1462,8 +1527,15 @@ def vmmc_by_site(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
 
     def val_with_subcat_fun(row, col):
@@ -1484,6 +1556,8 @@ def vmmc_by_site(request, output_format='HTML'):
     de_targets_meta = list(product(targets_de_names, (None,)))
 
     qs_targets = DataValue.objects.what(*targets_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_targets = qs_targets.where(filter_district)
     qs_targets = qs_targets.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_targets = qs_targets.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1508,6 +1582,8 @@ def vmmc_by_site(request, output_format='HTML'):
     de_method_meta = list(product(method_de_names, (None,)))
 
     qs_method = DataValue.objects.what(*method_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_method = qs_method.where(filter_district)
     qs_method = qs_method.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_method = qs_method.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1529,6 +1605,8 @@ def vmmc_by_site(request, output_format='HTML'):
     de_hiv_meta = list(product(hiv_de_names, (None,)))
 
     qs_hiv = DataValue.objects.what(*hiv_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_hiv = qs_hiv.where(filter_district)
     qs_hiv = qs_hiv.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_hiv = qs_hiv.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1557,6 +1635,8 @@ def vmmc_by_site(request, output_format='HTML'):
     de_location_meta = list(product(location_de_names2, (None,)))
 
     qs_location = DataValue.objects.what(*location_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_location = qs_location.where(filter_district)
     qs_location = qs_location.annotate(cat_combo=Value(None, output_field=CharField()))
 
     # drop the technique section from the returned data element name
@@ -1583,6 +1663,8 @@ def vmmc_by_site(request, output_format='HTML'):
     de_followup_meta = list(product(followup_de_names, (None,)))
 
     qs_followup = DataValue.objects.what(*followup_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_followup = qs_followup.where(filter_district)
     qs_followup = qs_followup.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_followup = qs_followup.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1604,6 +1686,8 @@ def vmmc_by_site(request, output_format='HTML'):
     de_adverse_meta = list(product(adverse_de_names, (None,)))
 
     qs_adverse = DataValue.objects.what(*adverse_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_adverse = qs_adverse.where(filter_district)
     qs_adverse = qs_adverse.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_adverse = qs_adverse.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1784,6 +1868,7 @@ def vmmc_by_site(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/vmmc_sites.html', context)
@@ -1793,6 +1878,7 @@ def lab_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -1801,8 +1887,15 @@ def lab_by_site(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
 
     def val_with_subcat_fun(row, col):
@@ -1821,6 +1914,8 @@ def lab_by_site(request, output_format='HTML'):
     de_malaria_meta = list(product(malaria_de_names, (None,)))
 
     qs_malaria = DataValue.objects.what(*malaria_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_malaria = qs_malaria.where(filter_district)
     qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_malaria = qs_malaria.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1845,6 +1940,8 @@ def lab_by_site(request, output_format='HTML'):
     de_hiv_determine_meta = list(product(['HIV tests done using Determine'], (None,)))
 
     qs_hiv_determine = DataValue.objects.what(*hiv_determine_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_hiv_determine = qs_hiv_determine.where(filter_district)
     qs_hiv_determine = qs_hiv_determine.annotate(de_name=Value('HIV tests done using Determine', output_field=CharField()))
     qs_hiv_determine = qs_hiv_determine.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1870,6 +1967,8 @@ def lab_by_site(request, output_format='HTML'):
     de_hiv_statpak_meta = list(product(['HIV tests done using Stat Pak'], (None,)))
 
     qs_hiv_statpak = DataValue.objects.what(*hiv_statpak_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_hiv_statpak = qs_hiv_statpak.where(filter_district)
     qs_hiv_statpak = qs_hiv_statpak.annotate(de_name=Value('HIV tests done using Stat Pak', output_field=CharField()))
     qs_hiv_statpak = qs_hiv_statpak.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1895,6 +1994,8 @@ def lab_by_site(request, output_format='HTML'):
     de_hiv_unigold_meta = list(product(['HIV tests done using Unigold'], (None,)))
 
     qs_hiv_unigold = DataValue.objects.what(*hiv_unigold_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_hiv_unigold = qs_hiv_unigold.where(filter_district)
     qs_hiv_unigold = qs_hiv_unigold.annotate(de_name=Value('HIV tests done using Unigold', output_field=CharField()))
     qs_hiv_unigold = qs_hiv_unigold.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1916,6 +2017,8 @@ def lab_by_site(request, output_format='HTML'):
     de_tb_smear_meta = list(product(tb_smear_de_names, (None,)))
 
     qs_tb_smear = DataValue.objects.what(*tb_smear_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_tb_smear = qs_tb_smear.where(filter_district)
     qs_tb_smear = qs_tb_smear.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_tb_smear = qs_tb_smear.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -1937,6 +2040,8 @@ def lab_by_site(request, output_format='HTML'):
     de_syphilis_meta = list(product(['Syphilis tests'], (None,)))
 
     qs_syphilis = DataValue.objects.what(*syphilis_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_syphilis = qs_syphilis.where(filter_district)
     qs_syphilis = qs_syphilis.annotate(de_name=Value('Syphilis tests', output_field=CharField()))
     qs_syphilis = qs_syphilis.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1960,6 +2065,8 @@ def lab_by_site(request, output_format='HTML'):
     de_liver_meta = list(product(['LFTs'], (None,)))
 
     qs_liver = DataValue.objects.what(*liver_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_liver = qs_liver.where(filter_district)
     qs_liver = qs_liver.annotate(de_name=Value('LFTs', output_field=CharField()))
     qs_liver = qs_liver.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -1986,6 +2093,8 @@ def lab_by_site(request, output_format='HTML'):
     de_renal_meta = list(product(['RFTs'], (None,)))
 
     qs_renal = DataValue.objects.what(*renal_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_renal = qs_renal.where(filter_district)
     qs_renal = qs_renal.annotate(de_name=Value('RFTs', output_field=CharField()))
     qs_renal = qs_renal.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -2007,6 +2116,8 @@ def lab_by_site(request, output_format='HTML'):
     de_other_haem_meta = list(product(other_haem_de_names, (None,)))
 
     qs_other_haem = DataValue.objects.what(*other_haem_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_other_haem = qs_other_haem.where(filter_district)
     qs_other_haem = qs_other_haem.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_other_haem = qs_other_haem.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -2114,6 +2225,7 @@ def lab_by_site(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/lab_sites.html', context)
@@ -2123,6 +2235,7 @@ def fp_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -2131,8 +2244,15 @@ def fp_by_site(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
 
     def val_with_subcat_fun(row, col):
@@ -2150,6 +2270,8 @@ def fp_by_site(request, output_format='HTML'):
     de_condoms_new_meta = list(product(condoms_new_short_names, (None,)))
 
     qs_condoms_new = DataValue.objects.what(*condoms_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_condoms_new = qs_condoms_new.where(filter_district)
     qs_condoms_new = qs_condoms_new.annotate(de_name=Value(condoms_new_short_names[0], output_field=CharField()))
     qs_condoms_new = qs_condoms_new.filter(category_combo__categories__name='New Users')
     qs_condoms_new = qs_condoms_new.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2178,6 +2300,8 @@ def fp_by_site(request, output_format='HTML'):
     de_fp_new_meta = list(product(fp_new_de_names, (None,)))
 
     qs_fp_new = DataValue.objects.what(*fp_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_fp_new = qs_fp_new.where(filter_district)
     qs_fp_new = qs_fp_new.filter(category_combo__categories__name='New Users')
     qs_fp_new = qs_fp_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -2201,6 +2325,8 @@ def fp_by_site(request, output_format='HTML'):
     de_oral_new_meta = list(product(oral_new_short_names, (None,)))
 
     qs_oral_new = DataValue.objects.what(*oral_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_oral_new = qs_oral_new.where(filter_district)
     qs_oral_new = qs_oral_new.annotate(de_name=Value(oral_new_short_names[0], output_field=CharField()))
     qs_oral_new = qs_oral_new.filter(category_combo__categories__name='New Users')
     qs_oral_new = qs_oral_new.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2223,6 +2349,8 @@ def fp_by_site(request, output_format='HTML'):
     de_other_new_meta = list(product(other_new_short_names, (None,)))
 
     qs_other_new = DataValue.objects.what(*other_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_other_new = qs_other_new.where(filter_district)
     qs_other_new = qs_other_new.annotate(de_name=Value(other_new_short_names[0], output_field=CharField()))
     qs_other_new = qs_other_new.filter(category_combo__categories__name='New Users')
     qs_other_new = qs_other_new.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2246,6 +2374,8 @@ def fp_by_site(request, output_format='HTML'):
     de_sterile_new_meta = list(product(sterile_new_short_names, (None,)))
 
     qs_sterile_new = DataValue.objects.what(*sterile_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_sterile_new = qs_sterile_new.where(filter_district)
     qs_sterile_new = qs_sterile_new.annotate(de_name=Value(sterile_new_short_names[0], output_field=CharField()))
     qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -2268,6 +2398,8 @@ def fp_by_site(request, output_format='HTML'):
     de_condoms_revisit_meta = list(product(condoms_revisit_short_names, (None,)))
 
     qs_condoms_revisit = DataValue.objects.what(*condoms_revisit_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_condoms_revisit = qs_condoms_revisit.where(filter_district)
     qs_condoms_revisit = qs_condoms_revisit.annotate(de_name=Value(condoms_revisit_short_names[0], output_field=CharField()))
     qs_condoms_revisit = qs_condoms_revisit.filter(category_combo__categories__name='Revisits')
     qs_condoms_revisit = qs_condoms_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2296,6 +2428,8 @@ def fp_by_site(request, output_format='HTML'):
     de_fp_revisit_meta = list(product(fp_revisit_de_names, (None,)))
 
     qs_fp_revisit = DataValue.objects.what(*fp_revisit_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_fp_revisit = qs_fp_revisit.where(filter_district)
     qs_fp_revisit = qs_fp_revisit.filter(category_combo__categories__name='Revisits')
     qs_fp_revisit = qs_fp_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -2319,6 +2453,8 @@ def fp_by_site(request, output_format='HTML'):
     de_oral_revisit_meta = list(product(oral_revisit_short_names, (None,)))
 
     qs_oral_revisit = DataValue.objects.what(*oral_revisit_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_oral_revisit = qs_oral_revisit.where(filter_district)
     qs_oral_revisit = qs_oral_revisit.annotate(de_name=Value(oral_revisit_short_names[0], output_field=CharField()))
     qs_oral_revisit = qs_oral_revisit.filter(category_combo__categories__name='Revisits')
     qs_oral_revisit = qs_oral_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2341,6 +2477,8 @@ def fp_by_site(request, output_format='HTML'):
     de_other_revisit_meta = list(product(other_revisit_short_names, (None,)))
 
     qs_other_revisit = DataValue.objects.what(*other_revisit_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_other_revisit = qs_other_revisit.where(filter_district)
     qs_other_revisit = qs_other_revisit.annotate(de_name=Value(other_revisit_short_names[0], output_field=CharField()))
     qs_other_revisit = qs_other_revisit.filter(category_combo__categories__name='Revisits')
     qs_other_revisit = qs_other_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2363,6 +2501,8 @@ def fp_by_site(request, output_format='HTML'):
     de_hiv_new_meta = list(product(hiv_new_short_names, (None,)))
 
     qs_hiv_new = DataValue.objects.what(*hiv_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_hiv_new = qs_hiv_new.where(filter_district)
     qs_hiv_new = qs_hiv_new.annotate(de_name=Value(hiv_new_short_names[0], output_field=CharField()))
     qs_hiv_new = qs_hiv_new.filter(category_combo__categories__name='New Users')
     qs_hiv_new = qs_hiv_new.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2385,6 +2525,8 @@ def fp_by_site(request, output_format='HTML'):
     de_hiv_revisit_meta = list(product(hiv_revisit_short_names, (None,)))
 
     qs_hiv_revisit = DataValue.objects.what(*hiv_revisit_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_hiv_revisit = qs_hiv_revisit.where(filter_district)
     qs_hiv_revisit = qs_hiv_revisit.annotate(de_name=Value(hiv_revisit_short_names[0], output_field=CharField()))
     qs_hiv_revisit = qs_hiv_revisit.filter(category_combo__categories__name='Revisits')
     qs_hiv_revisit = qs_hiv_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
@@ -2507,6 +2649,7 @@ def fp_by_site(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/fp_sites.html', context)
@@ -2526,14 +2669,14 @@ def fp_cyp_by_site(request, output_format='HTML'):
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
     if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
-        filter_district = request.GET['district']
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
     else:
         filter_district = None
 
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
     if filter_district:
-        qs_ou = qs_ou.filter(district=filter_district)
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
     ou_headers = ['District', 'Subcounty', 'Facility']
 
@@ -2553,12 +2696,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_oral_meta = list(product(oral_short_names, (None,)))
 
     qs_oral = DataValue.objects.what(*oral_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_oral = qs_oral.where(filter_district)
     qs_oral = qs_oral.annotate(de_name=Value(oral_short_names[0], output_field=CharField()))
     qs_oral = qs_oral.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_oral = qs_oral.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_oral = qs_oral.filter(district=filter_district)
     qs_oral = qs_oral.annotate(period=F('quarter'))
     qs_oral = qs_oral.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_oral = qs_oral.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2577,12 +2720,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_condoms_meta = list(product(condoms_short_names, (None,)))
 
     qs_condoms = DataValue.objects.what(*condoms_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_condoms = qs_condoms.where(filter_district)
     qs_condoms = qs_condoms.annotate(de_name=Value(condoms_short_names[0], output_field=CharField()))
     qs_condoms = qs_condoms.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_condoms = qs_condoms.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_condoms = qs_condoms.filter(district=filter_district)
     qs_condoms = qs_condoms.annotate(period=F('quarter'))
     qs_condoms = qs_condoms.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_condoms = qs_condoms.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2600,13 +2743,13 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_implants_new_meta = list(product(implants_new_short_names, (None,)))
 
     qs_implants_new = DataValue.objects.what(*implants_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_implants_new = qs_implants_new.where(filter_district)
     qs_implants_new = qs_implants_new.annotate(de_name=Value(implants_new_short_names[0], output_field=CharField()))
     qs_implants_new = qs_implants_new.filter(category_combo__categories__name='New Users')
     qs_implants_new = qs_implants_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_implants_new = qs_implants_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_implants_new = qs_implants_new.filter(district=filter_district)
     qs_implants_new = qs_implants_new.annotate(period=F('quarter'))
     qs_implants_new = qs_implants_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_implants_new = qs_implants_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2624,12 +2767,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_injectable_meta = list(product(injectable_short_names, (None,)))
 
     qs_injectable = DataValue.objects.what(*injectable_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_injectable = qs_injectable.where(filter_district)
     qs_injectable = qs_injectable.annotate(de_name=Value(injectable_short_names[0], output_field=CharField()))
     qs_injectable = qs_injectable.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_injectable = qs_injectable.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_injectable = qs_injectable.filter(district=filter_district)
     qs_injectable = qs_injectable.annotate(period=F('quarter'))
     qs_injectable = qs_injectable.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_injectable = qs_injectable.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2647,12 +2790,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_iud_meta = list(product(iud_short_names, (None,)))
 
     qs_iud = DataValue.objects.what(*iud_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_iud = qs_iud.where(filter_district)
     qs_iud = qs_iud.annotate(de_name=Value(iud_short_names[0], output_field=CharField()))
     qs_iud = qs_iud.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_iud = qs_iud.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_iud = qs_iud.filter(district=filter_district)
     qs_iud = qs_iud.annotate(period=F('quarter'))
     qs_iud = qs_iud.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_iud = qs_iud.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2671,12 +2814,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_sterile_new_meta = list(product(sterile_new_short_names, (None,)))
 
     qs_sterile_new = DataValue.objects.what(*sterile_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_sterile_new = qs_sterile_new.where(filter_district)
     qs_sterile_new = qs_sterile_new.annotate(de_name=Value(sterile_new_short_names[0], output_field=CharField()))
     qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_sterile_new = qs_sterile_new.filter(district=filter_district)
     qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
     qs_sterile_new = qs_sterile_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_sterile_new = qs_sterile_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2694,12 +2837,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_natural_meta = list(product(natural_short_names, (None,)))
 
     qs_natural = DataValue.objects.what(*natural_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_natural = qs_natural.where(filter_district)
     qs_natural = qs_natural.annotate(de_name=Value(natural_short_names[0], output_field=CharField()))
     qs_natural = qs_natural.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_natural = qs_natural.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_natural = qs_natural.filter(district=filter_district)
     qs_natural = qs_natural.annotate(period=F('quarter'))
     qs_natural = qs_natural.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_natural = qs_natural.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2719,12 +2862,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
     de_emergency_meta = list(product(emergency_short_names, (None,)))
 
     qs_emergency = DataValue.objects.what(*emergency_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_emergency = qs_emergency.where(filter_district)
     qs_emergency = qs_emergency.annotate(de_name=Value(emergency_short_names[0], output_field=CharField()))
     qs_emergency = qs_emergency.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_emergency = qs_emergency.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    if filter_district:
-        qs_emergency = qs_emergency.filter(district=filter_district)
     qs_emergency = qs_emergency.annotate(period=F('quarter'))
     qs_emergency = qs_emergency.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
     val_emergency = qs_emergency.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -2958,12 +3101,14 @@ def fp_cyp_by_district(request, output_format='HTML'):
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
     if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
-        filter_district = request.GET['district']
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
     else:
         filter_district = None
 
     # # all districts (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district'))
     ou_headers = ['District',]
 
@@ -2986,12 +3131,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_oral_meta = list(product(oral_short_names, (None,)))
 
     qs_oral = DataValue.objects.what(*oral_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_oral = qs_oral.where(filter_district)
     qs_oral = qs_oral.annotate(de_name=Value(oral_short_names[0], output_field=CharField()))
     qs_oral = qs_oral.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_oral = qs_oral.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_oral = qs_oral.filter(district=filter_district)
     qs_oral = qs_oral.annotate(period=F('quarter'))
     qs_oral = qs_oral.order_by('district', 'de_name', 'cat_combo', 'period')
     val_oral = qs_oral.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3010,12 +3155,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_condoms_meta = list(product(condoms_short_names, (None,)))
 
     qs_condoms = DataValue.objects.what(*condoms_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_condoms = qs_condoms.where(filter_district)
     qs_condoms = qs_condoms.annotate(de_name=Value(condoms_short_names[0], output_field=CharField()))
     qs_condoms = qs_condoms.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_condoms = qs_condoms.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_condoms = qs_condoms.filter(district=filter_district)
     qs_condoms = qs_condoms.annotate(period=F('quarter'))
     qs_condoms = qs_condoms.order_by('district', 'de_name', 'cat_combo', 'period')
     val_condoms = qs_condoms.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3033,13 +3178,13 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_implants_new_meta = list(product(implants_new_short_names, (None,)))
 
     qs_implants_new = DataValue.objects.what(*implants_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_implants_new = qs_implants_new.where(filter_district)
     qs_implants_new = qs_implants_new.annotate(de_name=Value(implants_new_short_names[0], output_field=CharField()))
     qs_implants_new = qs_implants_new.filter(category_combo__categories__name='New Users')
     qs_implants_new = qs_implants_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_implants_new = qs_implants_new.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_implants_new = qs_implants_new.filter(district=filter_district)
     qs_implants_new = qs_implants_new.annotate(period=F('quarter'))
     qs_implants_new = qs_implants_new.order_by('district', 'de_name', 'cat_combo', 'period')
     val_implants_new = qs_implants_new.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3057,12 +3202,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_injectable_meta = list(product(injectable_short_names, (None,)))
 
     qs_injectable = DataValue.objects.what(*injectable_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_injectable = qs_injectable.where(filter_district)
     qs_injectable = qs_injectable.annotate(de_name=Value(injectable_short_names[0], output_field=CharField()))
     qs_injectable = qs_injectable.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_injectable = qs_injectable.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_injectable = qs_injectable.filter(district=filter_district)
     qs_injectable = qs_injectable.annotate(period=F('quarter'))
     qs_injectable = qs_injectable.order_by('district', 'de_name', 'cat_combo', 'period')
     val_injectable = qs_injectable.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3080,12 +3225,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_iud_meta = list(product(iud_short_names, (None,)))
 
     qs_iud = DataValue.objects.what(*iud_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_iud = qs_iud.where(filter_district)
     qs_iud = qs_iud.annotate(de_name=Value(iud_short_names[0], output_field=CharField()))
     qs_iud = qs_iud.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_iud = qs_iud.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_iud = qs_iud.filter(district=filter_district)
     qs_iud = qs_iud.annotate(period=F('quarter'))
     qs_iud = qs_iud.order_by('district', 'de_name', 'cat_combo', 'period')
     val_iud = qs_iud.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3104,12 +3249,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_sterile_new_meta = list(product(sterile_new_short_names, (None,)))
 
     qs_sterile_new = DataValue.objects.what(*sterile_new_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_sterile_new = qs_sterile_new.where(filter_district)
     qs_sterile_new = qs_sterile_new.annotate(de_name=Value(sterile_new_short_names[0], output_field=CharField()))
     qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_sterile_new = qs_sterile_new.filter(district=filter_district)
     qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
     qs_sterile_new = qs_sterile_new.order_by('district', 'de_name', 'cat_combo', 'period')
     val_sterile_new = qs_sterile_new.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3127,12 +3272,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_natural_meta = list(product(natural_short_names, (None,)))
 
     qs_natural = DataValue.objects.what(*natural_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_natural = qs_natural.where(filter_district)
     qs_natural = qs_natural.annotate(de_name=Value(natural_short_names[0], output_field=CharField()))
     qs_natural = qs_natural.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_natural = qs_natural.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_natural = qs_natural.filter(district=filter_district)
     qs_natural = qs_natural.annotate(period=F('quarter'))
     qs_natural = qs_natural.order_by('district', 'de_name', 'cat_combo', 'period')
     val_natural = qs_natural.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3152,12 +3297,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
     de_emergency_meta = list(product(emergency_short_names, (None,)))
 
     qs_emergency = DataValue.objects.what(*emergency_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_emergency = qs_emergency.where(filter_district)
     qs_emergency = qs_emergency.annotate(de_name=Value(emergency_short_names[0], output_field=CharField()))
     qs_emergency = qs_emergency.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_emergency = qs_emergency.annotate(district=F('org_unit__parent__parent__name'))
-    if filter_district:
-        qs_emergency = qs_emergency.filter(district=filter_district)
     qs_emergency = qs_emergency.annotate(period=F('quarter'))
     qs_emergency = qs_emergency.order_by('district', 'de_name', 'cat_combo', 'period')
     val_emergency = qs_emergency.values('district', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -3363,6 +3508,7 @@ def nutrition_by_hospital(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -3371,8 +3517,15 @@ def nutrition_by_hospital(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
 
     def val_with_subcat_fun(row, col):
@@ -3390,6 +3543,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_opd_attend_meta = list(product(opd_attend_short_names, (None,)))
 
     qs_opd_attend = DataValue.objects.what(*opd_attend_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_opd_attend = qs_opd_attend.where(filter_district)
     qs_opd_attend = qs_opd_attend.annotate(de_name=Value(opd_attend_short_names[0], output_field=CharField()))
     qs_opd_attend = qs_opd_attend.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3411,6 +3566,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_muac_meta = list(product(muac_short_names, (None,)))
 
     qs_muac = DataValue.objects.what(*muac_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_muac = qs_muac.where(filter_district)
     qs_muac = qs_muac.annotate(de_name=Value(muac_short_names[0], output_field=CharField()))
     qs_muac = qs_muac.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3432,6 +3589,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_muac_mothers_meta = list(product(muac_mothers_short_names, (None,)))
 
     qs_muac_mothers = DataValue.objects.what(*muac_mothers_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_muac_mothers = qs_muac_mothers.where(filter_district)
     qs_muac_mothers = qs_muac_mothers.annotate(de_name=Value(muac_mothers_short_names[0], output_field=CharField()))
     qs_muac_mothers = qs_muac_mothers.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3454,6 +3613,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_mothers_total_meta = list(product(mothers_total_short_names, (None,)))
 
     qs_mothers_total = DataValue.objects.what(*mothers_total_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_mothers_total = qs_mothers_total.where(filter_district)
     qs_mothers_total = qs_mothers_total.annotate(de_name=Value(mothers_total_short_names[0], output_field=CharField()))
     qs_mothers_total = qs_mothers_total.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3475,6 +3636,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_i_f_counsel_meta = list(product(i_f_counsel_short_names, (None,)))
 
     qs_i_f_counsel = DataValue.objects.what(*i_f_counsel_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_i_f_counsel = qs_i_f_counsel.where(filter_district)
     qs_i_f_counsel = qs_i_f_counsel.annotate(de_name=Value(i_f_counsel_short_names[0], output_field=CharField()))
     qs_i_f_counsel = qs_i_f_counsel.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3496,6 +3659,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_m_n_counsel_meta = list(product(m_n_counsel_short_names, (None,)))
 
     qs_m_n_counsel = DataValue.objects.what(*m_n_counsel_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_m_n_counsel = qs_m_n_counsel.where(filter_district)
     qs_m_n_counsel = qs_m_n_counsel.annotate(de_name=Value(m_n_counsel_short_names[0], output_field=CharField()))
     qs_m_n_counsel = qs_m_n_counsel.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3519,6 +3684,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_active_art_meta = list(product(active_art_short_names, (None,)))
 
     qs_active_art = DataValue.objects.what(*active_art_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_active_art = qs_active_art.where(filter_district)
     qs_active_art = qs_active_art.annotate(de_name=Value(active_art_short_names[0], output_field=CharField()))
     qs_active_art = qs_active_art.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3540,6 +3707,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_active_art_malnourish_meta = list(product(active_art_malnourish_short_names, (None,)))
 
     qs_active_art_malnourish = DataValue.objects.what(*active_art_malnourish_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_active_art_malnourish = qs_active_art_malnourish.where(filter_district)
     qs_active_art_malnourish = qs_active_art_malnourish.annotate(de_name=Value(active_art_malnourish_short_names[0], output_field=CharField()))
     qs_active_art_malnourish = qs_active_art_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3561,6 +3730,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_new_malnourish_meta = list(product(new_malnourish_short_names, (None,)))
 
     qs_new_malnourish = DataValue.objects.what(*new_malnourish_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_new_malnourish = qs_new_malnourish.where(filter_district)
     qs_new_malnourish = qs_new_malnourish.annotate(de_name=Value(new_malnourish_short_names[0], output_field=CharField()))
     qs_new_malnourish = qs_new_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3582,6 +3753,8 @@ def nutrition_by_hospital(request, output_format='HTML'):
     de_supp_feeding_meta = list(product(supp_feeding_short_names, (None,)))
 
     qs_supp_feeding = DataValue.objects.what(*supp_feeding_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_supp_feeding = qs_supp_feeding.where(filter_district)
     qs_supp_feeding = qs_supp_feeding.annotate(de_name=Value(supp_feeding_short_names[0], output_field=CharField()))
     qs_supp_feeding = qs_supp_feeding.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3780,6 +3953,7 @@ def nutrition_by_hospital(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/nutrition_hospitals.html', context)
@@ -3789,6 +3963,7 @@ def vl_by_site(request, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -3797,8 +3972,15 @@ def vl_by_site(request, output_format='HTML'):
 
     period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
 
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
     # # all facilities (or equivalent)
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
 
     def val_with_subcat_fun(row, col):
@@ -3817,6 +3999,8 @@ def vl_by_site(request, output_format='HTML'):
     de_viral_load_meta = list(product(viral_load_short_names, (None,)))
 
     qs_viral_load = DataValue.objects.what(*viral_load_de_names).filter(quarter=filter_period)
+    if filter_district:
+        qs_viral_load = qs_viral_load.where(filter_district)
     qs_viral_load = qs_viral_load.annotate(cat_combo=Value(None, output_field=CharField()))
 
     qs_viral_load = qs_viral_load.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
@@ -3837,6 +4021,8 @@ def vl_by_site(request, output_format='HTML'):
     de_viral_target_meta = list(product(viral_target_short_names, (None,)))
 
     qs_viral_target = DataValue.objects.what(*viral_target_de_names).filter(year=filter_period[:4])
+    if filter_district:
+        qs_viral_target = qs_viral_target.where(filter_district)
     qs_viral_target = qs_viral_target.annotate(de_name=Value(viral_target_short_names[0], output_field=CharField()))
     qs_viral_target = qs_viral_target.annotate(cat_combo=Value(None, output_field=CharField()))
 
@@ -3992,6 +4178,7 @@ def vl_by_site(request, output_format='HTML'):
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/vl_sites.html', context)
