@@ -406,7 +406,18 @@ def validation_rule(request):
     cursor = connection.cursor()
     vr_id = int(request.GET['id'])
     vr = ValidationRule.objects.get(id=vr_id)
-    cursor.execute('SELECT * FROM %s' % (vr.view_name(),))
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    if filter_district:
+        cursor.execute('SELECT * FROM %s WHERE district=\'%s\'' % (vr.view_name(), filter_district.name))
+    else:
+        cursor.execute('SELECT * FROM %s' % (vr.view_name(),))
+
     columns = [col[0] for col in cursor.description]
     de_name_map = dict()
     for de_id, de_name in DataElement.objects.all().values_list('id', 'name'):
@@ -425,6 +436,7 @@ def validation_rule(request):
         'results': results,
         'columns': columns,
         'rule': vr,
+        'district_list': DISTRICT_LIST,
     }
 
     return render(request, 'cannula/validation_rule.html', context)

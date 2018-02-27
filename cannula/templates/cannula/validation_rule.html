@@ -19,6 +19,44 @@
 <h2>{{ rule.name }} - Validation Rule Check</h2>
 <h3>{ {{ rule.expression }} }</h3>
 
+<div class="w3-bar w3-row-padding no-print">
+<form class="w3-bar-item" style="width:75%" action="{% url 'validation_rule' %}">
+<input type="hidden" name="id" value="{{ rule.id }}">
+<!-- <div class="w3-cell w3-quarter">
+<input class="w3-input w3-border" type="text">
+<label>Location</label>
+</div> -->
+<!-- <div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="period">
+	{% for p in period_list %}
+	{% if p == request.GET.period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>Period</label>
+</div> -->
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="district" onchange="this.form.submit();">
+	<option value="">All districts</option>
+	{% for district in district_list %}
+	{% if district == request.GET.district %}
+	<option selected="selected">{{ district }}</option>
+	{% else %}
+	<option>{{ district }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>Coverage</label>
+</div>
+<div class="w3-cell w3-cell-bottom w3-quarter">
+<button class="w3-button w3-round-xxlarge w3-blue">Filter</button>
+</div>
+</form>
+</div>
+
 <div class="w3-container">
 <span class="w3-small no-print">
 <!-- Use javascript with location.replace to stop clicks from adding to the back/forward buttons -->
