@@ -69,11 +69,11 @@
 </form>
 </div>
 
-<div class="w3-bar-item w3-right">
+<div class="w3-bar w3-row-padding w3-small">
 {% for ls in legend_sets %}
 {% for l in ls.legends reversed %}
 {% if forloop.first %}
-<table class="w3-table w3-border w3-bordered" border="1">
+<table class="w3-table w3-bordered w3-bar-item w3-right" style="width: 12em;" border="1">
 	<thead>
 		<tr><th>Legend: {{ ls.name }}</th></tr>
 	</thead>
