@@ -23,6 +23,7 @@
 <div class="w3-bar w3-row-padding no-print">
 <form class="w3-bar-item" style="width:75%" action="{% url 'validation_rule' %}">
 <input type="hidden" name="id" value="{{ rule.id }}">
+	{% if 'exclude_true' in request.GET %}<input type="hidden" name="exclude_true"/>{% endif %}
 <!-- <div class="w3-cell w3-quarter">
 <input class="w3-input w3-border" type="text">
 <label>Location</label>
@@ -64,10 +65,10 @@
 Toggle Validation Successes:
 {% if 'exclude_true' in request.GET %}
 <!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}'); return false" href="">Show Validation Successes</a> -->
-<button onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}'); return false">Show</button>
+<button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING|cut:"exclude_true" }}'); return false">Show</button>
 {% else %}
 <!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}&exclude_true'); return false" href="">Hide Validation Successes</a> -->
-<button onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}&exclude_true'); return false">Hide</button>
+<button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING }}&exclude_true'); return false">Hide</button>
 {% endif %}
 </span>
 
