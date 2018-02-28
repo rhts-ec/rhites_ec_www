@@ -401,7 +401,7 @@ def dictfetchall(cursor):
     ]
 
 @login_required
-def validation_rule(request):
+def validation_rule(request, output_format='HTML'):
     from django.db import connection
     cursor = connection.cursor()
     vr_id = int(request.GET['id'])
@@ -432,11 +432,62 @@ def validation_rule(request):
                 r['data_values'][de_name] = v
     if 'exclude_true' in request.GET:
         results = filter(lambda x: not x['de_calc_1'], results)
+
+    validates_ls = LegendSet()
+    validates_ls.add_interval('red', None, 1)
+    validates_ls.add_interval('green', 1, None)
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = vr.expression()
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        def format_values(v_dict):
+            return '\n'.join([ '%s: %s' % (k,v) for k,v in v_dict.items()])
+
+        headers = ['Period', 'District', 'Subcounty', 'Facility', 'Validates?', 'Source Data']
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, res in enumerate(results, start=2):
+            ws.cell(row=i, column=1, value=next(filter(lambda x: x is not None, (res['month'], res['quarter'], res['year'])), None))
+            ws.cell(row=i, column=2, value=res['district'])
+            ws.cell(row=i, column=3, value=res['subcounty'])
+            ws.cell(row=i, column=4, value=res['facility'])
+            ws.cell(row=i, column=5, value=res['de_calc_1'])
+            ws.cell(row=i, column=6, value=format_values(res['data_values']))
+
+
+        #validates_range = 'E:E' # entire-column-range syntax doesn't work for conditional formatting
+        # use old-school column/row limit as stand-in for entire row
+        validates_range = 'E1:E16384'
+        for rule in validates_ls.openpyxl_rules():
+            ws.conditional_formatting.add(validates_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="%s_validation.xlsx"' % (vr.name.lower(),)
+
+        return response
+
     context = {
         'results': results,
         'columns': columns,
         'rule': vr,
         'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path)
     }
 
     return render(request, 'cannula/validation_rule.html', context)

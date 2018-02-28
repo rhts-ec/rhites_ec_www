@@ -70,6 +70,10 @@ Toggle Validation Successes:
 <!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}&exclude_true'); return false" href="">Hide Validation Successes</a> -->
 <button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING }}&exclude_true'); return false">Hide</button>
 {% endif %}
+
+{% if excel_url %}<br/>
+<a href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+{% endif %}
 </span>
 
 <table class="w3-table w3-border w3-bordered w3-small" border="1">

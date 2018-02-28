@@ -9,6 +9,7 @@ urlpatterns = [
     url(r'dashboards/malaria/quarterly\.php', views.ipt_quarterly, name='ipt_quarterly'),
     url(r'dashboards/malaria/quarterly\.xls', views.ipt_quarterly, {'output_format': 'EXCEL'}, name='ipt_quarterly_excel'),
     url(r'validation_rule\.php', views.validation_rule, name='validation_rule'),
+    url(r'validation_rule\.xls', views.validation_rule, {'output_format': 'EXCEL'}, name='validation_rule_excel'),
     url(r'data_workflow_new\.php', views.data_workflow_new, name='data_workflow_new'),
     url(r'data_workflow\.php', views.data_workflow_detail, name='data_workflow_detail'),
     url(r'data_workflows\.php', views.data_workflow_listing, name='data_workflow_listing'),
