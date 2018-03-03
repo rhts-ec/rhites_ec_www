@@ -14,9 +14,6 @@
 	<li><a href="{% url 'hts_sites' %}">HTS - Facilities</a></li>
 	<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
 </ul>
-<ul>
-	<li><a href="{% url 'vl_sites' %}">Viral Load - Facilities</a></li>
-</ul>
 {% endif %}
 
 {% if 'vmmc' in request.path %}
@@ -28,6 +25,9 @@
 {% if 'lab' in request.path %}
 <ul>
 	<li><a href="{% url 'lab_sites' %}">Lab. Tests - Facilities</a></li>
+</ul>
+<ul>
+	<li><a href="{% url 'vl_sites' %}">Viral Load - Facilities</a></li>
 </ul>
 {% endif %}
 
