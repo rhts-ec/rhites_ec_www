@@ -443,7 +443,7 @@ def validation_rule(request, output_format='HTML'):
 
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
-        ws.title = vr.expression()
+        ws.title = vr.expression().strip()[:31] # worksheet names length limit is 31
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
