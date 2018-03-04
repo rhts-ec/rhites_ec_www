@@ -12,7 +12,7 @@ from decimal import Decimal
 from itertools import groupby, tee, chain, product
 
 from . import dateutil, grabbag
-from .grabbag import default_zero, all_not_none, excel_column_name
+from .grabbag import default_zero, all_not_none
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
 from .forms import SourceDocumentForm, DataElementAliasForm
@@ -162,6 +162,8 @@ def ipt_quarterly(request, output_format='HTML'):
     ipt_ls.name = 'IPT rate'
     ipt_ls.add_interval('yellow', 0, 71)
     ipt_ls.add_interval('green', 71, None)
+    ipt_ls.mappings[4] = True
+    ipt_ls.mappings[6] = True
     legend_sets.append(ipt_ls)
 
     if output_format == 'EXCEL':
@@ -196,14 +198,11 @@ def ipt_quarterly(request, output_format='HTML'):
                     offset += 1
                     ws.cell(row=i, column=j+offset, value=g_val['ipt_rate'])
 
-
-        #ipt1_percent_range = 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        ipt1_percent_range = 'E1:E16384'
-        ipt2_percent_range = 'G1:G16384'
-        for rule in ipt_ls.openpyxl_rules():
-            ws.conditional_formatting.add(ipt1_percent_range, rule)
-            ws.conditional_formatting.add(ipt2_percent_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSet
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -436,6 +435,7 @@ def validation_rule(request, output_format='HTML'):
     validates_ls = LegendSet()
     validates_ls.add_interval('red', None, 1)
     validates_ls.add_interval('green', 1, None)
+    validates_ls.mappings[4] = True
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -469,12 +469,10 @@ def validation_rule(request, output_format='HTML'):
             ws.cell(row=i, column=5, value=res['de_calc_1'])
             ws.cell(row=i, column=6, value=format_values(res['data_values']))
 
-
-        #validates_range = 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        validates_range = 'E1:E16384'
         for rule in validates_ls.openpyxl_rules():
-            ws.conditional_formatting.add(validates_range, rule)
+            # apply conditional formatting from LegendSet
+            for xls_range in validates_ls.excel_ranges():
+                ws.conditional_formatting.add(xls_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -999,12 +997,16 @@ def hts_by_site(request, output_format='HTML'):
     test_and_pos_ls.add_interval('red', 0, 75)
     test_and_pos_ls.add_interval('yellow', 75, 90)
     test_and_pos_ls.add_interval('green', 90, None)
+    for i in range(17, 17+8):
+        test_and_pos_ls.mappings[i] = True
     legend_sets.append(test_and_pos_ls)
     linked_ls = LegendSet()
     linked_ls.name = 'Link to Care'
     linked_ls.add_interval('red', 0, 80)
     linked_ls.add_interval('yellow', 80, 90)
     linked_ls.add_interval('green', 90, 100)
+    for i in range(17+8, 17+8+4):
+        linked_ls.mappings[i] = True
     legend_sets.append(linked_ls)
 
     if output_format == 'EXCEL':
@@ -1036,20 +1038,11 @@ def hts_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        test_and_pos_ranges = ['%s1:%s16384' % (excel_column_name(17), excel_column_name(17+7))]
-        linked_ranges = ['%s1:%s16384' % (excel_column_name(17+8), excel_column_name(17+8+3))]
-        for rule in test_and_pos_ls.openpyxl_rules():
-            for cell_range in test_and_pos_ranges:
-                print(cell_range, test_and_pos_ls)
-                ws.conditional_formatting.add(cell_range, rule)
-        for rule in linked_ls.openpyxl_rules():
-            for cell_range in linked_ranges:
-                print(cell_range, linked_ls)
-                ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -1509,12 +1502,16 @@ def hts_by_district(request, output_format='HTML'):
     test_and_pos_ls.add_interval('red', 0, 75)
     test_and_pos_ls.add_interval('yellow', 75, 90)
     test_and_pos_ls.add_interval('green', 90, None)
+    for i in range(15, 15+8):
+        test_and_pos_ls.mappings[i] = True
     legend_sets.append(test_and_pos_ls)
     linked_ls = LegendSet()
     linked_ls.name = 'Link to Care'
     linked_ls.add_interval('red', 0, 80)
     linked_ls.add_interval('yellow', 80, 90)
     linked_ls.add_interval('green', 90, 100)
+    for i in range(15+8, 15+8+4):
+        linked_ls.mappings[i] = True
     legend_sets.append(linked_ls)
 
     if output_format == 'EXCEL':
@@ -1544,20 +1541,12 @@ def hts_by_district(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=2):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        test_and_pos_ranges = ['%s1:%s16384' % (excel_column_name(15), excel_column_name(15+7))]
-        linked_ranges = ['%s1:%s16384' % (excel_column_name(15+8), excel_column_name(15+8+3))]
-        for rule in test_and_pos_ls.openpyxl_rules():
-            for cell_range in test_and_pos_ranges:
-                print(cell_range, test_and_pos_ls)
-                ws.conditional_formatting.add(cell_range, rule)
-        for rule in linked_ls.openpyxl_rules():
-            for cell_range in linked_ranges:
-                print(cell_range, linked_ls)
-                ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -1869,10 +1858,13 @@ def vmmc_by_site(request, output_format='HTML'):
     vmmc_ls.add_interval('yellow', 25, 40)
     vmmc_ls.add_interval('light-green', 50, 60)
     vmmc_ls.add_interval('green', 60, None)
+    for i in range(18, 18+3):
+        vmmc_ls.mappings[i] = True
     legend_sets.append(vmmc_ls)
     adverse_ls = LegendSet()
     adverse_ls.name = 'Adverse Events'
     adverse_ls.add_interval('red', 0.5, None)
+    adverse_ls.mappings[22] = True
     legend_sets.append(adverse_ls)
 
     if output_format == 'EXCEL':
@@ -1904,20 +1896,12 @@ def vmmc_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        vmmc_ranges = ['%s1:%s16384' % (excel_column_name(18), excel_column_name(18+2))]
-        adverse_ranges = ['%s1:%s16384' % (excel_column_name(22), excel_column_name(22))]
-        for rule in vmmc_ls.openpyxl_rules():
-            for cell_range in vmmc_ranges:
-                print(cell_range, vmmc_ls)
-                ws.conditional_formatting.add(cell_range, rule)
-        for rule in adverse_ls.openpyxl_rules():
-            for cell_range in adverse_ranges:
-                print(cell_range, adverse_ls)
-                ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -2266,15 +2250,11 @@ def lab_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        # lab_ranges = ['%s1:%s16384' % (excel_column_name(18), excel_column_name(18+2))]
-        # for rule in lab_ls.openpyxl_rules():
-        #     for cell_range in lab_ranges:
-        #         print(cell_range, lab_ls)
-        #         ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -2691,14 +2671,12 @@ def fp_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        # fp_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
-        # for rule in fp_ls.openpyxl_rules():
-        #     for cell_range in fp_ranges:
-        #         ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -3121,14 +3099,12 @@ def fp_cyp_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        # fp_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
-        # for rule in fp_ls.openpyxl_rules():
-        #     for cell_range in fp_ranges:
-        #         ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -3503,13 +3479,13 @@ def fp_cyp_by_district(request, output_format='HTML'):
     data_element_names += list(product(['CYPs Emergency contraceptives'], (None,)))
 
     legend_sets = list()
-    fp_cyp_ls = LegendSet()
-    fp_cyp_ls.name = 'FP CYP'
-    fp_cyp_ls.add_interval('orange', 0, 25)
-    fp_cyp_ls.add_interval('yellow', 25, 40)
-    fp_cyp_ls.add_interval('light-green', 50, 60)
-    fp_cyp_ls.add_interval('green', 60, None)
-    legend_sets.append(fp_cyp_ls)
+    # fp_cyp_ls = LegendSet()
+    # fp_cyp_ls.name = 'FP CYP'
+    # fp_cyp_ls.add_interval('orange', 0, 25)
+    # fp_cyp_ls.add_interval('yellow', 25, 40)
+    # fp_cyp_ls.add_interval('light-green', 50, 60)
+    # fp_cyp_ls.add_interval('green', 60, None)
+    # legend_sets.append(fp_cyp_ls)
 
     if output_format == 'EXCEL':
         from django.http import HttpResponse
@@ -3538,14 +3514,12 @@ def fp_cyp_by_district(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=2):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        # fp_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
-        # for rule in fp_ls.openpyxl_rules():
-        #     for cell_range in fp_ranges:
-        #         ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -3952,12 +3926,15 @@ def nutrition_by_hospital(request, output_format='HTML'):
     muac_ls.add_interval('red', 0, 25)
     muac_ls.add_interval('yellow', 25, 50)
     muac_ls.add_interval('green', 50, None)
+    muac_ls.mappings[13] = True
     legend_sets.append(muac_ls)
     malnourished_ls = LegendSet()
     malnourished_ls.name = 'Assessed for Malnutrition'
     malnourished_ls.add_interval('red', 0, 50)
     malnourished_ls.add_interval('yellow', 50, 80)
     malnourished_ls.add_interval('green', 80, None)
+    for i in range(13+1, 13+1+5):
+        malnourished_ls.mappings[i] = True
     legend_sets.append(malnourished_ls)
 
     if output_format == 'EXCEL':
@@ -3989,20 +3966,12 @@ def nutrition_by_hospital(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        muac_ranges = ['%s1:%s16384' % (excel_column_name(13), excel_column_name(13+0))]
-        malnourished_ranges = ['%s1:%s16384' % (excel_column_name(13+1), excel_column_name(13+1+4))]
-        for rule in muac_ls.openpyxl_rules():
-            for cell_range in muac_ranges:
-                print(cell_range, muac_ls)
-                ws.conditional_formatting.add(cell_range, rule)
-        for rule in malnourished_ls.openpyxl_rules():
-            for cell_range in malnourished_ranges:
-                print(cell_range, malnourished_ls)
-                ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -4180,10 +4149,13 @@ def vl_by_site(request, output_format='HTML'):
     achievement_ls.add_interval('yellow', 25, 40)
     achievement_ls.add_interval('light-green', 40, 60)
     achievement_ls.add_interval('green', 60, None)
+    achievement_ls.mappings[6] = True
+    achievement_ls.mappings[9] = True
     legend_sets.append(achievement_ls)
     rejection_ls = LegendSet()
     rejection_ls.name = 'Sample Rejection'
     rejection_ls.add_interval('orange', 4, None)
+    rejection_ls.mappings[7] = True
     legend_sets.append(rejection_ls)
 
     if output_format == 'EXCEL':
@@ -4215,19 +4187,12 @@ def vl_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=4):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
-
-        # Add conditional formatting to MS Excel output
-        # NOTE: 'E:E' # entire-column-range syntax doesn't work for conditional formatting
-        # use old-school column/row limit as stand-in for entire row
-        achievement_ranges = ['%s1:%s16384' % (excel_column_name(6), excel_column_name(6))]
-        achievement_ranges += ['%s1:%s16384' % (excel_column_name(9), excel_column_name(9))]
-        rejection_ranges = ['%s1:%s16384' % (excel_column_name(7), excel_column_name(7))]
-        for rule in achievement_ls.openpyxl_rules():
-            for cell_range in achievement_ranges:
-                ws.conditional_formatting.add(cell_range, rule)
-        for rule in rejection_ls.openpyxl_rules():
-            for cell_range in rejection_ranges:
-                ws.conditional_formatting.add(cell_range, rule)
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
