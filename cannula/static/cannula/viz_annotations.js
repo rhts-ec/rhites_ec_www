@@ -183,7 +183,7 @@ addEvent( window, "load", function() {
     if ( has( a[i].className, "rise_fall" ) ) {
       var current_val = extractNumber(a[i]);
       if (current_val != null && 'previous' in a[i].attributes) {
-        var previous_val = a[i].attributes['previous'].value;
+        var previous_val = Number.parseFloat(a[i].attributes['previous'].value);
         if (previous_val != null & previous_val != '') {
           var percent_categ = "same";
           if ( current_val > previous_val ) percent_categ = "rise";
