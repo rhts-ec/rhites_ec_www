@@ -369,9 +369,16 @@ def load_excel_to_datavalues(source_doc):
 
 
         for row in iter_rows:
-            period, *location_parts = [c.value for c in row[:DE_COLUMN_START]]
-            if not period or not any(location_parts):
+            period_cell, *location_cells = row[:DE_COLUMN_START]
+            location_parts = [c.value for c in location_cells]
+            if not period_cell.value or not any(location_parts):
                 continue # ignore rows where period or location is missing
+            if period_cell.is_date:
+                # convert to ISO 8601 month notation
+                period = '{0.year}-{0.month:02}'.format(period_cell.value)
+                print('Date conversion: ', period_cell.value, period)
+            else:
+                period = period_cell.value
             iso_year, iso_quarter, iso_month = extract_periods(str(period).strip())
             location_parts = ('Uganda', *filter(None, location_parts)) # turn to tuple and prepend name of root OrgUnit
             current_ou = OrgUnit.from_path_recurse(*location_parts)
