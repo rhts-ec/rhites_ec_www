@@ -27,16 +27,16 @@ fs = FileSystemStorage(location=settings.SOURCE_DOC_DIR)
 
 class SourceDocument(models.Model):
     orig_filename = models.CharField(max_length=128, blank=True, null=True)
-    file = models.FileField(upload_to=make_random_filename, storage=fs)
+    file1 = models.FileField(upload_to=make_random_filename, storage=fs)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         # store the original filename away for later
-        self.orig_filename = self.file.name
+        self.orig_filename = self.file1.name
         super(SourceDocument, self).save(*args, **kwargs)
 
     def __str__(self):
-        return '%s: %s' % (self.file, self.orig_filename)
+        return '%s: %s' % (self.file1, self.orig_filename)
 
 class OrgUnit(MPTTModel):
     name = models.CharField(max_length=64)

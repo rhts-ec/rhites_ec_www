@@ -1,14 +1,82 @@
-{% extends "cannula/base.html" %}
-
+{% extends "startmin/base.html" %}
+{% load widget_tweaks %}
+{% block page-header %} Upload New {{ menu_name }} Dataset {% endblock %}
 {% block title %}New Workflow{% endblock %}
 
 {% block content %}
 <div class="w3-panel">
-<form enctype="multipart/form-data" method="post" action="">
+<form id=upload_form enctype="multipart/form-data" method="post" action="">
 {% csrf_token %}
-    {{ form }}
-<input type="submit" value="Upload to Workflow" />
+    {{ form.file1|attr:"onchange:uploadFile()" }}
+<!--<input type="submit" value="Upload to Workflow" />-->
+    <progress id="progressBar" value="0" max="100" style="width:400px;"></progress>
+    <h3 id="status"></h3>
+    <p id="loaded_n_total"></p>
 </form>
 </div>
+{% endblock %}
+
+{% block extra-js %}
+    <script type="text/javascript">
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie != '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = jQuery.trim(cookies[i]);
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        function _(el) {
+            return document.getElementById(el);
+        }
+
+        function uploadFile() {
+            //var file = _("file1").files[0];
+            //alert(this.files);alert(this.FormData);
+            //var file = this.files[0];
+            var file = document.getElementById("id_file1");
+            // alert(file.name+" | "+file.size+" | "+file.type);
+            var menu_name = "{{ menu_name }}";
+            var ajax = new XMLHttpRequest();
+            ajax.upload.addEventListener("progress", progressHandler, false);
+            ajax.addEventListener("load", completeHandler, false);
+            ajax.addEventListener("error", errorHandler, false);
+            ajax.addEventListener("abort", abortHandler, false);
+            ajax.open("POST", "/data_workflow_new.php/" + menu_name + "/", true);
+            var csrftoken = getCookie('csrftoken');
+            ajax.setRequestHeader('X-CSRFToken', csrftoken);
+            var formdata = new FormData();
+            formdata.append("file1", file);
+            ajax.send(formdata);
+        }
+
+        function progressHandler(event) {
+            _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total;
+            var percent = (event.loaded / event.total) * 100;
+            _("progressBar").value = Math.round(percent);
+            _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
+        }
+
+        function completeHandler(event) {
+            _("status").innerHTML = event.target.responseText;
+            _("progressBar").value = 0; //wil clear progress bar after successful upload
+        }
+
+        function errorHandler(event) {
+            _("status").innerHTML = "Upload Failed";
+        }
+
+        function abortHandler(event) {
+            _("status").innerHTML = "Upload Aborted";
+        }
+    </script>
 {% endblock %}
 

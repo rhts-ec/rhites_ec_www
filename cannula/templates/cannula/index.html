@@ -1,59 +1,59 @@
-{% extends "cannula/base.html" %}
+{% extends "startmin/base.html" %}
 {% block title %}RHITES-EC Performance Monitoring Tool - Home{% endblock %}
+{% block page-header %} Scorecards {% endblock %}
 {% block content %}
-<h4>Scorecards</h4>
-{% if 'malaria' in request.path %}
-<ul>
-	<li><a href="{% url 'malaria_compliance' %}">Malaria - Compliance</a></li>
-	<li><a href="{% url 'ipt_quarterly' %}">Malaria - IPT</a></li>
-</ul>
-{% endif %}
+	{% if 'malaria' in request.path %}
+	<ul>
+		<li><a href="{% url 'malaria_compliance' %}">Malaria - Compliance</a></li>
+		<li><a href="{% url 'ipt_quarterly' %}">Malaria - IPT</a></li>
+	</ul>
+	{% endif %}
 
-{% if 'hts' in request.path %}
-<ul>
-	<li><a href="{% url 'hts_sites' %}">HTS - Sites</a></li>
-	<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
-</ul>
-<ul>
-	<li><a href="{% url 'vl_sites' %}">Viral Load - Sites</a></li>
-</ul>
-{% endif %}
+	{% if 'hts' in request.path %}
+	<ul>
+		<li><a href="{% url 'hts_sites' %}">HTS - Sites</a></li>
+		<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
+	</ul>
+	<ul>
+		<li><a href="{% url 'vl_sites' %}">Viral Load - Sites</a></li>
+	</ul>
+	{% endif %}
 
-{% if 'vmmc' in request.path %}
-<ul>
-	<li><a href="{% url 'vmmc_sites' %}">VMMC - Sites</a></li>
-</ul>
-{% endif %}
+	{% if 'vmmc' in request.path %}
+	<ul>
+		<li><a href="{% url 'vmmc_sites' %}">VMMC - Sites</a></li>
+	</ul>
+	{% endif %}
 
-{% if 'lab' in request.path %}
-<ul>
-	<li><a href="{% url 'lab_sites' %}">Lab. Tests - Sites</a></li>
-</ul>
-{% endif %}
+	{% if 'lab' in request.path %}
+	<ul>
+		<li><a href="{% url 'lab_sites' %}">Lab. Tests - Sites</a></li>
+	</ul>
+	{% endif %}
 
-{% if 'fp' in request.path %}
-<ul>
-	<li><a href="{% url 'fp_sites' %}">Family Planning - Sites</a></li>
-	<li><a href="{% url 'fp_cyp_sites' %}">Family Planning: CYP - Sites</a></li>
-	<li><a href="{% url 'fp_cyp_districts' %}">Family Planning: CYP - Districts</a></li>
-</ul>
-{% endif %}
+	{% if 'fp' in request.path %}
+	<ul>
+		<li><a href="{% url 'fp_sites' %}">Family Planning - Sites</a></li>
+		<li><a href="{% url 'fp_cyp_sites' %}">Family Planning: CYP - Sites</a></li>
+		<li><a href="{% url 'fp_cyp_districts' %}">Family Planning: CYP - Districts</a></li>
+	</ul>
+	{% endif %}
 
-{% if 'nutrition' in request.path %}
-<ul>
-	<li><a href="{% url 'nutrition_hospitals' %}">Nutrition - Hospitals</a></li>
-</ul>
-{% endif %}
+	{% if 'nutrition' in request.path %}
+	<ul>
+		<li><a href="{% url 'nutrition_hospitals' %}">Nutrition - Hospitals</a></li>
+	</ul>
+	{% endif %}
 
-<h4>Validation Reports</h4>
-<ul>
-{% for id, name in validation_rules %}
-	<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
-{% endfor %}
-</ul>
+	<h4>Validation Reports</h4>
+	<ul>
+	{% for id, name in validation_rules %}
+		<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
+	{% endfor %}
+	</ul>
 
-<h4>Workflows</h4>
-<p>
-	<a href="{% url 'data_workflow_listing' %}">Create/Edit/View Data Workflows</a>
-</p>
+	<h4>Workflows</h4>
+	<p>
+		<a href="{% url 'data_workflow_listing' %}">Create/Edit/View Data Workflows</a>
+	</p>
 {% endblock %}

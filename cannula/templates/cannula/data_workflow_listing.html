@@ -1,11 +1,12 @@
-{% extends "cannula/base.html" %}
+{% extends "startmin/base.html" %}
 
 {% block title %}Workflows{% endblock %}
+{% block page-header %} Upload New {{ menu_name }} Dataset {% endblock %}
 
 {% block content %}
 <div class="w3-panel">
 <p>
-	<a href="{% url 'data_workflow_new' %}">Create new workflow</a>
+	<a href="{% url 'data_workflow_new' menu_name %}">Create new workflow</a>
 </p>
 <table class="w3-table w3-border w3-bordered w3-small" border="1">
 <thead class="w3-grey">

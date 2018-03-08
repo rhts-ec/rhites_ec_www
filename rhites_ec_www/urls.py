@@ -20,6 +20,8 @@ urlpatterns = [
     url(r'^$', 'cannula.views.index'),
     url(r'', include('cannula.urls')),
 
+    url(r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'startmin/login.html'}),
+    url(r'^accounts/logout/$', 'django.contrib.auth.views.logout', {'next_page': '/accounts/login/?next=/'}),
     url(r'^accounts/', include('django.contrib.auth.urls')),
 
     url(r'^admin/', include(admin.site.urls)),

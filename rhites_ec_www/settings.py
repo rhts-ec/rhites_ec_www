@@ -40,7 +40,7 @@ INSTALLED_APPS = (
     
     'django_extensions',
     'mptt',
-
+    'widget_tweaks',
     'cannula',
 )
 

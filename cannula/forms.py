@@ -5,7 +5,7 @@ from . import models
 class SourceDocumentForm(ModelForm):
 	class Meta:
 		model = models.SourceDocument
-		fields = ['file',]
+		fields = ['file1',]
 
 
 class DataElementAliasForm(ModelForm):

@@ -306,17 +306,21 @@ def malaria_compliance(request):
     return render(request, 'cannula/malaria_compliance.html', context)
 
 @login_required
-def data_workflow_new(request):
+def data_workflow_new(request, menu_name):
     if request.method == 'POST':
+        # import pdb;pdb.set_trace()
         form = SourceDocumentForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect('data_workflow_listing')
+        # else:
+        #     messages.error(request, "Error")
     else:
         form = SourceDocumentForm()
 
     context = {
         'form': form,
+        'menu_name': menu_name
     }
 
     return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
