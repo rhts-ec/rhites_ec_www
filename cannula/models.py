@@ -39,7 +39,7 @@ class SourceDocument(models.Model):
         return '%s: %s' % (self.file1, self.orig_filename)
 
 class OrgUnit(MPTTModel):
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, db_index=True)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
 
     class MPTTMeta:
@@ -98,8 +98,8 @@ class DataElement(models.Model):
     )
     
     dhis2_uid = models.CharField(max_length=11, blank=True, null=True) #TODO: add unique check and check for a minimum length of 11 as well
-    name = models.CharField(max_length=160, unique=True)
-    alias = models.CharField(max_length=128, blank=True, null=True)
+    name = models.CharField(max_length=160, unique=True, db_index=True)
+    alias = models.CharField(max_length=128, blank=True, null=True, db_index=True)
     value_type = models.CharField(max_length=8, choices=VALUE_TYPES)
     value_min = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Minimum Value', blank=True, null=True)
     value_max = models.DecimalField(max_digits=17, decimal_places=4, verbose_name='Maximum Value', blank=True, null=True)
@@ -272,8 +272,22 @@ class DataValueQuerySet(models.QuerySet):
             qs = qs.filter(de_filters)
         return qs
 
-    def where(self):
-        raise NotImplementedError()
+    def where(self, *names_or_objects):
+        import functools
+        import operator
+        if isinstance(names_or_objects[0], OrgUnit):
+            # we were passed a list of OrgUnit instances
+            orgunits = names_or_objects
+        else:
+            # we were passed a list of OrgUnit names
+            ou_filters = [Q(name__iexact=ou_name) for ou_name in names_or_objects if ou_name is not None]
+            ou_filters_combined = functools.reduce(operator.__or__, ou_filters)
+            orgunits = OrgUnit.objects.filter(ou_filters_combined)
+
+        qs = self
+        for ou in orgunits:
+            qs = qs.filter(Q(org_unit__lft__gte=ou.lft) & Q(org_unit__rght__lte=ou.rght))
+        return qs
 
     def when(self):
         raise NotImplementedError()
@@ -286,8 +300,8 @@ class DataValueManager(models.Manager):
     def what(self, *names):
         return self.get_queryset().what(*names)
 
-    def where(self):
-        raise NotImplementedError()
+    def where(self, *names_or_objects):
+        return self.get_queryset().where(*names_or_objects)
 
     def when(self):
         raise NotImplementedError()
@@ -301,9 +315,9 @@ class DataValue(models.Model):
     site_str = models.CharField(max_length=128)
     org_unit = models.ForeignKey(OrgUnit, related_name='data_values')
     numeric_value = models.DecimalField(max_digits=17, decimal_places=4)
-    month = models.CharField(max_length=7, blank=True, null=True) # ISO 8601 format '2017-09'
-    quarter = models.CharField(max_length=7, blank=True, null=True) # ISO 8601 format '2017-Q3'
-    year = models.CharField(max_length=4, blank=True, null=True) # ISO 8601 format '2017'
+    month = models.CharField(max_length=7, blank=True, null=True, db_index=True) # ISO 8601 format '2017-09'
+    quarter = models.CharField(max_length=7, blank=True, null=True, db_index=True) # ISO 8601 format '2017-Q3'
+    year = models.CharField(max_length=4, blank=True, null=True, db_index=True) # ISO 8601 format '2017'
     source_doc = models.ForeignKey(SourceDocument, related_name='data_values')
 
     objects = DataValueManager() # override the default manager

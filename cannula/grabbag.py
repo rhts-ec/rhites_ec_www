@@ -106,23 +106,5 @@ def default_zero(*args):
 def all_not_none(*args):
     return all(map(lambda x: x is not None, args))
 
-def num2alphaindices(i):
-    if i < 26:
-        return i, # as a tuple
-    else:
-        q, r = divmod(i, 26)
-        return q-1, r
-
-def indices2colname(t):
-    return ''.join([string.ascii_uppercase[i] for i in t])
-
-def excel_column_name(i, zero_indexed=True):
-    if zero_indexed and i < 0:
-        return indices2colname(num2alphaindices(0))
-    elif not zero_indexed and i < 1:
-        return indices2colname(num2alphaindices(0))
-
-    if zero_indexed:
-        return indices2colname(num2alphaindices(i))
-    else:
-        return indices2colname(num2alphaindices(i-1))
+def sum_zero(*args):
+    return sum(chain(filter(lambda x: x is not None, args), [0,]))

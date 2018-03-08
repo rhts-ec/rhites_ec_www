@@ -12,19 +12,19 @@
 	</style>
 	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
 	<script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
-	<title>Family Planning (sites)</title>
+	<title>Family Planning (Facilities)</title>
 </head>
 <body>
-<h2>Family Planning - By Sites scorecard</h2>
+<h2>Family Planning - By Facilities scorecard</h2>
 <span class="no-print"><a href="{% url 'index' %}">Return to homepage</a></span>
 <h3>{{ period_desc }} ({{ request.GET.period }})</h3>
 
 <div class="w3-bar w3-row-padding no-print">
 <form class="w3-bar-item" style="width:75%" action="{% url 'fp_sites' %}">
-<div class="w3-cell w3-quarter">
+<!-- <div class="w3-cell w3-quarter">
 <input class="w3-input w3-border" type="text">
 <label>Location</label>
-</div>
+</div> -->
 <div class="w3-cell w3-quarter">
 <select class="w3-input w3-border" name="period">
 	{% for p in period_list %}
@@ -38,9 +38,15 @@
 <label>Period</label>
 </div>
 <div class="w3-cell w3-quarter">
-<select class="w3-input w3-border">
-	<option>All districts</option>
-	<option>RHITES EC districts only</option>
+<select class="w3-input w3-border" name="district" onchange="this.form.submit();">
+	<option value="">All districts</option>
+	{% for district in district_list %}
+	{% if district == request.GET.district %}
+	<option selected="selected">{{ district }}</option>
+	{% else %}
+	<option>{{ district }}</option>
+	{% endif %}
+	{% endfor %}
 </select>
 <label>Coverage</label>
 </div>
@@ -50,11 +56,11 @@
 </form>
 </div>
 
-<div class="w3-bar-item w3-right">
+<div class="w3-bar w3-row-padding w3-small">
 {% for ls in legend_sets %}
 {% for l in ls.legends reversed %}
 {% if forloop.first %}
-<table class="w3-table w3-border w3-bordered" border="1">
+<table class="w3-table w3-bordered w3-bar-item w3-right" style="width: 12em;" border="1">
 	<thead>
 		<tr><th>Legend: {{ ls.name }}</th></tr>
 	</thead>
