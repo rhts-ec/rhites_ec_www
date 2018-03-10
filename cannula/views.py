@@ -92,6 +92,7 @@ def ipt_quarterly(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = qs_ou.values_list('district', 'subcounty')
+    ou_headers = ['District', 'Subcounty']
 
     def val_fun(row, col):
         return { 'district': row[0], 'subcounty': row[1], 'de_name': col, 'numeric_sum': None }
@@ -176,7 +177,7 @@ def ipt_quarterly(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -188,11 +189,11 @@ def ipt_quarterly(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
             offset = 0
-            for j, g_val in enumerate(g_val_list, start=3):
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
                 if 'ipt_rate' in g_val:
                     offset += 1
@@ -573,6 +574,7 @@ def hts_by_site(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -1019,7 +1021,7 @@ def hts_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -1031,11 +1033,10 @@ def hts_by_site(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -1122,6 +1123,7 @@ def hts_by_district(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(v for v in qs_ou.values_list('district'))
+    ou_headers = ['District',]
 
     def val_with_subcat_fun(row, col):
         district, = row
@@ -1524,7 +1526,7 @@ def hts_by_district(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District',] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -1536,9 +1538,10 @@ def hts_by_district(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district,), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            for j, g_val in enumerate(g_val_list, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -1589,6 +1592,7 @@ def vmmc_by_site(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -1877,7 +1881,7 @@ def vmmc_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -1889,11 +1893,10 @@ def vmmc_by_site(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -1944,6 +1947,7 @@ def lab_by_site(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -2231,7 +2235,7 @@ def lab_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -2243,11 +2247,10 @@ def lab_by_site(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -2297,6 +2300,7 @@ def fp_by_site(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -2652,7 +2656,7 @@ def fp_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -2664,11 +2668,10 @@ def fp_by_site(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -3092,11 +3095,10 @@ def fp_cyp_by_site(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -3509,9 +3511,10 @@ def fp_cyp_by_district(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district,), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            for j, g_val in enumerate(g_val_list, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -3564,6 +3567,7 @@ def nutrition_by_hospital(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -3947,7 +3951,7 @@ def nutrition_by_hospital(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -3959,11 +3963,10 @@ def nutrition_by_hospital(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
@@ -4014,6 +4017,7 @@ def vl_by_site(request, output_format='HTML'):
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
 
     def val_with_subcat_fun(row, col):
         district, subcounty, facility = row
@@ -4168,7 +4172,7 @@ def vl_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = ['District', 'Subcounty', 'Facility'] + data_element_names
+        headers = ou_headers + data_element_names
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -4180,11 +4184,10 @@ def vl_by_site(request, output_format='HTML'):
                 else:
                     c.value = str(de) + '\n' + str(cat_combo)
         for i, g in enumerate(grouped_vals, start=2):
-            (district, subcounty, facility), g_val_list = g
-            ws.cell(row=i, column=1, value=district)
-            ws.cell(row=i, column=2, value=subcounty)
-            ws.cell(row=i, column=3, value=facility)
-            for j, g_val in enumerate(g_val_list, start=4):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
         for ls in legend_sets:
