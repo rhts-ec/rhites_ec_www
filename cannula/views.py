@@ -1047,7 +1047,7 @@ def hts_by_site(request, output_format='HTML'):
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename="hts_districts_scorecard.xlsx"'
+        response['Content-Disposition'] = 'attachment; filename="hts_sites_scorecard.xlsx"'
 
         return response
 
