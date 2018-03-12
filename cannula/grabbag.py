@@ -5,9 +5,14 @@ CODE_KEYSPACE_LETTERS = ''.join(set(string.ascii_letters).difference(TRICKY_CHAR
 CODE_KEYSPACE = string.digits + CODE_KEYSPACE_LETTERS
 
 import calendar
+import re
 
-MONTH_NAME_ABBR_REGEX = '|'.join(calendar.month_name[1:]+calendar.month_abbr[1:])
-MONTH_ABBR_REGEX = '|'.join(calendar.month_abbr[1:])
+MONTH_NAME_ABBR_REGSTR = '|'.join(calendar.month_name[1:]+calendar.month_abbr[1:])
+MONTH_ABBR_REGSTR = '|'.join(calendar.month_abbr[1:])
+MONTH_REGEX = re.compile(r'(%s)\s*([\d]{4})' % (MONTH_NAME_ABBR_REGSTR,))
+QUARTER_REGEX = re.compile(r'([\d]{4})(-?[Qq]([1-4]))')
+YEAR_REGEX = re.compile(r'([\d]{4})(-([\d]{2}))?')
+MONTH_TO_MONTH_REGEX = re.compile(r'(%s)\s*((-)|(\sto\s))\s*(%s)\s*([\d]{4})' % (MONTH_NAME_ABBR_REGSTR, MONTH_NAME_ABBR_REGSTR))
 MONTH_NAME_TO_ABBR = dict(zip(calendar.month_name[1:], calendar.month_abbr[1:]))
 
 import random
@@ -23,14 +28,12 @@ def gen_random_names(num_names=1):
         yield (random.choice(first_names), random.choice(last_names))
 
 def period_to_dates(period_str):
-    import re
     from datetime import datetime, date
 
     # Oct to Dec 2016' => ('Oct' '2016') => (2016, 10)
-    # m = re.match(r'(%s)(\s+to\s%s)\s*([\d]{4})' % (MONTH_ABBR_REGEX, MONTH_ABBR_REGEX), period_str)
-    m = re.match(r'(%s)\s+to\s+(%s)\s*([\d]{4})' % (MONTH_ABBR_REGEX, MONTH_ABBR_REGEX), period_str)
+    m = MONTH_TO_MONTH_REGEX.match(period_str)
     if m:
-        m_name, _, y = m.groups()
+        m_name, sep_group, sep_subgroup1, sep_subgroup2, _, y = m.groups()
         if m_name in MONTH_NAME_TO_ABBR.values():
             m_abbr = m_name
         else:
@@ -39,20 +42,20 @@ def period_to_dates(period_str):
         return dt, dt, None
 
     # 'October 2016' 'Oct 2016' => ('Oct' '2016') => (2016, 10)
-    m = re.match(r'(%s)\s*([\d]{4})' % (MONTH_NAME_ABBR_REGEX,), period_str)
+    m = MONTH_REGEX.match(period_str)
     if m:
         m_name, y = m.groups()
         m_abbr = MONTH_NAME_TO_ABBR[m_name]
         dt = datetime.strptime(m_abbr + ' ' + y, '%b %Y').date()
         return dt, dt, dt
     # '2016-Q4' '2016Q4' => (2016, 4) => (2016, 10)
-    m = re.match(r'([\d]{4})(-?[Qq]([1-4]))', period_str)
+    m = QUARTER_REGEX.match(period_str)
     if m:
         y, _, q = m.groups()
         dt = date(int(y), (int(q)-1)*3+1, 1)
         return dt, dt, None
     # '2016' '2016-10' => (2016) (2016, 10)
-    m = re.match(r'([\d]{4})(-([\d]{2}))?', period_str)
+    m = YEAR_REGEX.match(period_str)
     if m:
         y, _, m_str = m.groups()
         if m_str:
