@@ -72,10 +72,10 @@ class OrgUnit(MPTTModel):
             return None
         *parent_path, node_name = path_parts
         if len(parent_path) == 0:
-            ou, created = cls.objects.get_or_create(name=node_name, parent=None)
+            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=None)
         else:
             ou_parent = cls.from_path_recurse(*parent_path)
-            ou, created = cls.objects.get_or_create(name=node_name, parent=ou_parent)
+            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=ou_parent)
         return ou
 
     def __str__(self):
