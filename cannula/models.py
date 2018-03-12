@@ -282,7 +282,9 @@ class DataValueQuerySet(models.QuerySet):
             # we were passed a list of OrgUnit names
             ou_filters = [Q(name__iexact=ou_name) for ou_name in names_or_objects if ou_name is not None]
             ou_filters_combined = functools.reduce(operator.__or__, ou_filters)
-            orgunits = OrgUnit.objects.filter(ou_filters_combined)
+            orgunits = list(OrgUnit.objects.filter(ou_filters_combined))
+            if len(orgunits) == 0:
+                return self.none()
 
         qs = self
         for ou in orgunits:
