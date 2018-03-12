@@ -289,8 +289,42 @@ class DataValueQuerySet(models.QuerySet):
             qs = qs.filter(Q(org_unit__lft__gte=ou.lft) & Q(org_unit__rght__lte=ou.rght))
         return qs
 
-    def when(self):
-        raise NotImplementedError()
+    def when(self, *periods):
+        import re
+
+        PERIOD_REGEX = re.compile(r'(\d{4}-\d{2})|(\d{4}-?Q\d{1})|(\d{4})')
+
+        qs = self
+        period_filters = None
+        for p in periods:
+            res = PERIOD_REGEX.match(p)
+            if res is None:
+                continue
+
+            (g_month, g_quarter, g_year) = res.group(1, 2, 3)
+            print(g_month, g_quarter, g_year)
+            if g_month:
+                if period_filters:
+                    period_filters = period_filters | Q(month=g_month)
+                else:
+                    period_filters = Q(month=g_month)
+                qs = qs.annotate(period=F('month'))
+            if g_quarter:
+                if period_filters:
+                    period_filters = period_filters | Q(quarter=g_quarter)
+                else:
+                    period_filters = Q(quarter=g_quarter)
+                qs = qs.annotate(period=F('quarter'))
+            if g_year:
+                if period_filters:
+                    period_filters = period_filters | Q(year=g_year)
+                else:
+                    period_filters = Q(year=g_year)
+                qs = qs.annotate(period=F('year'))
+        if period_filters:
+            qs = qs.filter(period_filters)
+        #TODO: Can we reduce the annotate calls to just one? Should we?
+        return qs
 
 class DataValueManager(models.Manager):
     """Attach our custom queryset methods to the model manager"""
@@ -303,8 +337,8 @@ class DataValueManager(models.Manager):
     def where(self, *names_or_objects):
         return self.get_queryset().where(*names_or_objects)
 
-    def when(self):
-        raise NotImplementedError()
+    def when(self, *periods):
+        return self.get_queryset().where(*periods)
 
 def get_default_category_combo():
     return CategoryCombo.objects.get(id=1)
