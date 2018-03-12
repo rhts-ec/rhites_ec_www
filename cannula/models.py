@@ -377,8 +377,9 @@ def load_excel_to_datavalues(source_doc):
     import calendar
     import openpyxl
 
-    MONTH_REGEX = r'[\s]*(%s) [0-9]{4}[\s]*' % ('|'.join(calendar.month_name[1:]),)
-    MONTH_PREFIX_REGEX = r'^[\s]*(%s) ([0-9]{4})?[\s]*' % ('|'.join(calendar.month_name[1:]),)
+    from .grabbag import MONTH_TO_MONTH_REGEX
+
+    MONTH_PREFIX_REGEX = re.compile(r'^[\s]*(%s) ([0-9]{4})?[\s]*' % ('|'.join(calendar.month_name[1:]),))
 
     DE_COLUMN_START = 4 # 0-based index of first dataelement column in worksheet
 
@@ -398,7 +399,7 @@ def load_excel_to_datavalues(source_doc):
         iter_rows = iter(ws.rows)
         first_row = next(iter_rows)
         headers = [cell.value for cell in first_row]
-        clean_headers = (re.sub(MONTH_PREFIX_REGEX, '', h) for h in headers[DE_COLUMN_START:] if h is not None)
+        clean_headers = (MONTH_TO_MONTH_REGEX.sub('', MONTH_PREFIX_REGEX.sub('', h)).lstrip() for h in headers[DE_COLUMN_START:] if h is not None)
         data_elements = tuple(unpack_data_element(de) for de in clean_headers)
 
 
