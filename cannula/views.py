@@ -4213,3 +4213,226 @@ def vl_by_site(request, output_format='HTML'):
     }
 
     return render(request, 'cannula/vl_sites.html', context)
+
+@login_required
+def sc_mos_by_site(request, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    month_years = zip([((this_day.month-i-1)%12)+1 for i in range(5*12)], ([this_day.year] * this_day.month) + sorted([this_day.year-i for i in range(1, 5)]*12, reverse=True))
+    PREV_5YR_MONTHS = ['{0}-{1:02}'.format(y, m) for m, y in month_years]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_MONTHS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '{0}-{1:02}'.format(this_year, this_day.month)
+
+    period_desc = filter_period #dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
+    ou_headers = ['District', 'Subcounty', 'Facility']
+
+    def val_with_subcat_fun(row, col):
+        district, subcounty, facility = row
+        de_name, subcategory = col
+        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+
+    supply_names = [
+        '105-6  Zidovudine /Lamivudine/Nevirapine (AZT/3TC/NVP)',
+        '105-6 (RHZE) blister strip 150/75/400/275 mg',
+        '105-6 Abacavir/Lamivudine (ABC/3TC) 60mg/30mg (Paediatric)',
+        '105-6 Amoxicillin dispersible 125mg tablet (For children)',
+        '105-6 Artemether/ Lumefantrine 100/20mg tablet',
+        '105-6 Bendrofulazide (Aprinox) 5mg',
+        '105-6 Blood 450 ml',
+        '105-6 CD4 reagent Specify',
+        # '105-6 Captopril 25mg tablet',
+        # '105-6 Cardiac Aspirin 75/80 mg',
+        # '105-6 Ceftriaxone 1g Injection',
+        # '105-6 Chlorhexidine 20%',
+        # '105-6 Co-tromoxazole 480mg tablet',
+        # '105-6 Cotrimoxazole 960mg tablet',
+        # '105-6 Determine HIV Screening test, tests',
+        # '105-6 Efavirenz (EFV) 600mg',
+        # '105-6 Glibenclamide 5mg tablet',
+        # '105-6 Insulin short-acting',
+        # '105-6 Mama Kit',
+        # '105-6 Measles Vaccine',
+        # '105-6 Metformin 500mg',
+        # '105-6 Misoprostol 200mcg Tablet',
+        # '105-6 Nevirapine (NVP) 200mg',
+        # '105-6 Nevirapine (NVP) 50mg',
+        # '105-6 Nifedipine tablets 20mg tablet',
+        # '105-6 ORS Sachets with zinc tablet',
+        # '105-6 Oxytocin Injection',
+        # '105-6 Propranolol 40mg tablet',
+        # '105-6 RH blister strip 150/75 mg',
+        # '105-6 Ready to use Therapeutic feeds (RUTF)',
+        # '105-6 Stat-pack HIV Confirmatory rapid tests, tests',
+        # '105-6 Sulfadoxine / Pyrimethamine tablet',
+        # '105-6 Tenofovir/Lamivudine (TDF/3TC) 300mg/300mg',
+        # '105-6 Tenofovir/Lamivudine/Efavirenz (TDF/3TC/EFV) 300mg/300mg/',
+        # '105-6 Therapeutic milk F100 (100Kcal/100ml)',
+        # '105-6 Therapeutic milk F75 (75Kcal/100ml)',
+        # '105-6 Unigold HIV RDT Tie-breaker test, tests',
+        # '105-6 ZN reagent for AFB',
+        # '105-6 Zidovudine/Lamivudine (AZT/3TC) 300mg/150m'
+    ]
+    stock_de_names = ((s+' Days out of stock', s+' Quantity Utilized', s+' Stock at Hand') for s in supply_names)
+    stock_de_names = list(chain.from_iterable(stock_de_names)) # flatten the list of tuples of strings into a list of strings
+    de_stock_meta = list(product(stock_de_names, (None,)))
+
+    qs_stock = DataValue.objects.what(*stock_de_names).filter(month=filter_period)
+    if filter_district:
+        qs_stock = qs_stock.where(filter_district)
+    qs_stock = qs_stock.annotate(cat_combo=Value(None, output_field=CharField()))
+
+    qs_stock = qs_stock.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
+    qs_stock = qs_stock.annotate(period=F('quarter'))
+    qs_stock = qs_stock.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
+    val_stock = qs_stock.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_stock = list(val_stock)
+
+    gen_raster = grabbag.rasterize(ou_list, de_stock_meta, val_stock, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_stock2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_stock2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    calc_names = OrderedDict()
+    # perform calculations
+    for _group in grouped_vals:
+        (district_subcounty_facility, (*stock_vals,)) = _group
+        days_out, utilized, on_hand, *other_vals = stock_vals
+        
+        calculated_vals = list()
+        AVG_MONTH_DAYS = 30 # days in month
+
+        for days_out, utilized, on_hand in grouper(stock_vals, 3):
+            if all_not_none(utilized['numeric_sum'], days_out['numeric_sum']) and days_out['numeric_sum'] < AVG_MONTH_DAYS:
+                avg_consumption = utilized['numeric_sum'] * (AVG_MONTH_DAYS / (AVG_MONTH_DAYS - days_out['numeric_sum']))
+            else:
+                avg_consumption = None
+            # calc_name = on_hand['de_name'].replace('Stock at Hand', 'Adjusted Consumption')
+            # calc_names[calc_name] = True
+            # avg_consumption_val = {
+            #     'district': district_subcounty_facility[0],
+            #     'subcounty': district_subcounty_facility[1],
+            #     'facility': district_subcounty_facility[2],
+            #     'de_name': calc_name,
+            #     'cat_combo': None,
+            #     'numeric_sum': avg_consumption,
+            # }
+            # calculated_vals.append(avg_consumption_val)
+
+            if all_not_none(on_hand['numeric_sum']) and avg_consumption and on_hand['numeric_sum'] > 0:
+                months_of_stock = on_hand['numeric_sum']/(avg_consumption)
+            else:
+                months_of_stock = None
+                if on_hand['numeric_sum']:
+                    months_of_stock = -on_hand['numeric_sum']
+            calc_name = on_hand['de_name'].replace('Stock at Hand', 'Months of Stock')
+            calc_names[calc_name] = True
+            sc_mos_val = {
+                'district': district_subcounty_facility[0],
+                'subcounty': district_subcounty_facility[1],
+                'facility': district_subcounty_facility[2],
+                'de_name': calc_name,
+                'cat_combo': None,
+                'numeric_sum': months_of_stock,
+            }
+            calculated_vals.append(sc_mos_val)
+
+        if True:
+            _group[1] = calculated_vals
+        else:
+            _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    # data_element_names += de_stock_meta
+
+    data_element_names.extend([(c, None) for c in calc_names])
+
+    mos_base_index = 1+len(ou_headers)+len(stock_de_names)
+    print(mos_base_index, len(ou_headers), len(stock_de_names))
+    legend_sets = list()
+    sc_mos_ls = LegendSet()
+    sc_mos_ls.name = 'Months of Stock (MOS)'
+    sc_mos_ls.add_interval('red', 0, 2)
+    sc_mos_ls.add_interval('green', 2, 4)
+    sc_mos_ls.add_interval('yellow', 4, None)
+    for i in range(len(supply_names)):
+        sc_mos_ls.mappings[mos_base_index+(i*2)] = True
+    legend_sets.append(sc_mos_ls)
+    sc_soh_ls = LegendSet()
+    sc_soh_ls.name = 'Stock on Hand (SOH): invalid MOS'
+    sc_soh_ls.add_interval('light-green', None, 0)
+    for i in range(len(supply_names)):
+        sc_soh_ls.mappings[mos_base_index+(i*2)] = True
+    legend_sets.append(sc_soh_ls)
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ou_headers + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    print(cell_range, ls)
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="sc_mos_sites_scorecard.xlsx"'
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_MONTHS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+    }
+
+    return render(request, 'cannula/sc_mos_sites.html', context)

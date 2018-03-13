@@ -114,11 +114,13 @@
 		<td>{{ ou }}</td>
 		{% endfor %}
 		{% for x in group %}
+		{% block datacell %}
 		{% if x.de_name == 'Perf% Circumcised' or  x.de_name == 'Perf% Circumcised DC' or x.de_name == 'Perf% Circumcised Surgical' %}
 		<td class="w3-right-align green_yellow_orange_60_40_25_unbounded">{{ x.numeric_sum|floatformat }}</td>
 		{% else %}
 		<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
 		{% endif %}
+		{% endblock datacell %}
 		{% endfor %}
 	</tr>
 	{% endfor %}

@@ -37,4 +37,7 @@ urlpatterns = [
     url(r'dashboards/nutrition/$', views.index, name='thematic_nutrition'),
     url(r'scorecards/nutrition/hospitals\.php', views.nutrition_by_hospital, name='nutrition_hospitals'),
     url(r'scorecards/nutrition/hospitals\.xls', views.nutrition_by_hospital, {'output_format': 'EXCEL'}, name='nutrition_hospitals_excel'),
+    url(r'dashboards/sc/$', views.index, name='thematic_sc'),
+    url(r'scorecards/sc/mos_sites\.php', views.sc_mos_by_site, name='sc_mos_sites'),
+    url(r'scorecards/sc/mos_sites\.xls', views.sc_mos_by_site, {'output_format': 'EXCEL'}, name='sc_mos_sites_excel'),
 ]

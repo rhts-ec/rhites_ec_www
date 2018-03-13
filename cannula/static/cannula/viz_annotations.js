@@ -29,7 +29,7 @@ function extractNumber(el) {
 addEvent( window, "load", function() {
   var a = document.getElementsByTagName("*") || document.all;
 
-  for ( var i = 0; i < a.length; i++ )
+  for ( var i = 0; i < a.length; i++ ) {
     if ( has( a[i].className, "green_yellow_orange_60_40_25_unbounded" ) ) {
       var percent_val = extractNumber(a[i]);
 
@@ -172,7 +172,32 @@ addEvent( window, "load", function() {
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
       }
+    } else
+    if ( has( a[i].className, "0_2_4_none_red_green_yellow" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 4 ) percent_categ = "w3-green";
+        else if ( percent_val >= 2 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } 
+    if ( has( a[i].className, "none_0_light-green" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null) {
+        if ( percent_val < 0 ) {
+          percent_categ = "w3-light-green";
+          a[i].className += (" " + percent_categ);
+        }
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
     }
+  }
 } );
 
 

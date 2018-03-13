@@ -45,6 +45,12 @@
 </ul>
 {% endif %}
 
+{% if 'sc' in request.path %}
+<ul>
+	<li><a href="{% url 'sc_mos_sites' %}">Supply Chain: Months of Stock - Facilities</a></li>
+</ul>
+{% endif %}
+
 <h4>Validation Reports</h4>
 <ul>
 {% for id, name in validation_rules %}
