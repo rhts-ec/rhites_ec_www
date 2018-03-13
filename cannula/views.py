@@ -4073,7 +4073,7 @@ def tb_by_site(request, output_format='HTML'):
     tsr_ls.add_interval('red', 0, 80)
     tsr_ls.add_interval('yellow', 80, 85)
     tsr_ls.add_interval('green', 85, None)
-    notif_ls.mappings[17] = True
+    tsr_ls.mappings[17] = True
     legend_sets.append(tsr_ls)
     cnr_ls = LegendSet()
     cnr_ls.name = 'CNR'
