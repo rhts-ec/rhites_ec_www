@@ -1,0 +1,7 @@
+{% extends "cannula/base_dashboard_fp_cyp.html" %}
+
+{% block title %}TB and TB/HIV (Facilities){% endblock %}
+{% block heading %}TB and TB/HIV - By Facilities scorecard{% endblock %}
+{% block datacell %}
+		<td class="w3-right-align{% if '% TSR' in x.de_name %} 0_80_85_none_red_yellow_green{% endif %}{% if '% of cases' in x.de_name or '% Tested' in x.de_name or '% HIV+ on' in x.de_name %} 0_75_95_none_red_yellow_green{% endif %}{% if '% Cure Rate' in x.de_name %} 0_50_60_none_red_yellow_green{% endif %}">{{ x.numeric_sum|floatformat }}</td>
+{% endblock %}
