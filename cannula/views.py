@@ -13,7 +13,7 @@ from itertools import groupby, tee, chain, product
 from collections import OrderedDict
 
 from . import dateutil, grabbag
-from .grabbag import default_zero, all_not_none
+from .grabbag import default_zero, all_not_none, grouper
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path
 from .forms import SourceDocumentForm, DataElementAliasForm
