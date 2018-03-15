@@ -16,6 +16,7 @@ MONTH_TO_MONTH_REGEX = re.compile(r'(%s)\s*((-)|(\sto\s))\s*(%s)\s*([\d]{4})' % 
 MONTH_NAME_TO_ABBR = dict(zip(calendar.month_name[1:], calendar.month_abbr[1:]))
 
 import random
+import itertools
 
 def make_random_code(code_length=8): # generated code always starts with a letter, to allow use as identifier
     return ''.join([random.choice(CODE_KEYSPACE_LETTERS)]+[ random.choice(CODE_KEYSPACE) for i in range(code_length-1)])
@@ -111,3 +112,9 @@ def all_not_none(*args):
 
 def sum_zero(*args):
     return sum(chain(filter(lambda x: x is not None, args), [0,]))
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return itertools.zip_longest(*args, fillvalue=fillvalue)
