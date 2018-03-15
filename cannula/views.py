@@ -38,7 +38,7 @@ def groupbylist(*args, **kwargs):
 def filter_empty_rows(grouped_vals):
     for row in grouped_vals:
         row_heading, row_values = row
-        if any(v['numeric_sum'] for v in row_values):
+        if any(v['numeric_sum'] is not None for v in row_values):
             yield row
 
 def month2quarter(month_num):
