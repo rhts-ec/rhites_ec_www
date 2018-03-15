@@ -15,7 +15,7 @@ from collections import OrderedDict
 from . import dateutil, grabbag
 from .grabbag import default_zero, all_not_none
 
-from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument
+from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path
 from .forms import SourceDocumentForm, DataElementAliasForm
 
 from .dashboards import LegendSet
@@ -4807,6 +4807,417 @@ def vl_by_site(request, output_format='HTML'):
     }
 
     return render(request, 'cannula/vl_sites.html', context)
+
+@login_required
+def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_ELEMENTS = OrgUnit.level_fields(org_unit_level)[1:]
+    OU_PATH_ELEMENTS_LEN = len(OU_PATH_ELEMENTS)
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_ELEMENTS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=OU_PATH_ELEMENTS_LEN).annotate(**OrgUnit.level_annotations(OU_PATH_ELEMENTS_LEN))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_ELEMENTS))
+    ou_headers = [pe.title() for pe in OU_PATH_ELEMENTS]
+
+    def val_with_subcat_fun(row, col):
+        val_dict = dict(zip(OU_PATH_ELEMENTS, row[:OU_PATH_ELEMENTS_LEN]))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    def get_value_ou_path(val):
+        return tuple((val[path_el] for path_el in OU_PATH_ELEMENTS))
+
+    targets_de_names = (
+        'GEND_GBV TARGET: GBV Care',
+        'GEND_GBV TARGET: GBV Care Physical and/or Emotional Violence',
+        'GEND_GBV TARGET: GBV Care Sexual Violence (Post-Rape Care)',
+    )
+    targets_short_names = (
+        'TARGET: GBV care',
+        'TARGET: Physical and/or emotional violence',
+        'TARGET: Sexual violence',
+    )
+    de_targets_meta = list(product(targets_de_names, (None,)))
+
+    qs_targets = DataValue.objects.what(*targets_de_names)
+    qs_targets = qs_targets.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_targets = qs_targets.where(filter_district)
+    qs_targets = qs_targets.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    qs_targets = qs_targets.when(filter_period[:4])
+    qs_targets = qs_targets.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_targets = qs_targets.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_targets = list(val_targets)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_meta, val_targets, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_targets2 = list(gen_raster)
+
+    targets_care_female_de_names = (
+        'GEND_GBV TARGET: GBV Care',
+    )
+    targets_care_female_short_names = (
+        'TARGET: GBV care - Female',
+    )
+    de_targets_care_female_meta = list(product(targets_care_female_short_names, ('Female',)))
+
+    qs_targets_care_female = DataValue.objects.what(*targets_care_female_de_names)
+    qs_targets_care_female = qs_targets_care_female.annotate(de_name=Value(targets_care_female_short_names[0], output_field=CharField()))
+    qs_targets_care_female = qs_targets_care_female.filter(category_combo__categories__name='Female')
+    qs_targets_care_female = qs_targets_care_female.annotate(cat_combo=Value('Female', output_field=CharField()))
+    if filter_district:
+        qs_targets_care_female = qs_targets_care_female.where(filter_district)
+    qs_targets_care_female = qs_targets_care_female.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    qs_targets_care_female = qs_targets_care_female.when(filter_period[:4])
+    qs_targets_care_female = qs_targets_care_female.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_targets_care_female = qs_targets_care_female.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_targets_care_female = list(val_targets_care_female)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_care_female_meta, val_targets_care_female, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_targets_care_female2 = list(gen_raster)
+
+    targets_care_male_de_names = (
+        'GEND_GBV TARGET: GBV Care',
+    )
+    targets_care_male_short_names = (
+        'TARGET: GBV care - Male',
+    )
+    de_targets_care_male_meta = list(product(targets_care_male_short_names, ('Male',)))
+
+    qs_targets_care_male = DataValue.objects.what(*targets_care_male_de_names)
+    qs_targets_care_male = qs_targets_care_male.annotate(de_name=Value(targets_care_male_short_names[0], output_field=CharField()))
+    qs_targets_care_male = qs_targets_care_male.filter(category_combo__categories__name='Male')
+    qs_targets_care_male = qs_targets_care_male.annotate(cat_combo=Value('Male', output_field=CharField()))
+    if filter_district:
+        qs_targets_care_male = qs_targets_care_male.where(filter_district)
+    qs_targets_care_male = qs_targets_care_male.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    qs_targets_care_male = qs_targets_care_male.when(filter_period[:4])
+    qs_targets_care_male = qs_targets_care_male.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_targets_care_male = qs_targets_care_male.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_targets_care_male = list(val_targets_care_male)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_care_male_meta, val_targets_care_male, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_targets_care_male2 = list(gen_raster)
+
+    targets_pep_de_names = (
+        'GEND_GBV_PEP TARGET: GBV PEP default',
+    )
+    targets_pep_short_names = (
+        'TARGET: Provided with PEP',
+    )
+    de_targets_pep_meta = list(product(targets_pep_short_names, (None,)))
+
+    qs_targets_pep = DataValue.objects.what(*targets_pep_de_names)
+    qs_targets_pep = qs_targets_pep.annotate(de_name=Value(targets_pep_short_names[0], output_field=CharField()))
+    qs_targets_pep = qs_targets_pep.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_targets_pep = qs_targets_pep.where(filter_district)
+    qs_targets_pep = qs_targets_pep.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    qs_targets_pep = qs_targets_pep.when(filter_period[:4])
+    qs_targets_pep = qs_targets_pep.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_targets_pep = qs_targets_pep.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_targets_pep = list(val_targets_pep)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_pep_meta, val_targets_pep, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_targets_pep2 = list(gen_raster)
+
+    sexual_violence_female_de_names = (
+        '105-1.3 OPD Abortions Due To Gender Based Violence (GBV)',
+        '105-1.3 OPD Sexually Transmitted Infection Due To SGBV',
+    )
+    sexual_violence_female_short_names = (
+        'Sexual violence (post-rape care) - Female',
+    )
+    de_sexual_violence_female_meta = list(product(sexual_violence_female_short_names, ('Female',)))
+
+    qs_sexual_violence_female = DataValue.objects.what(*sexual_violence_female_de_names)
+    qs_sexual_violence_female = qs_sexual_violence_female.annotate(de_name=Value(sexual_violence_female_short_names[0], output_field=CharField()))
+    qs_sexual_violence_female = qs_sexual_violence_female.filter(category_combo__categories__name='Female')
+    qs_sexual_violence_female = qs_sexual_violence_female.annotate(cat_combo=Value('Female', output_field=CharField()))
+    if filter_district:
+        qs_sexual_violence_female = qs_sexual_violence_female.where(filter_district)
+    qs_sexual_violence_female = qs_sexual_violence_female.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_sexual_violence_female = qs_sexual_violence_female.when(filter_period)
+    qs_sexual_violence_female = qs_sexual_violence_female.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_sexual_violence_female = qs_sexual_violence_female.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_sexual_violence_female = list(val_sexual_violence_female)
+
+    gen_raster = grabbag.rasterize(ou_list, de_sexual_violence_female_meta, val_sexual_violence_female, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_sexual_violence_female2 = list(gen_raster)
+
+    sexual_violence_male_de_names = (
+        '105-1.3 OPD Abortions Due To Gender Based Violence (GBV)',
+        '105-1.3 OPD Sexually Transmitted Infection Due To SGBV',
+    )
+    sexual_violence_male_short_names = (
+        'Sexual violence (post-rape care) - Male',
+    )
+    de_sexual_violence_male_meta = list(product(sexual_violence_male_short_names, ('Male',)))
+
+    qs_sexual_violence_male = DataValue.objects.what(*sexual_violence_male_de_names)
+    qs_sexual_violence_male = qs_sexual_violence_male.annotate(de_name=Value(sexual_violence_male_short_names[0], output_field=CharField()))
+    qs_sexual_violence_male = qs_sexual_violence_male.filter(category_combo__categories__name='Male')
+    qs_sexual_violence_male = qs_sexual_violence_male.annotate(cat_combo=Value('Male', output_field=CharField()))
+    if filter_district:
+        qs_sexual_violence_male = qs_sexual_violence_male.where(filter_district)
+    qs_sexual_violence_male = qs_sexual_violence_male.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_sexual_violence_male = qs_sexual_violence_male.when(filter_period)
+    qs_sexual_violence_male = qs_sexual_violence_male.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_sexual_violence_male = qs_sexual_violence_male.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_sexual_violence_male = list(val_sexual_violence_male)
+
+    gen_raster = grabbag.rasterize(ou_list, de_sexual_violence_male_meta, val_sexual_violence_male, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_sexual_violence_male2 = list(gen_raster)
+
+    sexual_violence_de_names = (
+        '105-1.3 OPD Abortions Due To Gender Based Violence (GBV)',
+        '105-1.3 OPD Sexually Transmitted Infection Due To SGBV',
+    )
+    sexual_violence_short_names = (
+        'Sexual violence (post-rape care) - TOTAL',
+    )
+    de_sexual_violence_meta = list(product(sexual_violence_short_names, (None,)))
+
+    qs_sexual_violence = DataValue.objects.what(*sexual_violence_de_names)
+    qs_sexual_violence = qs_sexual_violence.annotate(de_name=Value(sexual_violence_short_names[0], output_field=CharField()))
+    qs_sexual_violence = qs_sexual_violence.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_sexual_violence = qs_sexual_violence.where(filter_district)
+    qs_sexual_violence = qs_sexual_violence.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_sexual_violence = qs_sexual_violence.when(filter_period)
+    qs_sexual_violence = qs_sexual_violence.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_sexual_violence = qs_sexual_violence.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_sexual_violence = list(val_sexual_violence)
+
+    gen_raster = grabbag.rasterize(ou_list, de_sexual_violence_meta, val_sexual_violence, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_sexual_violence2 = list(gen_raster)
+
+    gbv_care_de_names = (
+        '105-1.3 OPD Sexually Transmitted Infection Due To SGBV',
+    )
+    gbv_care_short_names = (
+        'Receiving post-GBV clinical care',
+    )
+    de_gbv_care_meta = list(product(gbv_care_short_names, (None,)))
+
+    qs_gbv_care = DataValue.objects.what(*gbv_care_de_names)
+    qs_gbv_care = qs_gbv_care.annotate(de_name=Value(gbv_care_short_names[0], output_field=CharField()))
+    qs_gbv_care = qs_gbv_care.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_gbv_care = qs_gbv_care.where(filter_district)
+    qs_gbv_care = qs_gbv_care.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_gbv_care = qs_gbv_care.when(filter_period)
+    qs_gbv_care = qs_gbv_care.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_gbv_care = qs_gbv_care.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_gbv_care = list(val_gbv_care)
+
+    gen_raster = grabbag.rasterize(ou_list, de_gbv_care_meta, val_gbv_care, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_gbv_care2 = list(gen_raster)
+
+    pep_de_names = (
+        '106a PEP Q2-Number provided with PEP following - Rape/Sexual Assault or Defilement',
+    )
+    pep_short_names = (
+        'Provided with PEP',
+    )
+    de_pep_meta = list(product(pep_short_names, (None,)))
+
+    qs_pep = DataValue.objects.what(*pep_de_names)
+    qs_pep = qs_pep.annotate(de_name=Value(pep_short_names[0], output_field=CharField()))
+    qs_pep = qs_pep.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_pep = qs_pep.where(filter_district)
+    qs_pep = qs_pep.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_pep = qs_pep.when(filter_period)
+    qs_pep = qs_pep.order_by(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period')
+    val_pep = qs_pep.values(*OU_PATH_ELEMENTS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_pep = list(val_pep)
+
+    gen_raster = grabbag.rasterize(ou_list, de_pep_meta, val_pep, get_value_ou_path, lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    val_pep2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_targets_care_female2, val_targets_care_male2, val_targets_pep2, val_sexual_violence_female2, val_sexual_violence_male2, val_sexual_violence2, val_gbv_care2, val_pep2), key=get_value_ou_path), key=get_value_ou_path)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (_group_ou_path, (target_gbv, target_physical, target_sexual, target_gbv_f, target_gbv_m, target_pep, sexual_f, sexual_m, sexual, gbv_care, pep, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_ELEMENTS, _group_ou_path))
+        
+        calculated_vals = list()
+
+        if all_not_none(sexual['numeric_sum'], target_physical['numeric_sum']) and target_physical['numeric_sum']:
+            perf_sexual = 100 * sexual['numeric_sum'] / target_physical['numeric_sum']
+        else:
+            perf_sexual = None
+        perf_sexual_val = {
+            'de_name': 'Perf% Sexual violence (post-rape care)',
+            'cat_combo': None,
+            'numeric_sum': perf_sexual,
+        }
+        perf_sexual_val.update(_group_ou_dict)
+        calculated_vals.append(perf_sexual_val)
+
+        if all_not_none(sexual_f['numeric_sum'], target_gbv_f['numeric_sum']) and target_gbv_f['numeric_sum']:
+            perf_sexual_f = 100 * sexual_f['numeric_sum'] / target_gbv_f['numeric_sum']
+        else:
+            perf_sexual_f = None
+        perf_sexual_f_val = {
+            'de_name': 'Perf% Sexual violence',
+            'cat_combo': 'Female',
+            'numeric_sum': perf_sexual_f,
+        }
+        perf_sexual_f_val.update(_group_ou_dict)
+        calculated_vals.append(perf_sexual_f_val)
+
+        if all_not_none(sexual_m['numeric_sum'], target_gbv_m['numeric_sum']) and target_gbv_m['numeric_sum']:
+            perf_sexual_m = 100 * sexual_m['numeric_sum'] / target_gbv_m['numeric_sum']
+        else:
+            perf_sexual_m = None
+        perf_sexual_m_val = {
+            'de_name': 'Perf% Sexual violence',
+            'cat_combo': 'Male',
+            'numeric_sum': perf_sexual_m,
+        }
+        perf_sexual_m_val.update(_group_ou_dict)
+        calculated_vals.append(perf_sexual_m_val)
+
+        if all_not_none(gbv_care['numeric_sum'], target_gbv['numeric_sum']) and target_gbv['numeric_sum']:
+            perf_gbv_care = 100 * gbv_care['numeric_sum'] / target_gbv['numeric_sum']
+        else:
+            perf_gbv_care = None
+        perf_gbv_care_val = {
+            'de_name': 'Perf% Receiving post-GBV clinical care',
+            'cat_combo': None,
+            'numeric_sum': perf_gbv_care,
+        }
+        perf_gbv_care_val.update(_group_ou_dict)
+        calculated_vals.append(perf_gbv_care_val)
+
+        if all_not_none(pep['numeric_sum'], target_pep['numeric_sum']) and target_pep['numeric_sum']:
+            perf_pep = 100 * pep['numeric_sum'] / target_pep['numeric_sum']
+        else:
+            perf_pep = None
+        perf_pep_val = {
+            'de_name': 'Perf% PEP',
+            'cat_combo': None,
+            'numeric_sum': perf_pep,
+        }
+        perf_pep_val.update(_group_ou_dict)
+        calculated_vals.append(perf_pep_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_names = list()
+    data_element_names += list(product(targets_short_names, (None,)))
+    data_element_names += de_targets_care_female_meta
+    data_element_names += de_targets_care_male_meta
+    data_element_names += de_targets_pep_meta
+    data_element_names += de_sexual_violence_female_meta
+    data_element_names += de_sexual_violence_male_meta
+    data_element_names += de_sexual_violence_meta
+    data_element_names += de_gbv_care_meta
+    data_element_names += de_pep_meta
+
+    data_element_names += list(product(['Perf% Sexual violence (post-rape care)'], (None,)))
+    data_element_names += list(product(['Perf% Sexual violence'], ('Female',)))
+    data_element_names += list(product(['Perf% Sexual violence'], ('Male',)))
+    data_element_names += list(product(['Perf% Receiving post-GBV clinical care'], (None,)))
+    data_element_names += list(product(['Perf% PEP'], (None,)))
+
+    legend_sets = list()
+    gbv_ls = LegendSet()
+    gbv_ls.name = 'GBV Cases'
+    gbv_ls.add_interval('orange', 0, 25)
+    gbv_ls.add_interval('yellow', 25, 40)
+    gbv_ls.add_interval('light-green', 40, 60)
+    gbv_ls.add_interval('green', 60, None)
+    gbv_ls.mappings[OU_PATH_ELEMENTS_LEN+11] = True
+    gbv_ls.mappings[OU_PATH_ELEMENTS_LEN+12] = True
+    gbv_ls.mappings[OU_PATH_ELEMENTS_LEN+13] = True
+    gbv_ls.mappings[OU_PATH_ELEMENTS_LEN+14] = True
+    gbv_ls.mappings[OU_PATH_ELEMENTS_LEN+15] = True
+    legend_sets.append(gbv_ls)
+
+    if output_format == 'EXCEL':
+        from django.http import HttpResponse
+        import openpyxl
+
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = ou_headers + data_element_names
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="gbv_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_names,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/gbv_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
 def sc_mos_by_site(request, output_format='HTML'):

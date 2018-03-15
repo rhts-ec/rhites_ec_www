@@ -45,6 +45,17 @@
 </ul>
 {% endif %}
 
+{% if 'gbv' in request.path %}
+<ul>
+	<li><a href="{% url 'gbv_sites' %}">GBV: Cases - Facilities</a></li>
+	<li><a href="{% url 'gbv_districts' %}">GBV: Cases - Districts</a></li>
+	{% comment %}
+	<li><a href="{% url 'gbv_pep_sites' %}">GBV: PEP - Facilities</a></li>
+	<li><a href="{% url 'gbv_pep_districts' %}">GBV: PEP - Districts</a></li>
+	{% endcomment %}
+</ul>
+{% endif %}
+
 {% if 'sc' in request.path %}
 <ul>
 	<li><a href="{% url 'sc_mos_sites' %}">Supply Chain: Months of Stock - Facilities</a></li>

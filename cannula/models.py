@@ -253,6 +253,15 @@ CATEGORIES = [
 
     '<15',
     '15+',
+
+    # GEND_GBV TARGET: GBV Care from USAID
+    '<10',
+    '10-14',
+    '15-17',
+    '18-19',
+    '20-24',
+    '25-49',
+    '50+',
 ]
 
 import re

@@ -188,5 +188,10 @@ class LegendSet():
         # use old-school column/row limit as stand-in for entire row
         return ['{0}1:{0}16384'.format(excel_column_name(x)) for x in self.mappings]
 
+    def canonical_name(self):
+        intervals = [str(x).lower() for x in [self.legends()[0]['start']] + [l['end'] for l in self.legends()]]
+        colors = [str(l['color'].lower()) for l in self.legends()]
+        return '_'.join(intervals + colors)
+
     def __str__(self):
         return '<LegendSet %s>' % (', '.join([str(l) for l in sorted(self.__legends, key=legend_sort_key)]),)
