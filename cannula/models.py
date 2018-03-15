@@ -23,6 +23,11 @@ def make_random_filename(instance, filename):
 
     return grabbag.make_random_code(code_length=16) + file_ext
 
+def ou_dict_from_path(*ou_path, start_level=1):
+    if start_level < 0:
+        start_level = 0
+    return dict(zip(OrgUnit.level_fields()[start_level:], ou_path))
+
 fs = FileSystemStorage(location=settings.SOURCE_DOC_DIR)
 
 class SourceDocument(models.Model):
@@ -77,6 +82,36 @@ class OrgUnit(MPTTModel):
             ou_parent = cls.from_path_recurse(*parent_path)
             ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=ou_parent)
         return ou
+
+    @staticmethod
+    def level_names(max_level=None):
+        if max_level is None:
+            level_count = len(settings.ORG_UNIT_LEVELS)
+        else:
+            level_count = max_level + 1
+        return tuple((settings.ORG_UNIT_LEVELS.get(i) for i in range(level_count) if settings.ORG_UNIT_LEVELS.get(i) is not None))
+
+    @staticmethod
+    def level_fields(max_level=None):
+        #TODO: escape/replace any characters that would be an invalid field name
+        return tuple(map(lambda x: x.lower().replace(' ', '_'), OrgUnit.level_names(max_level)))
+
+    @staticmethod
+    def level_dbfields(max_level=None, *ignore, prefix=''):
+        if max_level is None:
+            level_count = len(settings.ORG_UNIT_LEVELS)
+        else:
+            level_count = max_level + 1
+        return tuple(reversed([prefix+(''.join(('parent__',)*i)+'name') for i in range(level_count)]))
+
+    @staticmethod
+    def level_annotations(max_level=None, *ignore, prefix=''):
+        return dict(zip(OrgUnit.level_fields(max_level), [F(f) for f in OrgUnit.level_dbfields(max_level, prefix=prefix)]))
+
+    @staticmethod
+    def get_level_field(level):
+        #TODO: escape/replace any characters that would be an invalid field name
+        return settings.ORG_UNIT_LEVELS[level].lower().replace(' ', '_')
 
     def __str__(self):
         return '%s [parent_id: %s]' % (self.name, str(self.parent_id),)
