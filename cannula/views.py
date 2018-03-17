@@ -2262,11 +2262,14 @@ def lab_by_site(request, output_format='HTML'):
     return render(request, 'cannula/lab_sites.html', context)
 
 @login_required
-def fp_by_site(request, output_format='HTML'):
+def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
     DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -2281,16 +2284,21 @@ def fp_by_site(request, output_format='HTML'):
         filter_district = None
 
     # # all facilities (or equivalent)
-    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
-    ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
-    ou_headers = ['District', 'Subcounty', 'Facility']
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
 
-    def val_with_subcat_fun(row, col):
-        district, subcounty, facility = row
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
         de_name, subcategory = col
-        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
 
     condoms_new_de_names = (
         '105-2.5 Female Condom',
@@ -2300,21 +2308,21 @@ def fp_by_site(request, output_format='HTML'):
         'New users - Condoms',
     )
     de_condoms_new_meta = list(product(condoms_new_short_names, (None,)))
+    data_element_metas += de_condoms_new_meta
 
-    qs_condoms_new = DataValue.objects.what(*condoms_new_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_condoms_new = qs_condoms_new.where(filter_district)
+    qs_condoms_new = DataValue.objects.what(*condoms_new_de_names)
     qs_condoms_new = qs_condoms_new.annotate(de_name=Value(condoms_new_short_names[0], output_field=CharField()))
     qs_condoms_new = qs_condoms_new.filter(category_combo__categories__name='New Users')
     qs_condoms_new = qs_condoms_new.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_condoms_new = qs_condoms_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_condoms_new = qs_condoms_new.annotate(period=F('quarter'))
-    qs_condoms_new = qs_condoms_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_condoms_new = qs_condoms_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_condoms_new = qs_condoms_new.where(filter_district)
+    qs_condoms_new = qs_condoms_new.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_condoms_new = qs_condoms_new.when(filter_period)
+    qs_condoms_new = qs_condoms_new.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_condoms_new = qs_condoms_new.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_condoms_new = list(val_condoms_new)
 
-    gen_raster = grabbag.rasterize(ou_list, de_condoms_new_meta, val_condoms_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_condoms_new_meta, val_condoms_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_condoms_new2 = list(gen_raster)
 
     fp_new_de_names = (
@@ -2330,20 +2338,20 @@ def fp_by_site(request, output_format='HTML'):
         'New users - Implants',
     )
     de_fp_new_meta = list(product(fp_new_de_names, (None,)))
+    data_element_metas += list(product(fp_new_short_names, (None,)))
 
-    qs_fp_new = DataValue.objects.what(*fp_new_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_fp_new = qs_fp_new.where(filter_district)
+    qs_fp_new = DataValue.objects.what(*fp_new_de_names)
     qs_fp_new = qs_fp_new.filter(category_combo__categories__name='New Users')
     qs_fp_new = qs_fp_new.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_fp_new = qs_fp_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_fp_new = qs_fp_new.annotate(period=F('quarter'))
-    qs_fp_new = qs_fp_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_fp_new = qs_fp_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_fp_new = qs_fp_new.where(filter_district)
+    qs_fp_new = qs_fp_new.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_fp_new = qs_fp_new.when(filter_period)
+    qs_fp_new = qs_fp_new.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_fp_new = qs_fp_new.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_fp_new = list(val_fp_new)
 
-    gen_raster = grabbag.rasterize(ou_list, de_fp_new_meta, val_fp_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_fp_new_meta, val_fp_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_fp_new2 = list(gen_raster)
 
     oral_new_de_names = (
@@ -2355,21 +2363,21 @@ def fp_by_site(request, output_format='HTML'):
         'New users - Oral',
     )
     de_oral_new_meta = list(product(oral_new_short_names, (None,)))
+    data_element_metas += de_oral_new_meta
 
-    qs_oral_new = DataValue.objects.what(*oral_new_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_oral_new = qs_oral_new.where(filter_district)
+    qs_oral_new = DataValue.objects.what(*oral_new_de_names)
     qs_oral_new = qs_oral_new.annotate(de_name=Value(oral_new_short_names[0], output_field=CharField()))
     qs_oral_new = qs_oral_new.filter(category_combo__categories__name='New Users')
     qs_oral_new = qs_oral_new.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_oral_new = qs_oral_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_oral_new = qs_oral_new.annotate(period=F('quarter'))
-    qs_oral_new = qs_oral_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_oral_new = qs_oral_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_oral_new = qs_oral_new.where(filter_district)
+    qs_oral_new = qs_oral_new.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_oral_new = qs_oral_new.when(filter_period)
+    qs_oral_new = qs_oral_new.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_oral_new = qs_oral_new.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_oral_new = list(val_oral_new)
 
-    gen_raster = grabbag.rasterize(ou_list, de_oral_new_meta, val_oral_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_oral_new_meta, val_oral_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_oral_new2 = list(gen_raster)
 
     other_new_de_names = (
@@ -2379,21 +2387,21 @@ def fp_by_site(request, output_format='HTML'):
         'New users - Other methods',
     )
     de_other_new_meta = list(product(other_new_short_names, (None,)))
+    data_element_metas += de_other_new_meta
 
-    qs_other_new = DataValue.objects.what(*other_new_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_other_new = qs_other_new.where(filter_district)
+    qs_other_new = DataValue.objects.what(*other_new_de_names)
     qs_other_new = qs_other_new.annotate(de_name=Value(other_new_short_names[0], output_field=CharField()))
     qs_other_new = qs_other_new.filter(category_combo__categories__name='New Users')
     qs_other_new = qs_other_new.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_other_new = qs_other_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_other_new = qs_other_new.annotate(period=F('quarter'))
-    qs_other_new = qs_other_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_other_new = qs_other_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_other_new = qs_other_new.where(filter_district)
+    qs_other_new = qs_other_new.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_other_new = qs_other_new.when(filter_period)
+    qs_other_new = qs_other_new.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_other_new = qs_other_new.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_other_new = list(val_other_new)
 
-    gen_raster = grabbag.rasterize(ou_list, de_other_new_meta, val_other_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_other_new_meta, val_other_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_other_new2 = list(gen_raster)
 
     sterile_new_de_names = (
@@ -2404,20 +2412,20 @@ def fp_by_site(request, output_format='HTML'):
         'New users - Sterilisation (male and female)',
     )
     de_sterile_new_meta = list(product(sterile_new_short_names, (None,)))
+    data_element_metas += de_sterile_new_meta
 
-    qs_sterile_new = DataValue.objects.what(*sterile_new_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_sterile_new = qs_sterile_new.where(filter_district)
+    qs_sterile_new = DataValue.objects.what(*sterile_new_de_names)
     qs_sterile_new = qs_sterile_new.annotate(de_name=Value(sterile_new_short_names[0], output_field=CharField()))
     qs_sterile_new = qs_sterile_new.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_sterile_new = qs_sterile_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_sterile_new = qs_sterile_new.annotate(period=F('quarter'))
-    qs_sterile_new = qs_sterile_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_sterile_new = qs_sterile_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_sterile_new = qs_sterile_new.where(filter_district)
+    qs_sterile_new = qs_sterile_new.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_sterile_new = qs_sterile_new.when(filter_period)
+    qs_sterile_new = qs_sterile_new.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_sterile_new = qs_sterile_new.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_sterile_new = list(val_sterile_new)
 
-    gen_raster = grabbag.rasterize(ou_list, de_sterile_new_meta, val_sterile_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_sterile_new_meta, val_sterile_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_sterile_new2 = list(gen_raster)
 
     condoms_revisit_de_names = (
@@ -2428,21 +2436,21 @@ def fp_by_site(request, output_format='HTML'):
         'Revisits - Condoms',
     )
     de_condoms_revisit_meta = list(product(condoms_revisit_short_names, (None,)))
+    data_element_metas += de_condoms_revisit_meta
 
-    qs_condoms_revisit = DataValue.objects.what(*condoms_revisit_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_condoms_revisit = qs_condoms_revisit.where(filter_district)
+    qs_condoms_revisit = DataValue.objects.what(*condoms_revisit_de_names)
     qs_condoms_revisit = qs_condoms_revisit.annotate(de_name=Value(condoms_revisit_short_names[0], output_field=CharField()))
     qs_condoms_revisit = qs_condoms_revisit.filter(category_combo__categories__name='Revisits')
     qs_condoms_revisit = qs_condoms_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_condoms_revisit = qs_condoms_revisit.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_condoms_revisit = qs_condoms_revisit.annotate(period=F('quarter'))
-    qs_condoms_revisit = qs_condoms_revisit.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_condoms_revisit = qs_condoms_revisit.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_condoms_revisit = qs_condoms_revisit.where(filter_district)
+    qs_condoms_revisit = qs_condoms_revisit.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_condoms_revisit = qs_condoms_revisit.when(filter_period)
+    qs_condoms_revisit = qs_condoms_revisit.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_condoms_revisit = qs_condoms_revisit.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_condoms_revisit = list(val_condoms_revisit)
 
-    gen_raster = grabbag.rasterize(ou_list, de_condoms_revisit_meta, val_condoms_revisit, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_condoms_revisit_meta, val_condoms_revisit, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_condoms_revisit2 = list(gen_raster)
 
     fp_revisit_de_names = (
@@ -2458,20 +2466,20 @@ def fp_by_site(request, output_format='HTML'):
         'Revisits - Implants',
     )
     de_fp_revisit_meta = list(product(fp_revisit_de_names, (None,)))
+    data_element_metas += list(product(fp_revisit_short_names, (None,)))
 
-    qs_fp_revisit = DataValue.objects.what(*fp_revisit_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_fp_revisit = qs_fp_revisit.where(filter_district)
+    qs_fp_revisit = DataValue.objects.what(*fp_revisit_de_names)
     qs_fp_revisit = qs_fp_revisit.filter(category_combo__categories__name='Revisits')
     qs_fp_revisit = qs_fp_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_fp_revisit = qs_fp_revisit.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_fp_revisit = qs_fp_revisit.annotate(period=F('quarter'))
-    qs_fp_revisit = qs_fp_revisit.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_fp_revisit = qs_fp_revisit.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_fp_revisit = qs_fp_revisit.where(filter_district)
+    qs_fp_revisit = qs_fp_revisit.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_fp_revisit = qs_fp_revisit.when(filter_period)
+    qs_fp_revisit = qs_fp_revisit.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_fp_revisit = qs_fp_revisit.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_fp_revisit = list(val_fp_revisit)
 
-    gen_raster = grabbag.rasterize(ou_list, de_fp_revisit_meta, val_fp_revisit, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_fp_revisit_meta, val_fp_revisit, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_fp_revisit2 = list(gen_raster)
 
     oral_revisit_de_names = (
@@ -2483,21 +2491,21 @@ def fp_by_site(request, output_format='HTML'):
         'Revisits - Oral',
     )
     de_oral_revisit_meta = list(product(oral_revisit_short_names, (None,)))
+    data_element_metas += de_oral_revisit_meta
 
-    qs_oral_revisit = DataValue.objects.what(*oral_revisit_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_oral_revisit = qs_oral_revisit.where(filter_district)
+    qs_oral_revisit = DataValue.objects.what(*oral_revisit_de_names)
     qs_oral_revisit = qs_oral_revisit.annotate(de_name=Value(oral_revisit_short_names[0], output_field=CharField()))
     qs_oral_revisit = qs_oral_revisit.filter(category_combo__categories__name='Revisits')
     qs_oral_revisit = qs_oral_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_oral_revisit = qs_oral_revisit.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_oral_revisit = qs_oral_revisit.annotate(period=F('quarter'))
-    qs_oral_revisit = qs_oral_revisit.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_oral_revisit = qs_oral_revisit.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_oral_revisit = qs_oral_revisit.where(filter_district)
+    qs_oral_revisit = qs_oral_revisit.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_oral_revisit = qs_oral_revisit.when(filter_period)
+    qs_oral_revisit = qs_oral_revisit.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_oral_revisit = qs_oral_revisit.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_oral_revisit = list(val_oral_revisit)
 
-    gen_raster = grabbag.rasterize(ou_list, de_oral_revisit_meta, val_oral_revisit, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_oral_revisit_meta, val_oral_revisit, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_oral_revisit2 = list(gen_raster)
 
     other_revisit_de_names = (
@@ -2507,21 +2515,21 @@ def fp_by_site(request, output_format='HTML'):
         'Revisits - Other methods',
     )
     de_other_revisit_meta = list(product(other_revisit_short_names, (None,)))
+    data_element_metas += de_other_revisit_meta
 
-    qs_other_revisit = DataValue.objects.what(*other_revisit_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_other_revisit = qs_other_revisit.where(filter_district)
+    qs_other_revisit = DataValue.objects.what(*other_revisit_de_names)
     qs_other_revisit = qs_other_revisit.annotate(de_name=Value(other_revisit_short_names[0], output_field=CharField()))
     qs_other_revisit = qs_other_revisit.filter(category_combo__categories__name='Revisits')
     qs_other_revisit = qs_other_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_other_revisit = qs_other_revisit.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_other_revisit = qs_other_revisit.annotate(period=F('quarter'))
-    qs_other_revisit = qs_other_revisit.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_other_revisit = qs_other_revisit.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_other_revisit = qs_other_revisit.where(filter_district)
+    qs_other_revisit = qs_other_revisit.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_other_revisit = qs_other_revisit.when(filter_period)
+    qs_other_revisit = qs_other_revisit.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_other_revisit = qs_other_revisit.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_other_revisit = list(val_other_revisit)
 
-    gen_raster = grabbag.rasterize(ou_list, de_other_revisit_meta, val_other_revisit, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_other_revisit_meta, val_other_revisit, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_other_revisit2 = list(gen_raster)
 
     hiv_new_de_names = (
@@ -2531,21 +2539,21 @@ def fp_by_site(request, output_format='HTML'):
         'New users - HIV+',
     )
     de_hiv_new_meta = list(product(hiv_new_short_names, (None,)))
+    data_element_metas += de_hiv_new_meta
 
-    qs_hiv_new = DataValue.objects.what(*hiv_new_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_hiv_new = qs_hiv_new.where(filter_district)
+    qs_hiv_new = DataValue.objects.what(*hiv_new_de_names)
     qs_hiv_new = qs_hiv_new.annotate(de_name=Value(hiv_new_short_names[0], output_field=CharField()))
     qs_hiv_new = qs_hiv_new.filter(category_combo__categories__name='New Users')
     qs_hiv_new = qs_hiv_new.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_hiv_new = qs_hiv_new.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_hiv_new = qs_hiv_new.annotate(period=F('quarter'))
-    qs_hiv_new = qs_hiv_new.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_hiv_new = qs_hiv_new.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_hiv_new = qs_hiv_new.where(filter_district)
+    qs_hiv_new = qs_hiv_new.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_hiv_new = qs_hiv_new.when(filter_period)
+    qs_hiv_new = qs_hiv_new.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_hiv_new = qs_hiv_new.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_hiv_new = list(val_hiv_new)
 
-    gen_raster = grabbag.rasterize(ou_list, de_hiv_new_meta, val_hiv_new, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_hiv_new_meta, val_hiv_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_hiv_new2 = list(gen_raster)
 
     hiv_revisit_de_names = (
@@ -2555,74 +2563,59 @@ def fp_by_site(request, output_format='HTML'):
         'Revisits - HIV+',
     )
     de_hiv_revisit_meta = list(product(hiv_revisit_short_names, (None,)))
+    data_element_metas += de_hiv_revisit_meta
 
-    qs_hiv_revisit = DataValue.objects.what(*hiv_revisit_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs_hiv_revisit = qs_hiv_revisit.where(filter_district)
+    qs_hiv_revisit = DataValue.objects.what(*hiv_revisit_de_names)
     qs_hiv_revisit = qs_hiv_revisit.annotate(de_name=Value(hiv_revisit_short_names[0], output_field=CharField()))
     qs_hiv_revisit = qs_hiv_revisit.filter(category_combo__categories__name='Revisits')
     qs_hiv_revisit = qs_hiv_revisit.annotate(cat_combo=Value(None, output_field=CharField()))
-
-    qs_hiv_revisit = qs_hiv_revisit.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs_hiv_revisit = qs_hiv_revisit.annotate(period=F('quarter'))
-    qs_hiv_revisit = qs_hiv_revisit.order_by('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period')
-    val_hiv_revisit = qs_hiv_revisit.values('district', 'subcounty', 'facility', 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    if filter_district:
+        qs_hiv_revisit = qs_hiv_revisit.where(filter_district)
+    qs_hiv_revisit = qs_hiv_revisit.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_hiv_revisit = qs_hiv_revisit.when(filter_period)
+    qs_hiv_revisit = qs_hiv_revisit.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_hiv_revisit = qs_hiv_revisit.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
     val_hiv_revisit = list(val_hiv_revisit)
 
-    gen_raster = grabbag.rasterize(ou_list, de_hiv_revisit_meta, val_hiv_revisit, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, de_hiv_revisit_meta, val_hiv_revisit, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_hiv_revisit2 = list(gen_raster)
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_condoms_new2, val_fp_new2, val_oral_new2, val_other_new2, val_sterile_new2, val_condoms_revisit2, val_fp_revisit2, val_oral_revisit2, val_other_revisit2, val_hiv_new2, val_hiv_revisit2), key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    grouped_vals = groupbylist(sorted(chain(val_condoms_new2, val_fp_new2, val_oral_new2, val_other_new2, val_sterile_new2, val_condoms_revisit2, val_fp_revisit2, val_oral_revisit2, val_other_revisit2, val_hiv_new2, val_hiv_revisit2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
-        (district_subcounty_facility, (condom_new, inject_new, iud_new, natural_new, implant_new, oral_new, other_new, sterile_new, condom_revisit, inject_revisit, iud_revisit, natural_revisit, implant_revisit, oral_revisit, other_revisit, hiv_new, hiv_revisit, *other_vals)) = _group
+        (_group_ou_path, (condom_new, inject_new, iud_new, natural_new, implant_new, oral_new, other_new, sterile_new, condom_revisit, inject_revisit, iud_revisit, natural_revisit, implant_revisit, oral_revisit, other_revisit, hiv_new, hiv_revisit, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
 
         total_new_sum = default_zero(condom_new['numeric_sum']) + default_zero(inject_new['numeric_sum']) + default_zero(iud_new['numeric_sum']) + default_zero(natural_new['numeric_sum']) + default_zero(implant_new['numeric_sum']) + default_zero(oral_new['numeric_sum']) + default_zero(other_new['numeric_sum']) + default_zero(sterile_new['numeric_sum'])
         total_new_val = {
-            'district': district_subcounty_facility[0],
-            'subcounty': district_subcounty_facility[1],
-            'facility': district_subcounty_facility[2],
             'de_name': 'New Users - TOTAL',
             'cat_combo': None,
             'numeric_sum': total_new_sum,
         }
+        total_new_val.update(_group_ou_dict)
         calculated_vals.append(total_new_val)
 
         total_revisit_sum = default_zero(condom_revisit['numeric_sum']) + default_zero(inject_revisit['numeric_sum']) + default_zero(iud_revisit['numeric_sum']) + default_zero(natural_revisit['numeric_sum']) + default_zero(implant_revisit['numeric_sum']) + default_zero(oral_revisit['numeric_sum']) + default_zero(other_revisit['numeric_sum'])
         total_revisit_val = {
-            'district': district_subcounty_facility[0],
-            'subcounty': district_subcounty_facility[1],
-            'facility': district_subcounty_facility[2],
             'de_name': 'Revisits - TOTAL',
             'cat_combo': None,
             'numeric_sum': total_revisit_sum,
         }
+        total_revisit_val.update(_group_ou_dict)
         calculated_vals.append(total_revisit_val)
 
         _group[1].extend(calculated_vals)
 
-    data_element_names = list()
-    data_element_names += list(product(condoms_new_short_names, (None,)))
-    data_element_names += list(product(fp_new_short_names, (None,)))
-    data_element_names += list(product(oral_new_short_names, (None,)))
-    data_element_names += list(product(other_new_short_names, (None,)))
-    data_element_names += list(product(sterile_new_short_names, (None,)))
-    data_element_names += list(product(condoms_revisit_short_names, (None,)))
-    data_element_names += list(product(fp_revisit_short_names, (None,)))
-    data_element_names += list(product(oral_revisit_short_names, (None,)))
-    data_element_names += list(product(other_revisit_short_names, (None,)))
-    data_element_names += list(product(hiv_new_short_names, (None,)))
-    data_element_names += list(product(hiv_revisit_short_names, (None,)))
+    data_element_metas += list(product(['New Users - TOTAL'], (None,)))
+    data_element_metas += list(product(['Revisits - TOTAL'], (None,)))
 
-    data_element_names += list(product(['New Users - TOTAL'], (None,)))
-    data_element_names += list(product(['Revisits - TOTAL'], (None,)))
-
+    num_path_elements = len(ou_headers)
     legend_sets = list()
     # fp_ls = LegendSet()
     # fp_ls.add_interval('orange', 0, 25)
@@ -2638,7 +2631,7 @@ def fp_by_site(request, output_format='HTML'):
         ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
         ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
-        headers = chain(ou_headers, data_element_names)
+        headers = chain(ou_headers, data_element_metas)
         for i, name in enumerate(headers, start=1):
             c = ws.cell(row=1, column=i)
             if not isinstance(name, tuple):
@@ -2665,20 +2658,23 @@ def fp_by_site(request, output_format='HTML'):
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename="family_planning_sites_scorecard.xlsx"'
+        response['Content-Disposition'] = 'attachment; filename="family_planning_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
 
         return response
 
     context = {
         'grouped_data': grouped_vals,
-        'data_element_names': data_element_names,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
-    return render(request, 'cannula/fp_sites.html', context)
+    return render(request, 'cannula/fp_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
 def fp_cyp_by_site(request, output_format='HTML'):
