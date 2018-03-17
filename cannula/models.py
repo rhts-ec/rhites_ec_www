@@ -30,6 +30,9 @@ def ou_dict_from_path(*ou_path, start_level=1):
         start_level = 0
     return dict(zip(OrgUnit.level_fields()[start_level:], ou_path))
 
+def ou_path_from_dict(v_dict):
+    return tuple((v_dict[f] for f in OrgUnit.level_fields() if f in v_dict))
+
 fs = FileSystemStorage(location=settings.SOURCE_DOC_DIR)
 
 class SourceDocument(models.Model):
