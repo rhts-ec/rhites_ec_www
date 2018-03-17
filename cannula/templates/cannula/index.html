@@ -39,6 +39,13 @@
 </ul>
 {% endif %}
 
+{% if 'tb' in request.path %}
+<ul>
+	<li><a href="{% url 'tb_sites' %}">TB and TB/HIV - Facilities</a></li>
+	<li><a href="{% url 'tb_districts' %}">TB and TB/HIV - Districts</a></li>
+</ul>
+{% endif %}
+
 {% if 'nutrition' in request.path %}
 <ul>
 	<li><a href="{% url 'nutrition_hospitals' %}">Nutrition - Hospitals</a></li>
