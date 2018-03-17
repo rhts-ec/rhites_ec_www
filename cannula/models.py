@@ -12,8 +12,10 @@ import mimetypes
 from functools import lru_cache, partial
 from decimal import Decimal
 import decimal
+import re
 
 from mptt.models import MPTTModel, TreeForeignKey
+import openpyxl
 
 from . import grabbag
 
@@ -264,10 +266,11 @@ CATEGORIES = [
     '50+',
 ]
 
-import re
-SEP_REGEX = '[\s,]+' # one or more of these characters in sequence
-CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for categ in CATEGORIES)
-SEXLESS_CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
+SEP_REGEX_STR = '[\s,]+' # one or more of these characters in sequence
+CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in CATEGORIES)
+CATEGORY_REGEX = re.compile(CATEGORY_REGEX_STR)
+SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
+SEXLESS_CATEGORY_REGEX = re.compile(SEXLESS_CATEGORY_REGEX_STR)
 
 ICKY_CATEGS = (
     'Number of Male',
@@ -278,9 +281,9 @@ ICKY_CATEGS = (
 
 def unpack_data_element(de_long):
     if any([de_long.upper().find(s.upper()) >=0 for s in ICKY_CATEGS]):
-        m = re.split(SEXLESS_CATEGORY_REGEX, de_long)
+        m = SEXLESS_CATEGORY_REGEX.split(de_long)
     else:
-        m = re.split(CATEGORY_REGEX, de_long)
+        m = CATEGORY_REGEX.split(de_long)
     # squash list of matches by removing blank and None entries (and False and numeric zeroes)
     de_name, *category_list = tuple(filter(None, m))
     cat_str = ', '.join(category_list)
@@ -339,8 +342,6 @@ class DataValueQuerySet(models.QuerySet):
         return qs
 
     def when(self, *periods):
-        import re
-
         PERIOD_REGEX = re.compile(r'(\d{4}-\d{2})|(\d{4}-?Q\d{1})|(\d{4})')
 
         qs = self
@@ -351,7 +352,6 @@ class DataValueQuerySet(models.QuerySet):
                 continue
 
             (g_month, g_quarter, g_year) = res.group(1, 2, 3)
-            print(g_month, g_quarter, g_year)
             if g_month:
                 if period_filters:
                     period_filters = period_filters | Q(month=g_month)
@@ -422,9 +422,7 @@ def extract_periods(period_str):
 
 def load_excel_to_datavalues(source_doc):
     from collections import defaultdict
-    import re
     import calendar
-    import openpyxl
 
     from .grabbag import MONTH_TO_MONTH_REGEX
 
@@ -460,7 +458,6 @@ def load_excel_to_datavalues(source_doc):
             if period_cell.is_date:
                 # convert to ISO 8601 month notation
                 period = '{0.year}-{0.month:02}'.format(period_cell.value)
-                print('Date conversion: ', period_cell.value, period)
             else:
                 period = period_cell.value
             iso_year, iso_quarter, iso_month = extract_periods(str(period).strip())
@@ -509,8 +506,6 @@ def validation_expr_elements(expr):
     return tuple(filter(None, m))
 
 def load_excel_to_validations(source_doc):
-    import openpyxl
-
     wb = openpyxl.load_workbook(source_doc.file.path) #TODO: ensure we close the workbook file. use a context manager?
     logger.debug(wb.get_sheet_names())
 

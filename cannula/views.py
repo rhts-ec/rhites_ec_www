@@ -3,7 +3,7 @@ from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, Wh
 from django.db.models import Value, CharField
 from django.db.models.functions import Substr
 from django.contrib.auth.decorators import login_required
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.template import RequestContext
 from django.core.urlresolvers import reverse
 
@@ -11,6 +11,8 @@ from datetime import date
 from decimal import Decimal
 from itertools import groupby, tee, chain, product
 from collections import OrderedDict
+
+import openpyxl
 
 from . import dateutil, grabbag
 from .grabbag import default_zero, all_not_none, grouper
@@ -169,9 +171,6 @@ def ipt_quarterly(request, output_format='HTML'):
     legend_sets.append(ipt_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -440,9 +439,6 @@ def validation_rule(request, output_format='HTML'):
     validates_ls.mappings[4] = True
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = vr.expression().strip()[:31] # worksheet names length limit is 31
@@ -1013,9 +1009,6 @@ def hts_by_site(request, output_format='HTML'):
     legend_sets.append(linked_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -1518,9 +1511,6 @@ def hts_by_district(request, output_format='HTML'):
     legend_sets.append(linked_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -1873,9 +1863,6 @@ def vmmc_by_site(request, output_format='HTML'):
     legend_sets.append(adverse_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -2227,9 +2214,6 @@ def lab_by_site(request, output_format='HTML'):
     # legend_sets.append(lab_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -2648,9 +2632,6 @@ def fp_by_site(request, output_format='HTML'):
     # legend_sets.append(fp_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -3075,9 +3056,6 @@ def fp_cyp_by_site(request, output_format='HTML'):
     # legend_sets.append(fp_cyp_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -3491,9 +3469,6 @@ def fp_cyp_by_district(request, output_format='HTML'):
     # legend_sets.append(fp_cyp_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -4084,9 +4059,6 @@ def tb_by_site(request, output_format='HTML'):
     legend_sets.append(cnr_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -4536,9 +4508,6 @@ def nutrition_by_hospital(request, output_format='HTML'):
     legend_sets.append(malnourished_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -4757,9 +4726,6 @@ def vl_by_site(request, output_format='HTML'):
     legend_sets.append(rejection_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -5166,8 +5132,6 @@ def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
     legend_sets.append(gbv_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
 
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
