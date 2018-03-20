@@ -1036,7 +1036,6 @@ def hts_by_site(request, output_format='HTML'):
         for ls in legend_sets:
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -1539,7 +1538,6 @@ def hts_by_district(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -1891,7 +1889,6 @@ def vmmc_by_site(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -2241,7 +2238,6 @@ def lab_by_site(request, output_format='HTML'):
         for ls in legend_sets:
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -2653,7 +2649,6 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -3080,7 +3075,6 @@ def fp_cyp_by_site(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -3493,7 +3487,6 @@ def fp_cyp_by_district(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -4078,7 +4071,6 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -4528,7 +4520,6 @@ def nutrition_by_hospital(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -4746,7 +4737,6 @@ def vl_by_site(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
@@ -5329,7 +5319,6 @@ def sc_mos_by_site(request, output_format='HTML'):
     data_element_names.extend([(c, None) for c in calc_names])
 
     mos_base_index = 1+len(ou_headers)+len(stock_de_names)
-    print(mos_base_index, len(ou_headers), len(stock_de_names))
     legend_sets = list()
     sc_mos_ls = LegendSet()
     sc_mos_ls.name = 'Months of Stock (MOS)'
@@ -5347,9 +5336,6 @@ def sc_mos_by_site(request, output_format='HTML'):
     legend_sets.append(sc_soh_ls)
 
     if output_format == 'EXCEL':
-        from django.http import HttpResponse
-        import openpyxl
-
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
         ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
@@ -5378,7 +5364,6 @@ def sc_mos_by_site(request, output_format='HTML'):
             # apply conditional formatting from LegendSets
             for rule in ls.openpyxl_rules():
                 for cell_range in ls.excel_ranges():
-                    print(cell_range, ls)
                     ws.conditional_formatting.add(cell_range, rule)
 
 
