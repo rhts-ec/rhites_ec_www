@@ -177,8 +177,8 @@ addEvent( window, "load", function() {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
-        if ( percent_val >= 4 ) percent_categ = "w3-green";
-        else if ( percent_val >= 2 ) percent_categ = "w3-yellow";
+        if ( percent_val >= 4 ) percent_categ = "w3-yellow";
+        else if ( percent_val >= 2 ) percent_categ = "w3-green";
         else percent_categ = "w3-red";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";

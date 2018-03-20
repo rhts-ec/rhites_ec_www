@@ -5249,6 +5249,7 @@ def sc_mos_by_site(request, output_format='HTML'):
     if filter_district:
         qs_stock = qs_stock.where(filter_district)
     qs_stock = qs_stock.annotate(cat_combo=Value(None, output_field=CharField()))
+    # qs_stock = qs_stock.annotate(cat_combo=F('category_combo__name'))
 
     qs_stock = qs_stock.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
     qs_stock = qs_stock.annotate(period=F('quarter'))
@@ -5314,11 +5315,14 @@ def sc_mos_by_site(request, output_format='HTML'):
             _group[1].extend(calculated_vals)
 
     data_element_names = list()
-    # data_element_names += de_stock_meta
-
+    if False:
+        data_element_names += de_stock_meta
+    
     data_element_names.extend([(c, None) for c in calc_names])
 
-    mos_base_index = 1+len(ou_headers)+len(stock_de_names)
+    mos_base_index = len(ou_headers)
+    if False:
+        mos_base_index += len(de_stock_meta)
     legend_sets = list()
     sc_mos_ls = LegendSet()
     sc_mos_ls.name = 'Months of Stock (MOS)'
@@ -5326,13 +5330,19 @@ def sc_mos_by_site(request, output_format='HTML'):
     sc_mos_ls.add_interval('green', 2, 4)
     sc_mos_ls.add_interval('yellow', 4, None)
     for i in range(len(supply_names)):
-        sc_mos_ls.mappings[mos_base_index+(i*2)] = True
+        if False:
+            sc_mos_ls.mappings[mos_base_index+(i*2)] = True
+        else:
+            sc_mos_ls.mappings[mos_base_index+(i)] = True
     legend_sets.append(sc_mos_ls)
     sc_soh_ls = LegendSet()
     sc_soh_ls.name = 'Stock on Hand (SOH): invalid MOS'
     sc_soh_ls.add_interval('light-green', None, 0)
     for i in range(len(supply_names)):
-        sc_soh_ls.mappings[mos_base_index+(i*2)] = True
+        if False:
+            sc_soh_ls.mappings[mos_base_index+(i*2)] = True
+        else:
+            sc_soh_ls.mappings[mos_base_index+(i)] = True
     legend_sets.append(sc_soh_ls)
 
     if output_format == 'EXCEL':
@@ -5381,6 +5391,8 @@ def sc_mos_by_site(request, output_format='HTML'):
         'period_list': PREV_5YR_MONTHS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        #TODO: this doesn't work if you have more than one LegendSet mapped to the exact same columns
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
     return render(request, 'cannula/sc_mos_sites.html', context)
