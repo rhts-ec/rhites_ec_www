@@ -68,7 +68,7 @@ class OrgUnit(MPTTModel):
         current_node = None
         for p in path_parts:
             if p:
-                ou_p, created = cls.objects.get_or_create(name=str(p), parent=current_node)
+                ou_p, created = cls.objects.get_or_create(name__iexact=str(p), parent=current_node, defaults={'name':str(p)})
                 current_node = ou_p
             else:
                 break # stop processing when you find blank/empty path component/name
@@ -82,10 +82,10 @@ class OrgUnit(MPTTModel):
             return None
         *parent_path, node_name = path_parts
         if len(parent_path) == 0:
-            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=None)
+            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=None, defaults={'name':node_name})
         else:
             ou_parent = cls.from_path_recurse(*parent_path)
-            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=ou_parent)
+            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=ou_parent, defaults={'name':node_name})
         return ou
 
     @staticmethod
@@ -182,9 +182,9 @@ class CategoryCombo(models.Model):
     @classmethod
     def from_cat_names(cls, cat_names):
         sorted_names = sorted(cat_names) #TODO: sort based on the name of the classification the Category belongs to
-        cat_list = [Category.objects.get_or_create(name=cat_name)[0] for cat_name in sorted_names]
+        cat_list = [Category.objects.get_or_create(name__iexact=cat_name, defaults={'name':cat_name})[0] for cat_name in sorted_names]
         cc_name = '(%s)' % ', '.join(sorted_names)
-        cat_combo, created = cls.objects.get_or_create(name=cc_name)
+        cat_combo, created = cls.objects.get_or_create(name__iexact=cc_name, defaults={'name':cc_name})
         if created:
             for categ in cat_list:
                 cat_combo.categories.add(categ)
@@ -300,7 +300,7 @@ def unpack_data_element(de_long):
             de_name = de_long
             cat_str = ''
 
-    de_instance, created = DataElement.objects.get_or_create(name=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM')
+    de_instance, created = DataElement.objects.get_or_create(name__iexact=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM', defaults={'name':de_name})
     if len(category_list):
         return (de_instance, CategoryCombo.from_cat_names(category_list))
     else:
