@@ -424,6 +424,7 @@ def extract_periods(period_str):
     return dates_to_iso_periods(*dates)
 
 def load_excel_to_datavalues(source_doc):
+    from django.db import connection
     from collections import defaultdict
     import calendar
 
@@ -432,6 +433,8 @@ def load_excel_to_datavalues(source_doc):
     MONTH_PREFIX_REGEX = re.compile(r'^[\s]*(%s) ([0-9]{4})?[\s]*' % ('|'.join(calendar.month_name[1:]),))
 
     DE_COLUMN_START = 4 # 0-based index of first dataelement column in worksheet
+
+    db_cursor = connection.cursor()
 
     wb = openpyxl.load_workbook(source_doc.file.path, read_only=True)
     logger.debug(wb.get_sheet_names())
@@ -482,9 +485,15 @@ def load_excel_to_datavalues(source_doc):
                     continue # skip rows with empty values
                 try:
                     if cc:
-                        DataValue.objects.update_or_create(**where_when, data_element=de, category_combo=cc, defaults={'source_doc':source_doc, 'numeric_value':Decimal(dv)})
+                        cc_id = cc.id
                     else:
-                        DataValue.objects.update_or_create(**where_when, data_element=de, defaults={'source_doc':source_doc, 'numeric_value':Decimal(dv)})
+                        cc_id = 1
+                    upsert_sql = '''INSERT INTO cannula_datavalue (data_element_id, category_combo_id, org_unit_id, site_str, month, quarter, year, source_doc_id, numeric_value)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (data_element_id, category_combo_id, org_unit_id, month, quarter, year) DO UPDATE SET source_doc_id=%s, numeric_value=%s
+                    '''
+                    what_where_when = (de.id, cc_id, current_ou.id, location, iso_month, iso_quarter, iso_year)
+                    db_cursor.execute(upsert_sql, (what_where_when+(source_doc.id, Decimal(dv))*2))
                 except decimal.InvalidOperation as e:
                     pass # not convertible to a Decimal, ignore
 
