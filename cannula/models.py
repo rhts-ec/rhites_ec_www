@@ -436,8 +436,6 @@ def load_excel_to_datavalues(source_doc):
     wb = openpyxl.load_workbook(source_doc.file.path, read_only=True)
     logger.debug(wb.get_sheet_names())
 
-    wb_loc_values = defaultdict(list) # when a new key is encountered return a new empty list
-
     for ws_name in wb.get_sheet_names():
         if ws_name in ['Validations']:
             continue
@@ -471,22 +469,27 @@ def load_excel_to_datavalues(source_doc):
 
             site_val_cells = row[DE_COLUMN_START:]
             site_values = zip(data_elements, (c.value for c in site_val_cells))
-            dv_construct = partial(DataValue, site_str=location, org_unit=current_ou, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
-            data_values = list()
+            where_when = {
+                'site_str': location,
+                'org_unit': current_ou,
+                'month': iso_month,
+                'quarter': iso_quarter,
+                'year': iso_year,
+            }
+
             for (de, cc), dv in site_values:
                 if dv is None or (isinstance(dv, str) and dv.strip() == ''):
                     continue # skip rows with empty values
                 try:
                     if cc:
-                        data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=Decimal(dv)))
+                        DataValue.objects.update_or_create(**where_when, data_element=de, category_combo=cc, defaults={'source_doc':source_doc, 'numeric_value':Decimal(dv)})
                     else:
-                        data_values.append(dv_construct(data_element=de, numeric_value=Decimal(dv)))
+                        DataValue.objects.update_or_create(**where_when, data_element=de, defaults={'source_doc':source_doc, 'numeric_value':Decimal(dv)})
                 except decimal.InvalidOperation as e:
                     pass # not convertible to a Decimal, ignore
 
-            wb_loc_values[location].extend(data_values)
 
-    return dict(wb_loc_values) # convert back to a normal dict for our callers
+    return dict() # TODO: remove this and update callers
 
 def de_pivot_col(de):
     return 'DE_%d' % (de.id,)
