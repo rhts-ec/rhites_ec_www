@@ -270,7 +270,7 @@ CATEGORIES = [
 ]
 
 SEP_REGEX_STR = '[\s,]+' # one or more of these characters in sequence
-CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in CATEGORIES)
+CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES, key=lambda x: (len(x), x), reverse=True))
 CATEGORY_REGEX = re.compile(CATEGORY_REGEX_STR)
 SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
 SEXLESS_CATEGORY_REGEX = re.compile(SEXLESS_CATEGORY_REGEX_STR)
