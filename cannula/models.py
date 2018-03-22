@@ -76,7 +76,7 @@ class OrgUnit(MPTTModel):
         return current_node
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=1024)
     def from_path_recurse(cls, *path_parts):
         if len(path_parts) == 0:
             return None
