@@ -259,7 +259,7 @@ CATEGORIES = [
     '<15',
     '15+',
 
-    # GEND_GBV TARGET: GBV Care from USAID
+    # GEND_GBV TARGET: GBV Care, from USAID
     '<10',
     '10-14',
     '15-17',
@@ -267,6 +267,16 @@ CATEGORIES = [
     '20-24',
     '25-49',
     '50+',
+
+    # TX_CURR TARGET, from USAID
+    '<1',
+    '<1-9',
+    '1-9',
+    '10-14',
+    '15-19',
+
+    # TX_PVLS TARGET: 12 Months Viral Load < 1000, from USAID
+    '25-40'
 ]
 
 SEP_REGEX_STR = '[\s,]+' # one or more of these characters in sequence

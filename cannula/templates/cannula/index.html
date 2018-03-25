@@ -14,6 +14,14 @@
 	<li><a href="{% url 'hts_sites' %}">HTS - Facilities</a></li>
 	<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
 </ul>
+<ul>
+	<li><a href="{% url 'art_new_sites' %}">New on ART - Facilities</a></li>
+	<li><a href="{% url 'art_new_districts' %}">New on ART - Districts</a></li>
+</ul>
+<ul>
+	<li><a href="{% url 'art_active_sites' %}">Active on ART - Facilities</a></li>
+	<li><a href="{% url 'art_active_districts' %}">Active on ART - Districts</a></li>
+</ul>
 {% endif %}
 
 {% if 'vmmc' in request.path %}
