@@ -488,11 +488,18 @@ def load_excel_to_datavalues(source_doc):
                         cc_id = cc.id
                     else:
                         cc_id = 1
-                    upsert_sql = '''INSERT INTO cannula_datavalue (data_element_id, category_combo_id, org_unit_id, site_str, month, quarter, year, source_doc_id, numeric_value)
+                    conflict_fields = ['data_element_id', 'category_combo_id', 'org_unit_id']
+                    maybe_null = list(zip(('year', 'quarter', 'month'), (iso_year, iso_quarter, iso_month)))
+                    conflict_fields += [f[0] for f in maybe_null if f[1]]
+                    conflict_condition = ' AND '.join(['{0} IS NULL'.format(f[0]) for f in maybe_null if not f[1]])
+                    if conflict_condition:
+                        conflict_condition = 'WHERE ' + conflict_condition
+                    
+                    upsert_sql = '''INSERT INTO cannula_datavalue (data_element_id, category_combo_id, org_unit_id, site_str, year, quarter, month, source_doc_id, numeric_value)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (data_element_id, category_combo_id, org_unit_id, month, quarter, year) DO UPDATE SET source_doc_id=%s, numeric_value=%s
-                    '''
-                    what_where_when = (de.id, cc_id, current_ou.id, location, iso_month, iso_quarter, iso_year)
+                    ON CONFLICT ({0}) {1} DO UPDATE SET source_doc_id=%s, numeric_value=%s
+                    '''.format(', '.join(conflict_fields), conflict_condition)
+                    what_where_when = (de.id, cc_id, current_ou.id, location, iso_year, iso_quarter, iso_month)
                     db_cursor.execute(upsert_sql, (what_where_when+(source_doc.id, Decimal(dv))*2))
                 except decimal.InvalidOperation as e:
                     pass # not convertible to a Decimal, ignore
