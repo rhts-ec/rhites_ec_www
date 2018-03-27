@@ -111,7 +111,7 @@ def all_not_none(*args):
     return all(map(lambda x: x is not None, args))
 
 def sum_zero(*args):
-    return sum(chain(filter(lambda x: x is not None, args), [0,]))
+    return sum(itertools.chain(filter(lambda x: x is not None, args), [0,]))
 
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
