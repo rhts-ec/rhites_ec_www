@@ -62,4 +62,9 @@ urlpatterns = [
     url(r'dashboards/sc/$', views.index, name='thematic_sc'),
     url(r'scorecards/sc/mos_sites\.php', views.sc_mos_by_site, name='sc_mos_sites'),
     url(r'scorecards/sc/mos_sites\.xls', views.sc_mos_by_site, {'output_format': 'EXCEL'}, name='sc_mos_sites_excel'),
+    url(r'dashboards/mnch/$', views.index, name='thematic_mnch'),
+    url(r'scorecards/mnch/subcounties\.php', views.mnch_scorecard, {'org_unit_level': 2}, name='mnch_subcounties'),
+    url(r'scorecards/mnch/subcounties\.xls', views.mnch_scorecard, {'org_unit_level': 2, 'output_format': 'EXCEL'}, name='mnch_subcounties_excel'),
+    url(r'scorecards/mnch/districts\.php', views.mnch_scorecard, {'org_unit_level': 1}, name='mnch_districts'),
+    url(r'scorecards/mnch/districts\.xls', views.mnch_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='mnch_districts_excel'),
 ]

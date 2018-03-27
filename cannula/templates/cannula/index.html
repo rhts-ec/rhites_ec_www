@@ -78,6 +78,13 @@
 </ul>
 {% endif %}
 
+{% if 'mnch' in request.path %}
+<ul>
+	<li><a href="{% url 'mnch_subcounties' %}">MNCH: Pregnancy &amp; Birth - Subcounties</a></li>
+	<li><a href="{% url 'mnch_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
+</ul>
+{% endif %}
+
 <h4>Validation Reports</h4>
 <ul>
 {% for id, name in validation_rules %}

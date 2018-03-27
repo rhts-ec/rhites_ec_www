@@ -15,7 +15,7 @@ from collections import OrderedDict
 import openpyxl
 
 from . import dateutil, grabbag
-from .grabbag import default_zero, all_not_none, grouper
+from .grabbag import default_zero, sum_zero, all_not_none, grouper
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
 from .forms import SourceDocumentForm, DataElementAliasForm
@@ -6064,3 +6064,404 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/art_active_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
+def mnch_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+    # annotations for data collected at subcounty level
+    SUBCOUNTY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(2, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    targets_de_names = (
+        'Catchment Population',
+    )
+    targets_short_names = (
+        'Catchment Population',
+    )
+    de_targets_meta = list(product(targets_de_names, (None,)))
+    data_element_metas += list(product(targets_short_names, (None,)))
+
+    qs_targets = DataValue.objects.what(*targets_de_names)
+    qs_targets = qs_targets.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_targets = qs_targets.where(filter_district)
+    qs_targets = qs_targets.annotate(**SUBCOUNTY_LEVEL_ANNOTATIONS)
+    # population estimates are annual, so filter by year component of period
+    qs_targets = qs_targets.when(filter_period[:4])
+    qs_targets = qs_targets.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_targets = qs_targets.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_targets = list(val_targets)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_meta, val_targets, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_targets2 = list(gen_raster)
+
+    anc_de_names = (
+        '105-2.1 A1:ANC 1st Visit for women',
+        '105-2.1 A1:ANC 1st Visit for women (No. in 1st Trimester)',
+        '105-2.1 A17:HIV+ Pregnant Women already on ART before 1st ANC (ART-K)',
+        '105-2.1 A2:ANC 4th Visit for women',
+        '105-2.1 A6:First dose IPT (IPT1)',
+        '105-2.1 A7:Second dose IPT (IPT2)',
+        '105-2.1 HIV+ Pregnant Women initiated on ART for EMTCT (ART)',
+        '105-2.2 HIV+ women initiating ART in maternity',
+        '105-2.2 OPD Maternal deaths',
+        '105-2.2a Deliveries in unit',
+        '105-2.3 HIV+ women initiating ART in PNC',
+        '105-2.3 Vitamin A supplementation given to mothers',
+        '108-3 MSP Caesarian Sections',
+    )
+    anc_short_names = (
+        # 'Catchment Population',
+    )
+    de_anc_meta = list(product(anc_de_names, (None,)))
+    data_element_metas += de_anc_meta
+
+    qs_anc = DataValue.objects.what(*anc_de_names)
+    qs_anc = qs_anc.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_anc = qs_anc.where(filter_district)
+    qs_anc = qs_anc.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_anc = qs_anc.when(filter_period)
+    qs_anc = qs_anc.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_anc = qs_anc.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_anc = list(val_anc)
+
+    gen_raster = grabbag.rasterize(ou_list, de_anc_meta, val_anc, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_anc2 = list(gen_raster)
+
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_anc2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+
+    # perform calculations
+    for _group in grouped_vals:
+        (_group_ou_path, (catchment_pop, anc1, anc1_1st_trimester, anc_already_art, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, caesarian, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+        
+        calculated_vals = list()
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_pregnant = (catchment_pop['numeric_sum'] * Decimal(0.05))/4 # split by quarter
+        else:
+            expected_pregnant = None
+        expected_pregnant_val = {
+            'de_name': 'Expected Pregnancies',
+            'cat_combo': None,
+            'numeric_sum': expected_pregnant,
+        }
+        expected_pregnant_val.update(_group_ou_dict)
+        calculated_vals.append(expected_pregnant_val)
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            adolescent_pop = catchment_pop['numeric_sum'] * Decimal(0.128)
+        else:
+            adolescent_pop = None
+        adolescent_pop_val = {
+            'de_name': 'Adolescent Population',
+            'cat_combo': None,
+            'numeric_sum': adolescent_pop,
+        }
+        adolescent_pop_val.update(_group_ou_dict)
+        calculated_vals.append(adolescent_pop_val)
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_pregnant_hiv = (catchment_pop['numeric_sum'] * Decimal(0.0485) * Decimal(0.058))/4 # split by quarter
+        else:
+            expected_pregnant_hiv = None
+        expected_pregnant_hiv_val = {
+            'de_name': 'All expected pregnancies in a catchment population multiplied by HIV prevalence',
+            'cat_combo': None,
+            'numeric_sum': expected_pregnant_hiv,
+        }
+        expected_pregnant_hiv_val.update(_group_ou_dict)
+        calculated_vals.append(expected_pregnant_hiv_val)
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_deliver = (catchment_pop['numeric_sum'] * Decimal(0.0485))/4 # split by quarter
+        else:
+            expected_deliver = None
+        expected_deliver_val = {
+            'de_name': 'Expected Deliveries',
+            'cat_combo': None,
+            'numeric_sum': expected_deliver,
+        }
+        expected_deliver_val.update(_group_ou_dict)
+        calculated_vals.append(expected_deliver_val)
+
+        if all_not_none(anc1['numeric_sum'], expected_pregnant) and expected_pregnant:
+            anc1_percent = 100 * anc1['numeric_sum'] / expected_pregnant
+        else:
+            anc1_percent = None
+        anc1_percent_val = {
+            'de_name': '% ANC1 Attendance coverage---Target=90%',
+            'cat_combo': None,
+            'numeric_sum': anc1_percent,
+        }
+        anc1_percent_val.update(_group_ou_dict)
+        calculated_vals.append(anc1_percent_val)
+
+        if all_not_none(anc1_1st_trimester['numeric_sum'], expected_pregnant) and expected_pregnant:
+            anc1_1st_trimester_percent = 100 * anc1_1st_trimester['numeric_sum'] / expected_pregnant
+        else:
+            anc1_1st_trimester_percent = None
+        anc1_1st_trimester_percent_val = {
+            'de_name': '% of pregnant women attending 1st ANC visit within the 1st trimester---Target=45%',
+            'cat_combo': None,
+            'numeric_sum': anc1_1st_trimester_percent,
+        }
+        anc1_1st_trimester_percent_val.update(_group_ou_dict)
+        calculated_vals.append(anc1_1st_trimester_percent_val)
+
+        if all_not_none(anc4['numeric_sum'], expected_pregnant) and expected_pregnant:
+            anc4_percent = 100 * anc4['numeric_sum'] / expected_pregnant
+        else:
+            anc4_percent = None
+        anc4_percent_val = {
+            'de_name': '% ANC4 Attendance coverage---Target=60%',
+            'cat_combo': None,
+            'numeric_sum': anc4_percent,
+        }
+        anc4_percent_val.update(_group_ou_dict)
+        calculated_vals.append(anc4_percent_val)
+
+        if all_not_none(ipt1['numeric_sum'], expected_pregnant) and expected_pregnant:
+            ipt1_percent = 100 * ipt1['numeric_sum'] / expected_pregnant
+        else:
+            ipt1_percent = None
+        ipt1_percent_val = {
+            'de_name': 'IPT1 Coverage--Target=90%',
+            'cat_combo': None,
+            'numeric_sum': ipt1_percent,
+        }
+        ipt1_percent_val.update(_group_ou_dict)
+        calculated_vals.append(ipt1_percent_val)
+
+        if all_not_none(ipt2['numeric_sum'], expected_pregnant) and expected_pregnant:
+            ipt2_percent = 100 * ipt2['numeric_sum'] / expected_pregnant
+        else:
+            ipt2_percent = None
+        ipt2_percent_val = {
+            'de_name': 'IPT2 Coverage--Target=90%',
+            'cat_combo': None,
+            'numeric_sum': ipt2_percent,
+        }
+        ipt2_percent_val.update(_group_ou_dict)
+        calculated_vals.append(ipt2_percent_val)
+
+        if all_not_none(vit_a_maternity['numeric_sum'], deliveries['numeric_sum']) and deliveries['numeric_sum']:
+            vit_a_maternity_percent = 100 * vit_a_maternity['numeric_sum'] / deliveries['numeric_sum']
+        else:
+            vit_a_maternity_percent = None
+        vit_a_maternity_percent_val = {
+            'de_name': 'VITA Supplementation for mothers--Target =90%',
+            'cat_combo': None,
+            'numeric_sum': vit_a_maternity_percent,
+        }
+        vit_a_maternity_percent_val.update(_group_ou_dict)
+        calculated_vals.append(vit_a_maternity_percent_val)
+
+        if all_not_none(maternal_deaths['numeric_sum'], deliveries['numeric_sum']) and deliveries['numeric_sum']:
+            maternal_deaths_percent = 100 * maternal_deaths['numeric_sum'] / deliveries['numeric_sum']
+        else:
+            maternal_deaths_percent = None
+        maternal_deaths_percent_val = {
+            'de_name': 'Maternal mortality',
+            'cat_combo': None,
+            'numeric_sum': maternal_deaths_percent,
+        }
+        maternal_deaths_percent_val.update(_group_ou_dict)
+        calculated_vals.append(maternal_deaths_percent_val)
+
+        if all_not_none(expected_pregnant_hiv) and expected_pregnant_hiv:
+            emtct_art_percent = 100 * sum_zero(anc_already_art['numeric_sum'], anc_started_art['numeric_sum'], maternity_started_art['numeric_sum'], pnc_started_art['numeric_sum']) / expected_pregnant_hiv
+        else:
+            emtct_art_percent = None
+        emtct_art_percent_val = {
+            'de_name': '% of eMTCT eligible women on ART----95%',
+            'cat_combo': None,
+            'numeric_sum': emtct_art_percent,
+        }
+        emtct_art_percent_val.update(_group_ou_dict)
+        calculated_vals.append(emtct_art_percent_val)
+
+        if all_not_none(deliveries['numeric_sum'], expected_deliver) and expected_deliver:
+            deliveries_in_unit_percent = 100 * deliveries['numeric_sum'] / expected_deliver
+        else:
+            deliveries_in_unit_percent = None
+        deliveries_in_unit_percent_val = {
+            'de_name': '% of institutional deliveries  Target=60%',
+            'cat_combo': None,
+            'numeric_sum': deliveries_in_unit_percent,
+        }
+        deliveries_in_unit_percent_val.update(_group_ou_dict)
+        calculated_vals.append(deliveries_in_unit_percent_val)
+
+        if all_not_none(caesarian['numeric_sum'], expected_deliver) and expected_deliver:
+            caesarean_percent = 100 * caesarian['numeric_sum'] / expected_deliver
+        else:
+            caesarean_percent = None
+        caesarean_percent_val = {
+            'de_name': 'Caesarean section rate (10%-15%)',
+            'cat_combo': None,
+            'numeric_sum': caesarean_percent,
+        }
+        caesarean_percent_val.update(_group_ou_dict)
+        calculated_vals.append(caesarean_percent_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals # hide source values
+
+    data_element_metas = list() # hide source values
+    data_element_metas += list(product(['Expected Pregnancies (5 % of population)'], (None,)))
+    data_element_metas += list(product(['Adolescent Population (12.8 % of population)'], (None,)))
+    data_element_metas += list(product(['All expected pregnancies in a catchment population multiplied by HIV prevalence'], (None,)))
+    data_element_metas += list(product(['Expected Deliveries (4.8 % of population)'], (None,)))
+    data_element_metas += list(product(['% ANC1 Attendance coverage---Target=90%'], (None,)))
+    data_element_metas += list(product(['% of pregnant women attending 1st ANC visit within the 1st trimester---Target=45%'], (None,)))
+    data_element_metas += list(product(['% ANC4 Attendance coverage---Target=60%'], (None,)))
+    data_element_metas += list(product(['IPT1 Coverage--Target=90%'], (None,)))
+    data_element_metas += list(product(['IPT2 Coverage--Target=90%'], (None,)))
+    data_element_metas += list(product(['VITA Supplementation for mothers--Target =90%'], (None,)))
+    data_element_metas += list(product(['Maternal mortality'], (None,)))
+    data_element_metas += list(product(['% of eMTCT eligible women on ART----95%'], (None,)))
+    data_element_metas += list(product(['% of institutional deliveries  Target=60%'], (None,)))
+    data_element_metas += list(product(['Caesarean section rate (10%-15%)'], (None,)))
+
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    anc1_emtct_ls = LegendSet()
+    anc1_emtct_ls.name = 'ANC1 & eMTCT'
+    anc1_emtct_ls.add_interval('red', 0, 80)
+    anc1_emtct_ls.add_interval('yellow', 80, 95)
+    anc1_emtct_ls.add_interval('green', 95, None)
+    anc1_emtct_ls.mappings[num_path_elements+4] = True
+    anc1_emtct_ls.mappings[num_path_elements+11] = True
+    legend_sets.append(anc1_emtct_ls)
+    anc1_1st_tri_ls = LegendSet()
+    anc1_1st_tri_ls.name = 'ANC1 (1st Trimester)'
+    anc1_1st_tri_ls.add_interval('red', 0, 35)
+    anc1_1st_tri_ls.add_interval('yellow', 35, 45)
+    anc1_1st_tri_ls.add_interval('green', 45, None)
+    anc1_1st_tri_ls.mappings[num_path_elements+5] = True
+    legend_sets.append(anc1_1st_tri_ls)
+    anc4_in_unit_ls = LegendSet()
+    anc4_in_unit_ls.name = 'ANC4 & Deliveries in Unit'
+    anc4_in_unit_ls.add_interval('red', 0, 45)
+    anc4_in_unit_ls.add_interval('yellow', 45, 60)
+    anc4_in_unit_ls.add_interval('green', 60, None)
+    anc4_in_unit_ls.mappings[num_path_elements+6] = True
+    anc4_in_unit_ls.mappings[num_path_elements+12] = True
+    legend_sets.append(anc4_in_unit_ls)
+    ipt1_ipt2_vita_ls = LegendSet()
+    ipt1_ipt2_vita_ls.name = 'IPT1, IPT2 & Vit. A Supplementation'
+    ipt1_ipt2_vita_ls.add_interval('red', 0, 80)
+    ipt1_ipt2_vita_ls.add_interval('yellow', 80, 90)
+    ipt1_ipt2_vita_ls.add_interval('green', 90, None)
+    ipt1_ipt2_vita_ls.mappings[num_path_elements+7] = True
+    ipt1_ipt2_vita_ls.mappings[num_path_elements+8] = True
+    ipt1_ipt2_vita_ls.mappings[num_path_elements+9] = True
+    legend_sets.append(ipt1_ipt2_vita_ls)
+    maternal_mortality_ls = LegendSet()
+    maternal_mortality_ls.name = 'Maternal Mortality'
+    maternal_mortality_ls.add_interval('green', 0, 2)
+    maternal_mortality_ls.add_interval('yellow', 2, 5)
+    maternal_mortality_ls.add_interval('red', 5, None)
+    maternal_mortality_ls.mappings[num_path_elements+10] = True
+    legend_sets.append(maternal_mortality_ls)
+    caesarian_ls = LegendSet()
+    caesarian_ls.name = 'Caesarean section rate'
+    caesarian_ls.add_interval('red', 0, 6)
+    caesarian_ls.add_interval('yellow', 6, 10)
+    caesarian_ls.add_interval('red', 15, None)
+    caesarian_ls.mappings[num_path_elements+13] = True
+    legend_sets.append(caesarian_ls)
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mnch_preg_birth_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/mnch_preg_birth_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)

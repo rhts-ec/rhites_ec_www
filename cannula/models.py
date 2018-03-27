@@ -227,6 +227,15 @@ CATEGORIES = [
     # 'Transferred Out',
     '0-4 Years',
     '5-14 Yrs',
+    # HMIS 105: 2 MNCH
+    'Under 1',
+    '1-4 Yrs',
+    '6-11 Months',
+    '12-59 Months',
+    '1-4 Years',
+    '5-14 Years',
+    'Static',
+    'Outreach',
     # HMIS 105: 1.3 OPD
     '0-28 Days',
     '29 Days-4 Years',
@@ -255,6 +264,10 @@ CATEGORIES = [
     '6-59 Months',
     '5-12 Years',
     '12+ Years',
+
+    # HMIS 108
+    'Case',
+    'Death',
 
     '<15',
     '15+',
