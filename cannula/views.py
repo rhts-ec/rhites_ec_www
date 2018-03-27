@@ -366,8 +366,8 @@ def data_workflow_detail(request):
             #TODO: redirect with to detail page?
 
         qs_vals = DataValue.objects.filter(source_doc__id=src_doc_id).values('id')
-        doc_elements = DataElement.objects.filter(data_values__id__in=qs_vals).distinct('id')
-        doc_rules = ValidationRule.objects.filter(data_elements__data_values__id__in=qs_vals).distinct('id')
+        doc_elements = DataElement.objects.filter(data_values__id__in=qs_vals).order_by('name').distinct('name')
+        doc_rules = ValidationRule.objects.filter(data_elements__data_values__id__in=qs_vals).order_by('name').distinct('name')
         num_values = qs_vals.count()
     else:
         raise Http404("Workflow does not exist or workflow id is missing/invalid")
