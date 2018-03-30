@@ -318,6 +318,54 @@ addEvent( window, "load", function() {
         a[i].style.fontWeight = "bolder";
   //      alert( a[i].className + ": " + percent_categ );
       }
+    } else
+    if ( has( a[i].className, "0_1.1_1.4_none_green_yellow_red" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 1.4 ) percent_categ = "w3-red";
+        else if ( percent_val >= 1.1 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-green";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_20_30_none_green_yellow_red" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 30 ) percent_categ = "w3-red";
+        else if ( percent_val >= 20 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_70_90_none_red_yellow_green" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 90 ) percent_categ = "w3-green";
+        else if ( percent_val >= 70 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_80_97_none_red_yellow_green" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 97 ) percent_categ = "w3-green";
+        else if ( percent_val >= 80 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
     }
 
     if ( has( a[i].className, "none_0_light-green" ) ) {

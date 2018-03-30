@@ -6066,7 +6066,7 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/art_active_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
-def mnch_scorecard(request, org_unit_level=3, output_format='HTML'):
+def mnch_preg_birth_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -6465,3 +6465,507 @@ def mnch_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/mnch_preg_birth_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
+def mnch_pnc_child_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+    # annotations for data collected at subcounty level
+    SUBCOUNTY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(2, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    targets_de_names = (
+        'Catchment Population',
+    )
+    targets_short_names = (
+        'Catchment Population',
+    )
+    de_targets_meta = list(product(targets_de_names, (None,)))
+    data_element_metas += list(product(targets_short_names, (None,)))
+
+    qs_targets = DataValue.objects.what(*targets_de_names)
+    qs_targets = qs_targets.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_targets = qs_targets.where(filter_district)
+    qs_targets = qs_targets.annotate(**SUBCOUNTY_LEVEL_ANNOTATIONS)
+    # population estimates are annual, so filter by year component of period
+    qs_targets = qs_targets.when(filter_period[:4])
+    qs_targets = qs_targets.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_targets = qs_targets.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_targets = list(val_targets)
+
+    gen_raster = grabbag.rasterize(ou_list, de_targets_meta, val_targets, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_targets2 = list(gen_raster)
+
+    maternity_de_names = (
+        '105-1.3 OPD Neonatal  Sepsis (0-7days)',
+        '105-2.2 Birth Asyphyxia',
+        '105-2.2a Deliveries in unit',
+        '105-2.2b Deliveries in unit(Fresh Still births)',
+        '105-2.2c Deliveries in unit(Macerated still births)',
+        '105-2.2d Deliveries in unit(Live Births)',
+        '105-2.3 Postnatal Attendances 6 Hours',
+    )
+    maternity_short_names = (
+        # 'Catchment Population',
+    )
+    de_maternity_meta = list(product(maternity_de_names, (None,)))
+    data_element_metas += de_maternity_meta
+
+    qs_maternity = DataValue.objects.what(*maternity_de_names)
+    qs_maternity = qs_maternity.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_maternity = qs_maternity.where(filter_district)
+    qs_maternity = qs_maternity.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_maternity = qs_maternity.when(filter_period)
+    qs_maternity = qs_maternity.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_maternity = qs_maternity.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_maternity = list(val_maternity)
+
+    gen_raster = grabbag.rasterize(ou_list, de_maternity_meta, val_maternity, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_maternity2 = list(gen_raster)
+
+    vaccine_under_1_de_names = (
+        '105-2.11 BCG',
+        '105-2.11 DPT-HepB+Hib 3',
+        '105-2.11 Polio 3',
+    )
+    vaccine_under_1_short_names = (
+        # 'Catchment Population',
+    )
+    de_vaccine_under_1_meta = list(product(vaccine_under_1_de_names, (None,)))
+    data_element_metas += de_vaccine_under_1_meta
+
+    qs_vaccine_under_1 = DataValue.objects.what(*vaccine_under_1_de_names)
+    qs_vaccine_under_1 = qs_vaccine_under_1.filter(category_combo__categories__name='Under 1')
+    qs_vaccine_under_1 = qs_vaccine_under_1.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_vaccine_under_1 = qs_vaccine_under_1.where(filter_district)
+    qs_vaccine_under_1 = qs_vaccine_under_1.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_vaccine_under_1 = qs_vaccine_under_1.when(filter_period)
+    qs_vaccine_under_1 = qs_vaccine_under_1.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_vaccine_under_1 = qs_vaccine_under_1.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_vaccine_under_1 = list(val_vaccine_under_1)
+
+    gen_raster = grabbag.rasterize(ou_list, de_vaccine_under_1_meta, val_vaccine_under_1, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_vaccine_under_12 = list(gen_raster)
+
+    under_five_categs = ('0-28 Days', '29 Days-4 Years')
+
+    under_5_de_names = (
+        '105-1.1 OPD New Attendance',
+        '105-1.3 OPD Diarrhoea-Acute',
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+        '105-1.3 OPD Pneumonia',
+    )
+    under_5_short_names = (
+        # 'Catchment Population',
+    )
+    de_under_5_meta = list(product(under_5_de_names, (None,)))
+    data_element_metas += de_under_5_meta
+
+    qs_under_5 = DataValue.objects.what(*under_5_de_names)
+    qs_under_5 = qs_under_5.filter(category_combo__categories__name__in=under_five_categs)
+    qs_under_5 = qs_under_5.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_under_5 = qs_under_5.where(filter_district)
+    qs_under_5 = qs_under_5.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_under_5 = qs_under_5.when(filter_period)
+    qs_under_5 = qs_under_5.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_under_5 = qs_under_5.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_under_5 = list(val_under_5)
+
+    gen_raster = grabbag.rasterize(ou_list, de_under_5_meta, val_under_5, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_under_52 = list(gen_raster)
+
+    other_de_names = (
+        '105-2.11 PCV 3',
+        '105-2.8 Dewormed 2nd Dose in the Year',
+        '105-2.8 Vit A Suplement 2nd Dose in theYear',
+    )
+    other_short_names = (
+        # 'Catchment Population',
+    )
+    de_other_meta = list(product(other_de_names, (None,)))
+    data_element_metas += de_other_meta
+
+    qs_other = DataValue.objects.what(*other_de_names)
+    qs_other = qs_other.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_other = qs_other.where(filter_district)
+    qs_other = qs_other.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_other = qs_other.when(filter_period)
+    qs_other = qs_other.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_other = qs_other.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_other = list(val_other)
+
+    gen_raster = grabbag.rasterize(ou_list, de_other_meta, val_other, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_other2 = list(gen_raster)
+
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_maternity2, val_vaccine_under_12, val_under_52, val_other2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+
+    # perform calculations
+    for _group in grouped_vals:
+        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, deliveries, still_fresh, still_macerated, live_births, pnc_6_hours, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+        
+        calculated_vals = list()
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_deliver = (catchment_pop['numeric_sum'] * Decimal(0.0485))/4 # split by quarter
+        else:
+            expected_deliver = None
+        expected_deliver_val = {
+            'de_name': 'Expected Deliveries',
+            'cat_combo': None,
+            'numeric_sum': expected_deliver,
+        }
+        expected_deliver_val.update(_group_ou_dict)
+        calculated_vals.append(expected_deliver_val)
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_under_1_pop = catchment_pop['numeric_sum'] * Decimal(0.043)
+        else:
+            expected_under_1_pop = None
+        expected_under_1_pop_val = {
+            'de_name': 'Number of children below one year in a given population',
+            'cat_combo': None,
+            'numeric_sum': expected_under_1_pop,
+        }
+        expected_under_1_pop_val.update(_group_ou_dict)
+        calculated_vals.append(expected_under_1_pop_val)
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_under_5_malaria = (catchment_pop['numeric_sum'] * Decimal(0.177))/4 # split by quarter
+        else:
+            expected_under_5_malaria = None
+        expected_under_5_malaria_val = {
+            'de_name': 'Expected under-five with positive test for malaria',
+            'cat_combo': None,
+            'numeric_sum': expected_under_5_malaria,
+        }
+        expected_under_5_malaria_val.update(_group_ou_dict)
+        calculated_vals.append(expected_under_5_malaria_val)
+
+        if all_not_none(pnc_6_hours['numeric_sum'], expected_deliver) and expected_deliver:
+            pnc_6_days_percent = 100 * pnc_6_hours['numeric_sum'] / expected_deliver
+        else:
+            pnc_6_days_percent = None
+        pnc_6_days_percent_val = {
+            'de_name': '% of Mothers receiving PNC checks within 6 days----Target=60%',
+            'cat_combo': None,
+            'numeric_sum': pnc_6_days_percent,
+        }
+        pnc_6_days_percent_val.update(_group_ou_dict)
+        calculated_vals.append(pnc_6_days_percent_val)
+
+        if all_not_none(asyphyxia['numeric_sum'], live_births['numeric_sum']) and live_births['numeric_sum']:
+            asyphyxia_percent = 100 * asyphyxia['numeric_sum'] / live_births['numeric_sum']
+        else:
+            asyphyxia_percent = None
+        asyphyxia_percent_val = {
+            'de_name': '% of babies with Birth Asphyxia ---<1.1',
+            'cat_combo': None,
+            'numeric_sum': asyphyxia_percent,
+        }
+        asyphyxia_percent_val.update(_group_ou_dict)
+        calculated_vals.append(asyphyxia_percent_val)
+
+        expected_live = sum_zero(expected_deliver) - sum_zero(still_fresh['numeric_sum'], still_macerated['numeric_sum'])
+        if all_not_none(neonatal_sepsis['numeric_sum'], expected_live) and expected_live:
+            sepsis_percent = 100 * neonatal_sepsis['numeric_sum'] / expected_live
+        else:
+            sepsis_percent = None
+        sepsis_percent_val = {
+            'de_name': '% of neonates (aged 0 -28 days) presenting to health facilities with sepsis/infections <1.1',
+            'cat_combo': None,
+            'numeric_sum': sepsis_percent,
+        }
+        sepsis_percent_val.update(_group_ou_dict)
+        calculated_vals.append(sepsis_percent_val)
+
+        if all_not_none(dpt3_under1['numeric_sum'], expected_under_1_pop) and expected_under_1_pop:
+            dpt3_percent = 100 * dpt3_under1['numeric_sum'] / expected_under_1_pop
+        else:
+            dpt3_percent = None
+        dpt3_percent_val = {
+            'de_name': 'DPT 3 coverage--Target=97%',
+            'cat_combo': None,
+            'numeric_sum': dpt3_percent,
+        }
+        dpt3_percent_val.update(_group_ou_dict)
+        calculated_vals.append(dpt3_percent_val)
+
+        if all_not_none(bcg_under1['numeric_sum'], expected_under_1_pop) and expected_under_1_pop:
+            bcg_percent = 100 * bcg_under1['numeric_sum'] / expected_under_1_pop
+        else:
+            bcg_percent = None
+        bcg_percent_val = {
+            'de_name': 'BCGCoverage---Target=97%',
+            'cat_combo': None,
+            'numeric_sum': bcg_percent,
+        }
+        bcg_percent_val.update(_group_ou_dict)
+        calculated_vals.append(bcg_percent_val)
+
+        if all_not_none(polio3_under1['numeric_sum'], expected_under_1_pop) and expected_under_1_pop:
+            polio3_percent = 100 * polio3_under1['numeric_sum'] / expected_under_1_pop
+        else:
+            polio3_percent = None
+        polio3_percent_val = {
+            'de_name': 'Polio3 Coverage---97%',
+            'cat_combo': None,
+            'numeric_sum': polio3_percent,
+        }
+        polio3_percent_val.update(_group_ou_dict)
+        calculated_vals.append(polio3_percent_val)
+
+        if all_not_none(malaria_conf_under5['numeric_sum']) and malaria_under5['numeric_sum']:
+            malaria_conf_lab_under5_percent = 100 * malaria_conf_under5['numeric_sum'] / malaria_under5['numeric_sum']
+        else:
+            malaria_conf_lab_under5_percent = None
+        malaria_conf_lab_under5_percent_val = {
+            'de_name': '% of children U5 diagnosed with malaria who have laboratory confirmation.-----90%',
+            'cat_combo': None,
+            'numeric_sum': malaria_conf_lab_under5_percent,
+        }
+        malaria_conf_lab_under5_percent_val.update(_group_ou_dict)
+        calculated_vals.append(malaria_conf_lab_under5_percent_val)
+
+        if all_not_none(malaria_conf_under5['numeric_sum']) and expected_under_5_malaria:
+            malaria_conf_under5_percent = 100 * malaria_conf_under5['numeric_sum'] / expected_under_5_malaria
+        else:
+            malaria_conf_under5_percent = None
+        malaria_conf_under5_percent_val = {
+            'de_name': '% 0f children under five with confirmed malaria---Target<20%',
+            'cat_combo': None,
+            'numeric_sum': malaria_conf_under5_percent,
+        }
+        malaria_conf_under5_percent_val.update(_group_ou_dict)
+        calculated_vals.append(malaria_conf_under5_percent_val)
+
+        if all_not_none(acute_diarr_under5['numeric_sum']) and new_attend_under5['numeric_sum']:
+            acute_diarr_under5_percent = 100 * acute_diarr_under5['numeric_sum'] / new_attend_under5['numeric_sum']
+        else:
+            acute_diarr_under5_percent = None
+        acute_diarr_under5_percent_val = {
+            'de_name': '% under 5 treated with diarrhorea---Target=<20%',
+            'cat_combo': None,
+            'numeric_sum': acute_diarr_under5_percent,
+        }
+        acute_diarr_under5_percent_val.update(_group_ou_dict)
+        calculated_vals.append(acute_diarr_under5_percent_val)
+
+        if all_not_none(pneum_under5['numeric_sum']) and new_attend_under5['numeric_sum']:
+            pneum_under5_percent = 100 * pneum_under5['numeric_sum'] / new_attend_under5['numeric_sum']
+        else:
+            pneum_under5_percent = None
+        pneum_under5_percent_val = {
+            'de_name': '% under 5 treated with pneumonia----Target=<20%',
+            'cat_combo': None,
+            'numeric_sum': pneum_under5_percent,
+        }
+        pneum_under5_percent_val.update(_group_ou_dict)
+        calculated_vals.append(pneum_under5_percent_val)
+
+        if all_not_none(vitamin_a['numeric_sum']) and expected_under_1_pop:
+            vitamin_a_percent = 100 * vitamin_a['numeric_sum'] / expected_under_1_pop
+        else:
+            vitamin_a_percent = None
+        vitamin_a_percent_val = {
+            'de_name': ' Vit A Suplement 2nd Dose COVERAGE  in theYear---Target=97%',
+            'cat_combo': None,
+            'numeric_sum': vitamin_a_percent,
+        }
+        vitamin_a_percent_val.update(_group_ou_dict)
+        calculated_vals.append(vitamin_a_percent_val)
+
+        if all_not_none(deworm['numeric_sum']) and expected_under_1_pop:
+            deworm_percent = 100 * deworm['numeric_sum'] / expected_under_1_pop
+        else:
+            deworm_percent = None
+        deworm_percent_val = {
+            'de_name': '105-2.8 Dewormed 2nd Dose COVERAGE in the Year----Target=97%',
+            'cat_combo': None,
+            'numeric_sum': deworm_percent,
+        }
+        deworm_percent_val.update(_group_ou_dict)
+        calculated_vals.append(deworm_percent_val)
+
+        if all_not_none(pcv['numeric_sum']) and expected_under_1_pop:
+            pcv_percent = 100 * pcv['numeric_sum'] / expected_under_1_pop
+        else:
+            pcv_percent = None
+        pcv_percent_val = {
+            'de_name': 'PCV3 Coverage----Target=97%',
+            'cat_combo': None,
+            'numeric_sum': pcv_percent,
+        }
+        pcv_percent_val.update(_group_ou_dict)
+        calculated_vals.append(pcv_percent_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals # hide source values
+
+    data_element_metas = list() # hide source values
+    data_element_metas += list(product(['Expected Deliveries (4.8 % of population)'], (None,)))
+    data_element_metas += list(product(['Number of children below one year in a given population (4.3 % of population)'], (None,)))
+    data_element_metas += list(product(['Expected under-five with positive test for malaria (17.7 % of population)'], (None,)))
+    data_element_metas += list(product(['% of Mothers receiving PNC checks within 6 days----Target=60%'], (None,)))
+    data_element_metas += list(product(['% of babies with Birth Asphyxia ---<1.1'], (None,)))
+    data_element_metas += list(product(['% of neonates (aged 0 -28 days) presenting to health facilities with sepsis/infections <1.1'], (None,)))
+    data_element_metas += list(product(['DPT 3 coverage--Target=97% '], (None,)))
+    data_element_metas += list(product(['BCGCoverage---Target=97%'], (None,)))
+    data_element_metas += list(product(['Polio3 Coverage---97%'], (None,)))
+    data_element_metas += list(product(['% of children U5 diagnosed with malaria who have laboratory confirmation.-----90%'], (None,)))
+    data_element_metas += list(product(['% 0f children under five with confirmed malaria---Target<20%'], (None,)))
+    data_element_metas += list(product(['% under 5 treated with diarrhorea---Target=<20%'], (None,)))
+    data_element_metas += list(product(['% under 5 treated with pneumonia----Target=<20%'], (None,)))
+    data_element_metas += list(product([' Vit A Suplement 2nd Dose COVERAGE  in theYear---Target=97%'], (None,)))
+    data_element_metas += list(product(['105-2.8 Dewormed 2nd Dose COVERAGE in the Year----Target=97%'], (None,)))
+    data_element_metas += list(product(['PCV3 Coverage----Target=97%'], (None,)))
+
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    pnc_6days_ls = LegendSet()
+    pnc_6days_ls.name = 'PNC check within 6 days'
+    pnc_6days_ls.add_interval('red', 0, 45)
+    pnc_6days_ls.add_interval('yellow', 45, 60)
+    pnc_6days_ls.add_interval('green', 60, None)
+    pnc_6days_ls.mappings[num_path_elements+3] = True
+    legend_sets.append(pnc_6days_ls)
+    breast_vaccination_ls = LegendSet()
+    breast_vaccination_ls.name = 'Breastfeeding, DPT3, BCG and  Polio3'
+    breast_vaccination_ls.add_interval('red', 0, 80)
+    breast_vaccination_ls.add_interval('yellow', 80, 95)
+    breast_vaccination_ls.add_interval('green', 95, None)
+    # breast_vaccination_ls.mappings[num_path_elements+4] = True
+    breast_vaccination_ls.mappings[num_path_elements+6] = True
+    breast_vaccination_ls.mappings[num_path_elements+7] = True
+    breast_vaccination_ls.mappings[num_path_elements+8] = True
+    legend_sets.append(breast_vaccination_ls)
+    asphyxia_sepsis_ls = LegendSet()
+    asphyxia_sepsis_ls.name = 'Birth Asphyxia and Neonatal Sepsis'
+    asphyxia_sepsis_ls.add_interval('green', 0, 1.1)
+    asphyxia_sepsis_ls.add_interval('yellow', 1.1, 1.4)
+    asphyxia_sepsis_ls.add_interval('red', 1.4, None)
+    asphyxia_sepsis_ls.mappings[num_path_elements+4] = True
+    asphyxia_sepsis_ls.mappings[num_path_elements+5] = True
+    legend_sets.append(asphyxia_sepsis_ls)
+    mal_conf_treat_ls = LegendSet()
+    mal_conf_treat_ls.name = 'Malaria Treatment with Lab Confirmation'
+    mal_conf_treat_ls.add_interval('red', 0, 70)
+    mal_conf_treat_ls.add_interval('yellow', 70, 90)
+    mal_conf_treat_ls.add_interval('green', 90, None)
+    mal_conf_treat_ls.mappings[num_path_elements+9] = True
+    legend_sets.append(mal_conf_treat_ls)
+    mal_conf_diarr_pneum_ls = LegendSet()
+    mal_conf_diarr_pneum_ls.name = 'Under 5: Confirmed Malaria, Diarrhorea and Pneumonia'
+    mal_conf_diarr_pneum_ls.add_interval('green', 0, 20)
+    mal_conf_diarr_pneum_ls.add_interval('yellow', 20, 30)
+    mal_conf_diarr_pneum_ls.add_interval('red', 30, None)
+    mal_conf_diarr_pneum_ls.mappings[num_path_elements+10] = True
+    mal_conf_diarr_pneum_ls.mappings[num_path_elements+11] = True
+    mal_conf_diarr_pneum_ls.mappings[num_path_elements+12] = True
+    legend_sets.append(mal_conf_diarr_pneum_ls)
+    vita_deworm_pcv_ls = LegendSet()
+    vita_deworm_pcv_ls.name = 'Vit. A, Deworming and PCV3'
+    vita_deworm_pcv_ls.add_interval('red', 0, 80)
+    vita_deworm_pcv_ls.add_interval('yellow', 80, 97)
+    vita_deworm_pcv_ls.add_interval('green', 97, None)
+    vita_deworm_pcv_ls.mappings[num_path_elements+13] = True
+    vita_deworm_pcv_ls.mappings[num_path_elements+14] = True
+    vita_deworm_pcv_ls.mappings[num_path_elements+15] = True
+    legend_sets.append(vita_deworm_pcv_ls)
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mnch_pnc_child_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/mnch_pnc_child_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)

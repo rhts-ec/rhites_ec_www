@@ -80,8 +80,10 @@
 
 {% if 'mnch' in request.path %}
 <ul>
-	<li><a href="{% url 'mnch_subcounties' %}">MNCH: Pregnancy &amp; Birth - Subcounties</a></li>
-	<li><a href="{% url 'mnch_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
+	<li><a href="{% url 'mnch_preg_birth_subcounties' %}">MNCH: Pregnancy &amp; Birth - Subcounties</a></li>
+	<li><a href="{% url 'mnch_preg_birth_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
+	<li><a href="{% url 'mnch_pnc_child_subcounties' %}">MNCH: PNC, Neonatal and Child Health - Subcounties</a></li>
+	<li><a href="{% url 'mnch_pnc_child_districts' %}">MNCH: PNC, Neonatal and Child Health - Districts</a></li>
 </ul>
 {% endif %}
 
