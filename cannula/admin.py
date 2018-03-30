@@ -29,6 +29,7 @@ class OrgUnitAdmin(MPTTModelAdmin):
 
 class DataElementAdmin(admin.ModelAdmin):
     list_display = ['name', 'alias', 'value_type']
+    search_fields = ['name', 'alias']
 
 class CategoryComboAdmin(admin.ModelAdmin):
     filter_horizontal = ['categories']

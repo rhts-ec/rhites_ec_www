@@ -14,6 +14,14 @@
 	<li><a href="{% url 'hts_sites' %}">HTS - Facilities</a></li>
 	<li><a href="{% url 'hts_districts' %}">HTS - Districts</a></li>
 </ul>
+<ul>
+	<li><a href="{% url 'art_new_sites' %}">New on ART - Facilities</a></li>
+	<li><a href="{% url 'art_new_districts' %}">New on ART - Districts</a></li>
+</ul>
+<ul>
+	<li><a href="{% url 'art_active_sites' %}">Active on ART - Facilities</a></li>
+	<li><a href="{% url 'art_active_districts' %}">Active on ART - Districts</a></li>
+</ul>
 {% endif %}
 
 {% if 'vmmc' in request.path %}
@@ -34,23 +42,55 @@
 {% if 'fp' in request.path %}
 <ul>
 	<li><a href="{% url 'fp_sites' %}">Family Planning - Facilities</a></li>
+	<li><a href="{% url 'fp_districts' %}">Family Planning - Districts</a></li>
 	<li><a href="{% url 'fp_cyp_sites' %}">Family Planning: CYP - Facilities</a></li>
 	<li><a href="{% url 'fp_cyp_districts' %}">Family Planning: CYP - Districts</a></li>
 </ul>
 {% endif %}
 
-	{% if 'nutrition' in request.path %}
-	<ul>
-		<li><a href="{% url 'nutrition_hospitals' %}">Nutrition - Hospitals</a></li>
-	</ul>
-	{% endif %}
+{% if 'tb' in request.path %}
+<ul>
+	<li><a href="{% url 'tb_sites' %}">TB and TB/HIV - Facilities</a></li>
+	<li><a href="{% url 'tb_districts' %}">TB and TB/HIV - Districts</a></li>
+</ul>
+{% endif %}
 
-	<h4>Validation Reports</h4>
-	<ul>
-	{% for id, name in validation_rules %}
-		<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
-	{% endfor %}
-	</ul>
+{% if 'nutrition' in request.path %}
+<ul>
+	<li><a href="{% url 'nutrition_hospitals' %}">Nutrition - Hospitals</a></li>
+</ul>
+{% endif %}
+
+{% if 'gbv' in request.path %}
+<ul>
+	<li><a href="{% url 'gbv_sites' %}">GBV: Cases - Facilities</a></li>
+	<li><a href="{% url 'gbv_districts' %}">GBV: Cases - Districts</a></li>
+	{% comment %}
+	<li><a href="{% url 'gbv_pep_sites' %}">GBV: PEP - Facilities</a></li>
+	<li><a href="{% url 'gbv_pep_districts' %}">GBV: PEP - Districts</a></li>
+	{% endcomment %}
+</ul>
+{% endif %}
+
+{% if 'sc' in request.path %}
+<ul>
+	<li><a href="{% url 'sc_mos_sites' %}">Supply Chain: Months of Stock - Facilities</a></li>
+</ul>
+{% endif %}
+
+{% if 'mnch' in request.path %}
+<ul>
+	<li><a href="{% url 'mnch_subcounties' %}">MNCH: Pregnancy &amp; Birth - Subcounties</a></li>
+	<li><a href="{% url 'mnch_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
+</ul>
+{% endif %}
+
+<h4>Validation Reports</h4>
+<ul>
+{% for id, name in validation_rules %}
+	<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
+{% endfor %}
+</ul>
 
 	<h4>Workflows</h4>
 	<p>

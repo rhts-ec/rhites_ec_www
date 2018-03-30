@@ -118,6 +118,16 @@ SOURCE_DOC_DIR = os.path.join(BASE_DIR, 'source_doc_storage')
 
 LOGIN_REDIRECT_URL = '/'
 
+# Organisation Unit settings
+# TODO: This should, probably, go into the database at some point
+ORG_UNIT_LEVELS = {
+    0: 'Country',
+    1: 'District',
+    2: 'Subcounty',
+    3: 'Facility',
+}
+ORG_UNIT_ROOT_NAME = 'Uganda'
+
 # import local settings
 try:
     from .local_settings import *

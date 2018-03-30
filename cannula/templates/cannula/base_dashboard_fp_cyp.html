@@ -60,9 +60,9 @@
 {% for ls in legend_sets %}
 {% for l in ls.legends reversed %}
 {% if forloop.first %}
-<table class="w3-table w3-bordered w3-bar-item w3-right" style="width: 12em;" border="1">
+<table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
 	<thead>
-		<tr><th>Legend: {{ ls.name }}</th></tr>
+		<tr><th style="width: 10em">Legend: {{ ls.name }}</th></tr>
 	</thead>
 	<tbody>
 {% endif %}
@@ -114,11 +114,13 @@
 		<td>{{ ou }}</td>
 		{% endfor %}
 		{% for x in group %}
+		{% block datacell %}
 		{% if x.de_name == 'Perf% Circumcised' or  x.de_name == 'Perf% Circumcised DC' or x.de_name == 'Perf% Circumcised Surgical' %}
 		<td class="w3-right-align green_yellow_orange_60_40_25_unbounded">{{ x.numeric_sum|floatformat }}</td>
 		{% else %}
 		<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
 		{% endif %}
+		{% endblock datacell %}
 		{% endfor %}
 	</tr>
 	{% endfor %}

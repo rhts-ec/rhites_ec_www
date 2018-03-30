@@ -13,10 +13,10 @@
 	{% load staticfiles %}
 	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
 	<script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
-	<title>Malaria Compliance (Facilites)</title>
+	<title>Malaria Compliance (Facilities)</title>
 </head>
 <body>
-<h2>Malaria Compliance - By Facilites</h2>
+<h2>Malaria Compliance - By Facilities</h2>
 <span class="no-print"><a href="{% url 'index' %}">Return to homepage</a></span>
 <h3>{{ period_desc }} ({{ start_period }} to {{ end_period }})</h3>
 
@@ -115,7 +115,7 @@
 	{% endfor %}
 	{% endfor %}
 </tr>
-</thead>{% load define_var %}
+</thead>{% load define_var %}{% load l10n %}
 {% for org_path,group in grouped_data %}
 <tr>
 	{% for op in org_path %}
@@ -124,9 +124,9 @@
 	{% define None as prev_value %}
 	{% for x in group %}
 	{% ifchanged x.de_name %}
-	<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
+	<td class="w3-right-align" current="{{ x.numeric_sum|unlocalize }}">{{ x.numeric_sum|floatformat }}</td>
 	{% else %}
-	<td class="w3-right-align rise_fall" previous="{{prev_value|default_if_none:''}}">{{ x.numeric_sum|floatformat }}</td>
+	<td class="w3-right-align rise_fall" current="{{ x.numeric_sum|unlocalize }}" previous="{{prev_value|default_if_none:''|unlocalize}}">{{ x.numeric_sum|floatformat }}</td>
 	{% endifchanged %}
 	{% define x.numeric_sum as prev_value %}
 	{% if 'rdt_rate' in x %}

@@ -12,8 +12,10 @@ import mimetypes
 from functools import lru_cache, partial
 from decimal import Decimal
 import decimal
+import re
 
 from mptt.models import MPTTModel, TreeForeignKey
+import openpyxl
 
 from . import grabbag
 
@@ -22,6 +24,14 @@ def make_random_filename(instance, filename):
     file_ext = mimetypes.guess_extension(mt[0])
 
     return grabbag.make_random_code(code_length=16) + file_ext
+
+def ou_dict_from_path(*ou_path, start_level=1):
+    if start_level < 0:
+        start_level = 0
+    return dict(zip(OrgUnit.level_fields()[start_level:], ou_path))
+
+def ou_path_from_dict(v_dict):
+    return tuple((v_dict[f] for f in OrgUnit.level_fields() if f in v_dict))
 
 fs = FileSystemStorage(location=settings.SOURCE_DOC_DIR)
 
@@ -58,7 +68,7 @@ class OrgUnit(MPTTModel):
         current_node = None
         for p in path_parts:
             if p:
-                ou_p, created = cls.objects.get_or_create(name=str(p), parent=current_node)
+                ou_p, created = cls.objects.get_or_create(name__iexact=str(p), parent=current_node, defaults={'name':str(p)})
                 current_node = ou_p
             else:
                 break # stop processing when you find blank/empty path component/name
@@ -66,17 +76,47 @@ class OrgUnit(MPTTModel):
         return current_node
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=1024)
     def from_path_recurse(cls, *path_parts):
         if len(path_parts) == 0:
             return None
         *parent_path, node_name = path_parts
         if len(parent_path) == 0:
-            ou, created = cls.objects.get_or_create(name=node_name, parent=None)
+            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=None, defaults={'name':node_name})
         else:
             ou_parent = cls.from_path_recurse(*parent_path)
-            ou, created = cls.objects.get_or_create(name=node_name, parent=ou_parent)
+            ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=ou_parent, defaults={'name':node_name})
         return ou
+
+    @staticmethod
+    def level_names(max_level=None):
+        if max_level is None:
+            level_count = len(settings.ORG_UNIT_LEVELS)
+        else:
+            level_count = max_level + 1
+        return tuple((settings.ORG_UNIT_LEVELS.get(i) for i in range(level_count) if settings.ORG_UNIT_LEVELS.get(i) is not None))
+
+    @staticmethod
+    def level_fields(max_level=None):
+        #TODO: escape/replace any characters that would be an invalid field name
+        return tuple(map(lambda x: x.lower().replace(' ', '_'), OrgUnit.level_names(max_level)))
+
+    @staticmethod
+    def level_dbfields(max_level=None, *ignore, prefix=''):
+        if max_level is None:
+            level_count = len(settings.ORG_UNIT_LEVELS)
+        else:
+            level_count = max_level + 1
+        return tuple(reversed([prefix+(''.join(('parent__',)*i)+'name') for i in range(level_count)]))
+
+    @staticmethod
+    def level_annotations(max_level=None, *ignore, prefix=''):
+        return dict(zip(OrgUnit.level_fields(max_level), [F(f) for f in OrgUnit.level_dbfields(max_level, prefix=prefix)]))
+
+    @staticmethod
+    def get_level_field(level):
+        #TODO: escape/replace any characters that would be an invalid field name
+        return settings.ORG_UNIT_LEVELS[level].lower().replace(' ', '_')
 
     def __str__(self):
         return '%s [parent_id: %s]' % (self.name, str(self.parent_id),)
@@ -142,9 +182,9 @@ class CategoryCombo(models.Model):
     @classmethod
     def from_cat_names(cls, cat_names):
         sorted_names = sorted(cat_names) #TODO: sort based on the name of the classification the Category belongs to
-        cat_list = [Category.objects.get_or_create(name=cat_name)[0] for cat_name in sorted_names]
+        cat_list = [Category.objects.get_or_create(name__iexact=cat_name, defaults={'name':cat_name})[0] for cat_name in sorted_names]
         cc_name = '(%s)' % ', '.join(sorted_names)
-        cat_combo, created = cls.objects.get_or_create(name=cc_name)
+        cat_combo, created = cls.objects.get_or_create(name__iexact=cc_name, defaults={'name':cc_name})
         if created:
             for categ in cat_list:
                 cat_combo.categories.add(categ)
@@ -176,14 +216,26 @@ CATEGORIES = [
     '< 15 Years',
     '15 Years and above',
     # HMIS 106a: 1B ART QUARTERLY COHORT ANALYSIS REPORT: FOLLOW-UP
-    'Alive on ART in Cohort',
-    'Died',
-    'Lost  to Followup',
-    'Lost',
-    'Started on ART-Cohort',
-    'Stopped',
-    'Transfered In',
-    'Transferred Out',
+    # 'Alive on ART in Cohort',
+    # 'Died',
+    # 'Lost  to Followup',
+    # 'Lost to Followup',
+    # 'Lost',
+    # 'Started on ART-Cohort',
+    # 'Stopped',
+    # 'Transfered In',
+    # 'Transferred Out',
+    '0-4 Years',
+    '5-14 Yrs',
+    # HMIS 105: 2 MNCH
+    'Under 1',
+    '1-4 Yrs',
+    '6-11 Months',
+    '12-59 Months',
+    '1-4 Years',
+    '5-14 Years',
+    'Static',
+    'Outreach',
     # HMIS 105: 1.3 OPD
     '0-28 Days',
     '29 Days-4 Years',
@@ -213,14 +265,38 @@ CATEGORIES = [
     '5-12 Years',
     '12+ Years',
 
+    # HMIS 108
+    'Case',
+    'Death',
+
     '<15',
     '15+',
+
+    # GEND_GBV TARGET: GBV Care, from USAID
+    '<10',
+    '10-14',
+    '15-17',
+    '18-19',
+    '20-24',
+    '25-49',
+    '50+',
+
+    # TX_CURR TARGET, from USAID
+    '<1',
+    '<1-9',
+    '1-9',
+    '10-14',
+    '15-19',
+
+    # TX_PVLS TARGET: 12 Months Viral Load < 1000, from USAID
+    '25-40'
 ]
 
-import re
-SEP_REGEX = '[\s,]+' # one or more of these characters in sequence
-CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for categ in CATEGORIES)
-SEXLESS_CATEGORY_REGEX = '|'.join('%s?(%s)' % (SEP_REGEX, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
+SEP_REGEX_STR = '[\s,]+' # one or more of these characters in sequence
+CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES, key=lambda x: (len(x), x), reverse=True))
+CATEGORY_REGEX = re.compile(CATEGORY_REGEX_STR)
+SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
+SEXLESS_CATEGORY_REGEX = re.compile(SEXLESS_CATEGORY_REGEX_STR)
 
 ICKY_CATEGS = (
     'Number of Male',
@@ -231,9 +307,9 @@ ICKY_CATEGS = (
 
 def unpack_data_element(de_long):
     if any([de_long.upper().find(s.upper()) >=0 for s in ICKY_CATEGS]):
-        m = re.split(SEXLESS_CATEGORY_REGEX, de_long)
+        m = SEXLESS_CATEGORY_REGEX.split(de_long)
     else:
-        m = re.split(CATEGORY_REGEX, de_long)
+        m = CATEGORY_REGEX.split(de_long)
     # squash list of matches by removing blank and None entries (and False and numeric zeroes)
     de_name, *category_list = tuple(filter(None, m))
     cat_str = ', '.join(category_list)
@@ -247,7 +323,7 @@ def unpack_data_element(de_long):
             de_name = de_long
             cat_str = ''
 
-    de_instance, created = DataElement.objects.get_or_create(name=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM')
+    de_instance, created = DataElement.objects.get_or_create(name__iexact=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM', defaults={'name':de_name})
     if len(category_list):
         return (de_instance, CategoryCombo.from_cat_names(category_list))
     else:
@@ -282,15 +358,48 @@ class DataValueQuerySet(models.QuerySet):
             # we were passed a list of OrgUnit names
             ou_filters = [Q(name__iexact=ou_name) for ou_name in names_or_objects if ou_name is not None]
             ou_filters_combined = functools.reduce(operator.__or__, ou_filters)
-            orgunits = OrgUnit.objects.filter(ou_filters_combined)
+            orgunits = list(OrgUnit.objects.filter(ou_filters_combined))
+            if len(orgunits) == 0:
+                return self.none()
 
         qs = self
         for ou in orgunits:
             qs = qs.filter(Q(org_unit__lft__gte=ou.lft) & Q(org_unit__rght__lte=ou.rght))
         return qs
 
-    def when(self):
-        raise NotImplementedError()
+    def when(self, *periods):
+        PERIOD_REGEX = re.compile(r'(\d{4}-\d{2})|(\d{4}-?Q\d{1})|(\d{4})')
+
+        qs = self
+        period_filters = None
+        for p in periods:
+            res = PERIOD_REGEX.match(p)
+            if res is None:
+                continue
+
+            (g_month, g_quarter, g_year) = res.group(1, 2, 3)
+            if g_month:
+                if period_filters:
+                    period_filters = period_filters | Q(month=g_month)
+                else:
+                    period_filters = Q(month=g_month)
+                qs = qs.annotate(period=F('month'))
+            if g_quarter:
+                if period_filters:
+                    period_filters = period_filters | Q(quarter=g_quarter)
+                else:
+                    period_filters = Q(quarter=g_quarter)
+                qs = qs.annotate(period=F('quarter'))
+            if g_year:
+                if period_filters:
+                    period_filters = period_filters | Q(year=g_year)
+                else:
+                    period_filters = Q(year=g_year)
+                qs = qs.annotate(period=F('year'))
+        if period_filters:
+            qs = qs.filter(period_filters)
+        #TODO: Can we reduce the annotate calls to just one? Should we?
+        return qs
 
 class DataValueManager(models.Manager):
     """Attach our custom queryset methods to the model manager"""
@@ -303,8 +412,8 @@ class DataValueManager(models.Manager):
     def where(self, *names_or_objects):
         return self.get_queryset().where(*names_or_objects)
 
-    def when(self):
-        raise NotImplementedError()
+    def when(self, *periods):
+        return self.get_queryset().where(*periods)
 
 def get_default_category_combo():
     return CategoryCombo.objects.get(id=1)
@@ -338,20 +447,20 @@ def extract_periods(period_str):
     return dates_to_iso_periods(*dates)
 
 def load_excel_to_datavalues(source_doc):
+    from django.db import connection
     from collections import defaultdict
-    import re
     import calendar
-    import openpyxl
 
-    MONTH_REGEX = r'[\s]*(%s) [0-9]{4}[\s]*' % ('|'.join(calendar.month_name[1:]),)
-    MONTH_PREFIX_REGEX = r'^[\s]*(%s) ([0-9]{4})?[\s]*' % ('|'.join(calendar.month_name[1:]),)
+    from .grabbag import MONTH_TO_MONTH_REGEX
+
+    MONTH_PREFIX_REGEX = re.compile(r'^[\s]*(%s) ([0-9]{4})?[\s]*' % ('|'.join(calendar.month_name[1:]),))
 
     DE_COLUMN_START = 4 # 0-based index of first dataelement column in worksheet
 
+    db_cursor = connection.cursor()
+
     wb = openpyxl.load_workbook(source_doc.file.path, read_only=True)
     logger.debug(wb.get_sheet_names())
-
-    wb_loc_values = defaultdict(list) # when a new key is encountered return a new empty list
 
     for ws_name in wb.get_sheet_names():
         if ws_name in ['Validations']:
@@ -364,38 +473,62 @@ def load_excel_to_datavalues(source_doc):
         iter_rows = iter(ws.rows)
         first_row = next(iter_rows)
         headers = [cell.value for cell in first_row]
-        clean_headers = (re.sub(MONTH_PREFIX_REGEX, '', h) for h in headers[DE_COLUMN_START:] if h is not None)
+        clean_headers = (MONTH_TO_MONTH_REGEX.sub('', MONTH_PREFIX_REGEX.sub('', h)).lstrip() for h in headers[DE_COLUMN_START:] if h is not None)
         data_elements = tuple(unpack_data_element(de) for de in clean_headers)
 
 
         for row in iter_rows:
-            period, *location_parts = [c.value for c in row[:DE_COLUMN_START]]
-            if not period or not any(location_parts):
+            period_cell, *location_cells = row[:DE_COLUMN_START]
+            location_parts = [c.value for c in location_cells]
+            if not period_cell.value or not any(location_parts):
                 continue # ignore rows where period or location is missing
+            if period_cell.is_date:
+                # convert to ISO 8601 month notation
+                period = '{0.year}-{0.month:02}'.format(period_cell.value)
+            else:
+                period = period_cell.value
             iso_year, iso_quarter, iso_month = extract_periods(str(period).strip())
-            location_parts = ('Uganda', *filter(None, location_parts)) # turn to tuple and prepend name of root OrgUnit
+            location_parts = (settings.ORG_UNIT_ROOT_NAME, *filter(None, location_parts)) # turn to tuple and prepend name of root OrgUnit
             current_ou = OrgUnit.from_path_recurse(*location_parts)
             location = ' => '.join(location_parts)
             logger.debug((period, location))
 
             site_val_cells = row[DE_COLUMN_START:]
             site_values = zip(data_elements, (c.value for c in site_val_cells))
-            dv_construct = partial(DataValue, site_str=location, org_unit=current_ou, month=iso_month, quarter=iso_quarter, year=iso_year, source_doc=source_doc)
-            data_values = list()
+            where_when = {
+                'site_str': location,
+                'org_unit': current_ou,
+                'month': iso_month,
+                'quarter': iso_quarter,
+                'year': iso_year,
+            }
+
             for (de, cc), dv in site_values:
                 if dv is None or (isinstance(dv, str) and dv.strip() == ''):
                     continue # skip rows with empty values
                 try:
                     if cc:
-                        data_values.append(dv_construct(data_element=de, category_combo=cc, numeric_value=Decimal(dv)))
+                        cc_id = cc.id
                     else:
-                        data_values.append(dv_construct(data_element=de, numeric_value=Decimal(dv)))
+                        cc_id = 1
+                    conflict_fields = ['data_element_id', 'category_combo_id', 'org_unit_id']
+                    maybe_null = list(zip(('year', 'quarter', 'month'), (iso_year, iso_quarter, iso_month)))
+                    conflict_fields += [f[0] for f in maybe_null if f[1]]
+                    conflict_condition = ' AND '.join(['{0} IS NULL'.format(f[0]) for f in maybe_null if not f[1]])
+                    if conflict_condition:
+                        conflict_condition = 'WHERE ' + conflict_condition
+                    
+                    upsert_sql = '''INSERT INTO cannula_datavalue (data_element_id, category_combo_id, org_unit_id, site_str, year, quarter, month, source_doc_id, numeric_value)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT ({0}) {1} DO UPDATE SET source_doc_id=%s, numeric_value=%s
+                    '''.format(', '.join(conflict_fields), conflict_condition)
+                    what_where_when = (de.id, cc_id, current_ou.id, location, iso_year, iso_quarter, iso_month)
+                    db_cursor.execute(upsert_sql, (what_where_when+(source_doc.id, Decimal(dv))*2))
                 except decimal.InvalidOperation as e:
                     pass # not convertible to a Decimal, ignore
 
-            wb_loc_values[location].extend(data_values)
 
-    return dict(wb_loc_values) # convert back to a normal dict for our callers
+    return dict() # TODO: remove this and update callers
 
 def de_pivot_col(de):
     return 'DE_%d' % (de.id,)
@@ -418,8 +551,6 @@ def validation_expr_elements(expr):
     return tuple(filter(None, m))
 
 def load_excel_to_validations(source_doc):
-    import openpyxl
-
     wb = openpyxl.load_workbook(source_doc.file.path) #TODO: ensure we close the workbook file. use a context manager?
     logger.debug(wb.get_sheet_names())
 
