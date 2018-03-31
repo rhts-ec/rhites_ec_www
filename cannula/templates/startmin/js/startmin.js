@@ -34,3 +34,11 @@ $(function() {
         element.addClass('active');
     }
 });
+
+$(function () {
+
+    $('#sidebarCollapse').on('click', function () {
+        $('#sidebar').toggleClass('active');
+    });
+
+});

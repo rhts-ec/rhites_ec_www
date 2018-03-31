@@ -1,6 +1,6 @@
 <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
-        <a class="navbar-brand" href="index.html">URC</a>
+        <a class="navbar-brand" href="{% url 'index' %}">URC</a>
     </div>
 
     <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -13,6 +13,11 @@
     <ul class="nav navbar-nav navbar-left navbar-top-links">
         <li><a href="#"><i class="fa fa-home fa-fw"></i> Home</a></li>
     </ul>
+
+    <!--<button type="button" id="sidebarCollapse" class="btn btn-outline btn-primary navbar-btn">
+            <i class="fa fa-align-left"></i>
+            Toggle Sidebar
+    </button>-->
 
     <ul class="nav navbar-right navbar-top-links">
         <li class="dropdown navbar-inverse">

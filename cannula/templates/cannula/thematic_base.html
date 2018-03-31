@@ -1,0 +1,139 @@
+{% extends "startmin/base.html" %}
+
+{% load staticfiles %}
+
+{% block old-styles %}
+    <link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
+{% endblock %}
+
+{% block extra-styles %}
+    <style type="text/css">
+        #sidebar.active {
+            margin-left: -250px;
+        }
+    </style>
+{% endblock %}
+
+{% block data_filters_and_navigation %}
+<div class="row">
+    <h3>{{ period_desc }} ({{ request.GET.period }})</h3>
+    <div id="filter-panel" class="filter-panel collapse in" style="height: auto;">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <form class="form-inline" role="form" action="{{ request.path }}">
+                    <div class="form-group">
+                        <label class="filter-col" style="margin-right:0;" for="pref-perpage">Period:</label>
+                        <select class="form-control" name="period">
+                            {% for p in period_list %}
+                            {% if p == request.GET.period %}
+                            <option selected="selected">{{ p }}</option>
+                            {% else %}
+                            <option>{{ p }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>                               
+                    </div> <!-- form group [rows] -->
+                    <div class="form-group">
+                        <label class="filter-col" style="margin-right:0;" for="pref-search">Coverage:</label>
+                        <select class="form-control" name="district" onchange="this.form.submit();">
+                            <option value="">All districts</option>
+                            {% for district in district_list %}
+                            {% if district == request.GET.district %}
+                            <option selected="selected">{{ district }}</option>
+                            {% else %}
+                            <option>{{ district }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div><!-- form group [search] -->
+                    <div class="form-group">
+                        <button type="button" class="btn btn-primary">
+                            <span class="fa fa-search"></span> Filter
+                        </button>                               
+                    </div> <!-- form group [order by] --> 
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+	{% if excel_url %}
+<span class="w3-small no-print">
+<a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+</span>
+	{% endif %}
+	<table class="w3-table w3-border w3-bordered" border="1">
+	<thead class="w3-gray">
+	<tr>
+		{% for h in ou_headers %}
+		<th class="w3-center" rowspan="2">{{ h }}</th>
+		{% endfor %}
+
+		{% for de_name, cat_combo in data_element_names %}
+		{% if cat_combo %}
+		<th class="w3-center">{{ de_name }}</th>
+		{% else %}
+		<th class="w3-center" rowspan="2">{{ de_name }}</th>
+		{% endif %}
+		{% endfor %}
+	</tr>
+	<tr>
+		{% for de_name, cat_combo in data_element_names %}
+		{% if cat_combo %}
+		<th class="w3-center">{{ cat_combo }}</th>
+		{% endif %}
+		{% endfor %}
+	</tr>
+	</thead>
+	<tbody>
+	{% for ou_path, group in grouped_data %}
+	<tr>
+		{% for ou in ou_path %}
+		<td>{{ ou }}</td>
+		{% endfor %}
+		{% for x in group %}
+		{% block datacell %}
+		{% if x.de_name == 'Perf% Circumcised' or  x.de_name == 'Perf% Circumcised DC' or x.de_name == 'Perf% Circumcised Surgical' %}
+		<td class="w3-right-align green_yellow_orange_60_40_25_unbounded">{{ x.numeric_sum|floatformat }}</td>
+		{% else %}
+		<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
+		{% endif %}
+		{% endblock datacell %}
+		{% endfor %}
+	</tr>
+	{% endfor %}
+	</tbody>
+	</table>
+</div>
+<div class="row">
+    <span class="pull-right">
+        <div class="w3-bar w3-row-padding w3-small">
+            {% for ls in legend_sets %}
+            {% for l in ls.legends reversed %}
+            {% if forloop.first %}
+            <table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
+                <thead>
+                    <tr><th style="width: 10em">Legend: {{ ls.name }}</th></tr>
+                </thead>
+                <tbody>
+            {% endif %}
+                    <tr><td class="w3-{{l.color}} w3-right-align">
+                        {{l.start|yesno:",,<"}}{{l.start|default_if_none:""}}{% if l.start != None and l.end != None %} to {% endif %}{{l.end|default_if_none:""}}{{ l.end|yesno:",,+"}} %
+                    </td></tr>
+            {% if forloop.last %}
+                </tbody>
+            </table>
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+            </div>
+    </span>
+</div>
+{% endblock %}
+
+{% block extra-js %}
+    <script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
+{% endblock %}

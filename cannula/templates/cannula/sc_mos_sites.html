@@ -1,7 +1,7 @@
-{% extends "cannula/base_dashboard_fp_cyp.html" %}
+{% extends "cannula/thematic_base.html" %}
 
 {% block title %}Supply Chain: Months of Stock (Facilities){% endblock %}
-{% block heading %}Supply Chain: Months of Stock - By Facilities scorecard{% endblock %}
+{% block heading %}Supply Chain: Months of Stock - By Facilities Scorecard{% endblock %}
 {% block datacell %}
 		<td class="w3-right-align{% if 'Months of Stock' in x.de_name %} 0_2_4_none_red_green_yellow none_0_light-green{% endif %}">{{ x.numeric_sum|floatformat }}</td>
 {% endblock %}

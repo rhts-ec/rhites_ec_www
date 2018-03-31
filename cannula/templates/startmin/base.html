@@ -12,6 +12,7 @@
             <title>RHITES-EC Data Validation Tool</title>
         {% endblock %}
 
+        {% block old-styles %}{% endblock %}
         <!-- Bootstrap Core CSS -->
         <link href="{% static 'startmin/css/bootstrap.min.css' %}" rel="stylesheet">
 
@@ -36,21 +37,22 @@
         <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
         <![endif]-->
+        {% block extra-styles %}{% endblock %}
     </head>
     <body>
         <div id="wrapper">
             <!-- Navigation -->
                 {% include 'startmin/parts/top_navigation.html' %}
             <!-- /.navbar-top-links -->
-
                 {% include 'startmin/parts/side_navigation.html' %}
                 <div id="page-wrapper">
                     <div class="row">
                         <div class="col-lg-12">
-                            <h1 class="page-header">{% block page-header %} Dashboard {% endblock %}</h1>
+                            <h1 class="page-header">{% block heading %} Dashboard {% endblock %}</h1>
                         </div>
                         <!-- /.col-lg-12 -->
                     </div>
+                    {% block data_filters_and_navigation %}{% endblock %}
                     {% block content %}
                         {% include 'startmin/parts/main_page_content.html' %}
                     {% endblock %}
