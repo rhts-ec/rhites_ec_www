@@ -43,7 +43,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else
-    if ( has( a[i].className, "traffic_light_90_75_unbounded" ) ) {
+    if ( has( a[i].className, "0_75_90_none_red_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -55,7 +55,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "traffic_light_90_80" ) ) {
+    if ( has( a[i].className, "0_80_90_100_red_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
@@ -161,7 +161,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_bad_4_orange" ) ) {
+    if ( has( a[i].className, "4_none_orange" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
