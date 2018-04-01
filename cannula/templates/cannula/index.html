@@ -27,12 +27,14 @@
 {% if 'vmmc' in request.path %}
 <ul>
 	<li><a href="{% url 'vmmc_sites' %}">VMMC - Facilities</a></li>
+	<li><a href="{% url 'vmmc_districts' %}">VMMC - Districts</a></li>
 </ul>
 {% endif %}
 
 {% if 'lab' in request.path %}
 <ul>
 	<li><a href="{% url 'lab_sites' %}">Lab. Tests - Facilities</a></li>
+	<li><a href="{% url 'lab_districts' %}">Lab. Tests - Districts</a></li>
 </ul>
 <ul>
 	<li><a href="{% url 'vl_sites' %}">Viral Load - Facilities</a></li>
