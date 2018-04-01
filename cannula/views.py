@@ -94,6 +94,7 @@ def ipt_quarterly(request, output_format='HTML'):
     qs_ou = OrgUnit.objects.filter(level=2).annotate(district=F('parent__name'), subcounty=F('name'))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by('district', 'subcounty')
     ou_list = qs_ou.values_list('district', 'subcounty')
     ou_headers = ['District', 'Subcounty']
 
@@ -267,6 +268,7 @@ def malaria_compliance(request):
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by('district', 'subcounty', 'facility')
     ou_list = qs_ou.values_list('district', 'subcounty', 'facility')
 
     # get data values without subcategory disaggregation
@@ -1075,6 +1077,7 @@ def hts_by_district(request, output_format='HTML'):
     qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by('district')
     ou_list = list(v for v in qs_ou.values_list('district'))
     ou_headers = ['District',]
 
@@ -3056,6 +3059,7 @@ def fp_cyp_by_district(request, output_format='HTML'):
     qs_ou = OrgUnit.objects.filter(level=1).annotate(district=F('name'))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by('district')
     ou_list = list(qs_ou.values_list('district'))
     ou_headers = ['District',]
 
@@ -5123,6 +5127,7 @@ def sc_mos_by_site(request, output_format='HTML'):
     qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by('district', 'subcounty', 'facility')
     ou_list = list(qs_ou.values_list('district', 'subcounty', 'facility'))
     ou_headers = ['District', 'Subcounty', 'Facility']
 
