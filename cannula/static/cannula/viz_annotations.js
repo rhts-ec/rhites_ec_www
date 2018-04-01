@@ -103,7 +103,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "traffic_light_71_unbounded" ) ) {
+    if ( has( a[i].className, "0_71_none_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {

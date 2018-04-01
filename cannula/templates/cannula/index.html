@@ -5,7 +5,8 @@
 {% if 'malaria' in request.path %}
 <ul>
 	<li><a href="{% url 'malaria_compliance' %}">Malaria - Compliance</a></li>
-	<li><a href="{% url 'ipt_quarterly' %}">Malaria - IPT</a></li>
+	<li><a href="{% url 'ipt_subcounties' %}">Malaria: IPT - Subcounties</a></li>
+	<li><a href="{% url 'ipt_districts' %}">Malaria: IPT - Districts</a></li>
 </ul>
 {% endif %}
 

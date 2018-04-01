@@ -57,16 +57,16 @@ def make_excel_url(request_path):
     return urllib.parse.urlunparse([a, b, excel_path, *others])
 
 @login_required
-def ipt_quarterly(request, output_format='HTML'):
-    ipt_de_names = (
-        '105-2.1 A6:First dose IPT (IPT1)',
-        '105-2.1 A7:Second dose IPT (IPT2)',
-    )
-
+def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
     DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+    # annotations for data collected at subcounty level
+    SUBCOUNTY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(2, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
 
     if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
         filter_period=request.GET['period']
@@ -80,80 +80,103 @@ def ipt_quarterly(request, output_format='HTML'):
     else:
         filter_district = None
 
-    # get IPT1 and IPT2 without subcategory disaggregation
-    qs = DataValue.objects.what(*ipt_de_names).filter(quarter=filter_period)
-    if filter_district:
-        qs = qs.where(filter_district)
-    # use clearer aliases for the unwieldy names
-    qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
-    qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
-    qs = qs.order_by('district', 'subcounty', 'de_name', 'period')
-    val_dicts = qs.values('district', 'subcounty', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
-    
-    # all subcounties (or equivalent)
-    qs_ou = OrgUnit.objects.filter(level=2).annotate(district=F('parent__name'), subcounty=F('name'))
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
-    qs_ou = qs_ou.order_by('district', 'subcounty')
-    ou_list = qs_ou.values_list('district', 'subcounty')
-    ou_headers = ['District', 'Subcounty']
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
 
-    def val_fun(row, col):
-        return { 'district': row[0], 'subcounty': row[1], 'de_name': col, 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(ou_list, ipt_de_names, val_dicts, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
-    val_dicts = list(gen_raster)
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    ipt_de_names = (
+        '105-2.1 A6:First dose IPT (IPT1)',
+        '105-2.1 A7:Second dose IPT (IPT2)',
+    )
+    de_ipt_meta = list(product(ipt_de_names, (None,)))
+
+    # get IPT1 and IPT2 without subcategory disaggregation
+    qs = DataValue.objects.what(*ipt_de_names)
+    qs = qs.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs = qs.where(filter_district)
+    qs = qs.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs = qs.when(filter_period)
+    qs = qs.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_ipt_all = qs.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    
+    gen_raster = grabbag.rasterize(ou_list, de_ipt_meta, val_ipt_all, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_ipt_all2 = list(gen_raster)
 
     # get list of subcategories for IPT2
     qs_ipt_subcat = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').order_by('category_combo__name').values_list('de_name', 'category_combo__name').distinct()
     subcategory_names = tuple(qs_ipt_subcat)
 
     # get IPT2 with subcategory disaggregation
-    qs2 = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)').filter(quarter=filter_period)
+    qs2 = DataValue.objects.what('105-2.1 A7:Second dose IPT (IPT2)')
+    qs2 = qs2.annotate(cat_combo=F('category_combo__name'))
     if filter_district:
         qs2 = qs2.where(filter_district)
-    # use clearer aliases for the unwieldy names
-    qs2 = qs2.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'))
-    qs2 = qs2.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
-    qs2 = qs2.annotate(cat_combo=F('category_combo__name'))
-    qs2 = qs2.order_by('district', 'subcounty', 'de_name', 'period', 'cat_combo')
-    val_dicts2 = qs2.values('district', 'subcounty', 'de_name', 'period', 'cat_combo').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    qs2 = qs2.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs2 = qs2.when(filter_period)
+    qs2 = qs2.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_dicts2 = qs2.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
-    def val_with_subcat_fun(row, col):
-        district, subcounty = row
-        de_name, subcategory = col
-        return { 'district': district, 'subcounty': subcounty, 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, lambda x: (x['district'], x['subcounty']), lambda x: (x['de_name'], x['cat_combo']), val_with_subcat_fun)
+    gen_raster = grabbag.rasterize(ou_list, subcategory_names, val_dicts2, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_dicts2 = list(gen_raster)
 
+    pregnancies_de_names = (
+        'Expected Pregnancies',
+    )
+    de_pregnancies_meta = list(product(pregnancies_de_names, (None,)))
     # get expected pregnancies
-    qs3 = DataValue.objects.what('Expected Pregnancies')
+    qs3 = DataValue.objects.what(*pregnancies_de_names)
+    qs3 = qs3.annotate(cat_combo=Value(None, output_field=CharField()))
     if filter_district:
         qs3 = qs3.where(filter_district)
     # use clearer aliases for the unwieldy names
-    qs3 = qs3.annotate(district=F('org_unit__parent__name'), subcounty=F('org_unit__name'))
-    qs3 = qs3.annotate(period=F('year')) # TODO: review if this can still work with different periods
-    qs3 = qs3.order_by('district', 'subcounty', 'de_name', 'period')
-    val_dicts3 = qs3.values('district', 'subcounty', 'de_name', 'period').annotate(numeric_sum=(Sum('numeric_value')/4))
+    qs3 = qs3.annotate(**SUBCOUNTY_LEVEL_ANNOTATIONS)
+    # pregnancy estimates are annual (from population), so filter by year component of period and divide by 4
+    qs3 = qs3.when(filter_period[:4])
+    qs3 = qs3.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_preg = qs3.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(numeric_sum=(Sum('numeric_value')/4))
 
-    gen_raster = grabbag.rasterize(ou_list, ('Expected Pregnancies',), val_dicts3, lambda x: (x['district'], x['subcounty']), lambda x: x['de_name'], val_fun)
-    val_dicts3 = list(gen_raster)
+    gen_raster = grabbag.rasterize(ou_list, de_pregnancies_meta, val_preg, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_preg2 = list(gen_raster)
 
     # combine the data and group by district and subcounty
-    grouped_vals = groupbylist(sorted(chain(val_dicts3, val_dicts, val_dicts2), key=lambda x: (x['district'], x['subcounty'])), key=lambda x: (x['district'], x['subcounty']))
+    grouped_vals = groupbylist(sorted(chain(val_preg2, val_ipt_all2, val_dicts2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
     
-    # calculate the IPT rate for the IPT1/IPT2 values (without subcategories)
+    # perform calculations
     for _group in grouped_vals:
-        (district_subcounty, (preg_val, *other_vals)) = _group
+        (_group_ou_path, (preg_val, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+
         if preg_val['de_name'] == 'Expected Pregnancies':
-            for val in other_vals:
-                if val['de_name'] in ipt_de_names and 'cat_combo' not in val:
-                    pregnancies_per_annum = preg_val['numeric_sum']
-                    if pregnancies_per_annum and pregnancies_per_annum != 0 and val['numeric_sum']:
-                        val['ipt_rate'] = val['numeric_sum']*100/pregnancies_per_annum
+            for i, val in enumerate(reversed(other_vals)):
+                # calculate the IPT rate for the IPT1/IPT2 values (without subcategories)
+                if val['de_name'] in ipt_de_names and val['cat_combo'] is None:
+                    if all_not_none(val['numeric_sum'], preg_val['numeric_sum']) and preg_val['numeric_sum']:
+                        ipt_percent = 100 * val['numeric_sum'] / preg_val['numeric_sum']
                     else:
-                        val['ipt_rate'] = None
+                        ipt_percent = None
+                    ipt_percent_val = {
+                        'de_name': val['de_name'] + ' %',
+                        'cat_combo': val['cat_combo'],
+                        'numeric_sum': ipt_percent,
+                    }
+                    ipt_percent_val.update(_group_ou_dict)
+                    _group[1].insert(len(other_vals)-i+1, ipt_percent_val)
 
     data_element_names = list()
     data_element_names.insert(0, ('Expected Pregnancies', None))
@@ -162,13 +185,14 @@ def ipt_quarterly(request, output_format='HTML'):
         data_element_names.append(('%', None))
     data_element_names.extend(subcategory_names)
 
+    num_path_elements = len(ou_headers)
     legend_sets = list()
     ipt_ls = LegendSet()
     ipt_ls.name = 'IPT rate'
     ipt_ls.add_interval('yellow', 0, 71)
     ipt_ls.add_interval('green', 71, None)
-    ipt_ls.mappings[4] = True
-    ipt_ls.mappings[6] = True
+    ipt_ls.mappings[num_path_elements+2] = True
+    ipt_ls.mappings[num_path_elements+4] = True
     legend_sets.append(ipt_ls)
 
     if output_format == 'EXCEL':
@@ -214,11 +238,14 @@ def ipt_quarterly(request, output_format='HTML'):
 
     context = {
         'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
         'data_element_names': data_element_names,
         'legend_sets': legend_sets,
         'period_desc': period_desc,
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
     if output_format == 'JSON':
@@ -226,7 +253,7 @@ def ipt_quarterly(request, output_format='HTML'):
         
         return JsonResponse(context)
 
-    return render(request, 'cannula/ipt_quarterly.html', context)
+    return render(request, 'cannula/malaria_ipt_subcounty.html', context)
 
 @login_required
 def malaria_compliance(request):
