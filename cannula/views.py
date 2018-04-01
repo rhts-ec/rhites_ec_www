@@ -6029,7 +6029,7 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/art_active_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
-def mnch_preg_birth_scorecard(request, org_unit_level=3, output_format='HTML'):
+def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -6430,7 +6430,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/mnch_preg_birth_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
-def mnch_pnc_child_scorecard(request, org_unit_level=3, output_format='HTML'):
+def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
