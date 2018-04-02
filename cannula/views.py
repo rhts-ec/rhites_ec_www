@@ -232,7 +232,7 @@ def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename="malaria_ipt_scorecard.xlsx"'
+        response['Content-Disposition'] = 'attachment; filename="malaria_ipt_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
 
         return response
 
@@ -253,7 +253,7 @@ def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
         
         return JsonResponse(context)
 
-    return render(request, 'cannula/malaria_ipt_subcounty.html', context)
+    return render(request, 'cannula/malaria_ipt_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
 def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
@@ -409,7 +409,7 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename="malaria_compliance_scorecard.xlsx"'
+        response['Content-Disposition'] = 'attachment; filename="malaria_compliance_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
 
         return response
 
@@ -428,7 +428,7 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
-    return render(request, 'cannula/malaria_compliance_facility.html', context)
+    return render(request, 'cannula/malaria_compliance_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
 def data_workflow_new(request):

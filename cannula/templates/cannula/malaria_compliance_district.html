@@ -1,0 +1,16 @@
+{% extends "cannula/base_dashboard_fp_cyp.html" %}
+{% load l10n %}
+
+{% block title %}Malaria Compliance (districts){% endblock %}
+{% block heading %}Malaria Compliance - By Districts scorecard{% endblock %}
+{% block datacell %}
+	{% if '%' in x.de_name %}
+	<td class="w3-right-align {% for mapping_indices,canonical_name in legend_set_mappings.items %}{% if forloop.parentloop.counter0 in mapping_indices %} {{ canonical_name }}{% endif %}{% endfor %}">{{ x.numeric_sum|floatformat }}</td>
+	{% else %}
+	{% ifchanged x.de_name %}
+	<td class="w3-right-align" current="{{ x.numeric_sum|unlocalize }}">{{ x.numeric_sum|floatformat }}</td>
+	{% else %}
+	<td class="w3-right-align rise_fall" current="{{ x.numeric_sum|unlocalize }}" previous="{{x.previous|default_if_none:''|unlocalize}}"">{{ x.numeric_sum|floatformat }}</td>
+	{% endifchanged %}
+	{% endif %}
+{% endblock %}
