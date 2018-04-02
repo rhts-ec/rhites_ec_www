@@ -109,6 +109,10 @@
 	{% if excel_url %}
 <span class="w3-small no-print">
 <a href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+{% if csv_url %}
+<br/>
+<a href="{{ csv_url }}?{{ request.META.QUERY_STRING }}">Download as CSV</a>
+{% endif %}
 </span>
 	{% endif %}
 	<table class="w3-table w3-border w3-bordered" border="1">
