@@ -2,6 +2,3 @@
 
 {% block title %}Viral Load (Facilities){% endblock %}
 {% block heading %}Viral Load - By Facilities scorecard{% endblock %}
-{% block datacell %}
-		<td class="w3-right-align{% for mapping_indices,canonical_name in legend_set_mappings.items %}{% if forloop.parentloop.counter0 in mapping_indices %} {{ canonical_name }}{% endif %}{% endfor %}">{{ x.numeric_sum|floatformat }}</td>
-{% endblock %}
