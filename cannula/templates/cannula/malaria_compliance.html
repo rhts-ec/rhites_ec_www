@@ -21,7 +21,7 @@
 <h3>{{ period_desc }} ({{ start_period }} to {{ end_period }})</h3>
 
 <div class="w3-bar w3-row-padding no-print">
-<form class="w3-bar-item" style="width:75%" action="{% url 'malaria_compliance' %}">
+<form class="w3-bar-item" style="width:75%" action="{{ request.path }}">
 <!-- <div class="w3-cell w3-quarter">
 <input class="w3-input w3-border" type="text">
 <label>Location</label>
@@ -91,12 +91,17 @@
 </div>
 
 <div class="w3-container">
+	{% if excel_url %}
+<span class="w3-small no-print">
+<a href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+</span>
+	{% endif %}
 <table class="w3-table w3-border w3-bordered w3-small" border="1">
 <thead class="w3-gray">
 <tr>
-	<th class="w3-center" rowspan="2">District</th>
-	<th class="w3-center" rowspan="2">Subcounty</th>
-	<th class="w3-center" rowspan="2">Facility</th>
+	{% for h in ou_headers %}
+	<th class="w3-center" rowspan="2">{{ h }}</th>
+	{% endfor %}
 	{% for de_name, cat_combo in data_element_names %}
 	{% if 'Confirmed' in de_name %}
 	<th class="w3-center" colspan="{% widthratio 2 1 periods|length %}">{{ de_name }}</th>
@@ -123,14 +128,15 @@
 	{% endfor %}
 	{% define None as prev_value %}
 	{% for x in group %}
+	{% if '%' in x.de_name %}
+	<td class="w3-right-align unary_good_80_unbounded">{{ x.numeric_sum|floatformat }}</td>
+	{% else %}
 	{% ifchanged x.de_name %}
-	<td class="w3-right-align" current="{{ x.numeric_sum|unlocalize }}">{{ x.numeric_sum|floatformat }}</td>
+	<td class="w3-right-align {% if '%' in x.de_name %}unary_good_80_unbounded{% endif %}" current="{{ x.numeric_sum|unlocalize }}">{{ x.numeric_sum|floatformat }}</td>
 	{% else %}
 	<td class="w3-right-align rise_fall" current="{{ x.numeric_sum|unlocalize }}" previous="{{prev_value|default_if_none:''|unlocalize}}">{{ x.numeric_sum|floatformat }}</td>
 	{% endifchanged %}
 	{% define x.numeric_sum as prev_value %}
-	{% if 'rdt_rate' in x %}
-	<td class="w3-right-align unary_good_80_unbounded">{{ x.rdt_rate|floatformat }}</td>
 	{% endif %}
 	{% endfor %}
 </tr>

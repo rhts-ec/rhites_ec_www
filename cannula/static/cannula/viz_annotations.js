@@ -125,7 +125,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_good_80_unbounded" ) ) {
+    if ( has( a[i].className, "unary_good_80_unbounded" ) || has( a[i].className, "80_none_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -137,7 +137,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_good_80" ) ) {
+    if ( has( a[i].className, "unary_good_80" )  || has( a[i].className, "80_100_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {

@@ -256,16 +256,14 @@ def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
     return render(request, 'cannula/malaria_ipt_subcounty.html', context)
 
 @login_required
-def malaria_compliance(request):
-    cases_de_names = (
-        '105-1.3 OPD Malaria (Total)',
-        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
-    )
-
+def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
     DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
 
     if 'start_period' in request.GET and request.GET['start_period'] in PREV_5YR_QTRS and 'end_period' in request.GET and request.GET['end_period']:
         start_quarter = request.GET['start_period']
@@ -290,65 +288,135 @@ def malaria_compliance(request):
         filter_district = OrgUnit.objects.get(name=request.GET['district'])
     else:
         filter_district = None
-    
-    # all facilities (or equivalent)
-    qs_ou = OrgUnit.objects.filter(level=3).annotate(district=F('parent__parent__name'), subcounty=F('parent__name'), facility=F('name'))
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
     if filter_district:
         qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
-    qs_ou = qs_ou.order_by('district', 'subcounty', 'facility')
-    ou_list = qs_ou.values_list('district', 'subcounty', 'facility')
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
 
-    # get data values without subcategory disaggregation
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_period_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, period = col
+        val_dict.update({ 'period': period, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    cases_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+    )
+    de_cases_meta = tuple(product(cases_de_names, periods))
+    data_element_metas += de_cases_meta
+
     qs = DataValue.objects.what(*cases_de_names)
+    qs = qs.annotate(cat_combo=Value(None, output_field=CharField()))
     if filter_district:
         qs = qs.where(filter_district)
-    qs = qs.filter(quarter__gte=start_quarter).filter(quarter__lte=end_quarter)
-    # use clearer aliases for the unwieldy names
-    qs = qs.annotate(district=F('org_unit__parent__parent__name'), subcounty=F('org_unit__parent__name'), facility=F('org_unit__name'))
-    qs = qs.annotate(period=F('quarter')) # TODO: review if this can still work with different periods
-    qs = qs.order_by('district', 'subcounty', 'facility', 'de_name', 'period')
-    val_dicts = qs.values('district', 'subcounty', 'facility', 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    qs = qs.when(*periods)
+    qs = qs.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs = qs.order_by(*OU_PATH_FIELDS, 'de_name', 'period')
+    val_dicts = qs.values(*OU_PATH_FIELDS, 'de_name', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
 
-    def val_with_period_fun(row, col):
-        district, subcounty, facility = row
-        de_name, period = col
-        return { 'district': district, 'subcounty': subcounty, 'facility': facility, 'period': period, 'de_name': de_name, 'numeric_sum': None }
-    gen_raster = grabbag.rasterize(ou_list, tuple(product(cases_de_names, periods)), val_dicts, lambda x: (x['district'], x['subcounty'], x['facility']), lambda x: (x['de_name'], x['period']), val_with_period_fun)
-    val_dicts = gen_raster
+    gen_raster = grabbag.rasterize(ou_list, de_cases_meta, val_dicts, ou_path_from_dict, lambda x: (x['de_name'], x['period']), orgunit_vs_de_period_default)
+    val_dicts2 = gen_raster
 
     # combine the data and group by district and subcounty
-    grouped_vals = groupbylist(sorted(val_dicts, key=lambda x: (x['district'], x['subcounty'], x['facility'])), key=lambda x: (x['district'], x['subcounty'], x['facility']))
+    grouped_vals = groupbylist(sorted(val_dicts2, key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
     for _group in grouped_vals:
-        (district_subcounty_facility, other_vals) = _group
-        malaria_totals = dict()
-        for val in other_vals:
-            if val['de_name'] == cases_de_names[0]:
-                malaria_totals[val['period']] = val['numeric_sum']
-            elif val['de_name'] == cases_de_names[1]:
-                total_cases = malaria_totals.get(val['period'], 0)
-                confirmed_cases = val['numeric_sum']
-                if confirmed_cases and total_cases and total_cases != 0:
-                    confirmed_rate = confirmed_cases * 100 / total_cases
-                    val['rdt_rate'] = confirmed_rate
+        (_group_ou_path, other_vals) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+
+        totals, confirmeds = other_vals[:len(periods)], other_vals[len(periods):]
+        for i, (total_val, confirmed_val) in enumerate(reversed(list(zip(totals, confirmeds)))):
+            if (total_val['de_name'], confirmed_val['de_name']) == cases_de_names:
+                if all_not_none(confirmed_val['numeric_sum'], total_val['numeric_sum']) and total_val['numeric_sum']:
+                    confirmed_rate = 100 * confirmed_val['numeric_sum'] / total_val['numeric_sum']
                 else:
-                    val['rdt_rate'] = None
+                    confirmed_rate = None
+                confirmed_rate_val = {
+                    'de_name': confirmed_val['de_name'] + ' %',
+                    'period': confirmed_val['period'],
+                    'numeric_sum': confirmed_rate,
+                }
+                confirmed_rate_val.update(_group_ou_dict)
+                _group[1].insert(len(other_vals)-i*2, confirmed_rate_val)
+
+        prev_vals = None
+        for total_val, confirmed_val in zip(totals, confirmeds):
+            if prev_vals:
+                total_val['previous'], confirmed_val['previous'] = prev_vals
+            
+            prev_vals = total_val['numeric_sum'], confirmed_val['numeric_sum']
 
     data_element_names = list()
     for de_n in cases_de_names:
         data_element_names.append((de_n, None))
 
+    for x in range(len(data_element_metas)//2):
+        data_element_metas.insert(len(data_element_metas)-x*2, (cases_de_names[1], '%'))
+
+    num_path_elements = len(ou_headers)
     legend_sets = list()
     compliance_ls = LegendSet()
     compliance_ls.name = 'Compliance'
     compliance_ls.add_interval('green', 80, None)
+    for i in range(len(periods)):
+        compliance_ls.mappings[num_path_elements+len(periods)+i*2+1] = True
     legend_sets.append(compliance_ls)
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            offset = 0
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j+offset, value=g_val['numeric_sum'])
+                if 'ipt_rate' in g_val:
+                    offset += 1
+                    ws.cell(row=i, column=j+offset, value=g_val['ipt_rate'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSet
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="malaria_compliance_scorecard.xlsx"'
+
+        return response
 
     context = {
         'grouped_data': grouped_vals,
-        'data_element_names': data_element_names,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
         'legend_sets': legend_sets,
         'start_period': start_quarter,
         'end_period': end_quarter,
@@ -356,9 +424,11 @@ def malaria_compliance(request):
         'period_desc': dateutil.DateSpan.fromquarter(start_quarter).combine(dateutil.DateSpan.fromquarter(end_quarter)).format_long(),
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
-    return render(request, 'cannula/malaria_compliance.html', context)
+    return render(request, 'cannula/malaria_compliance_facility.html', context)
 
 @login_required
 def data_workflow_new(request):

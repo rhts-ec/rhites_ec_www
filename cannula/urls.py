@@ -5,7 +5,10 @@ from . import views
 urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'dashboards/malaria/$', views.index, name='thematic_malaria'),
-    url(r'scorecards/malaria/compliance\.php', views.malaria_compliance, name='malaria_compliance'),
+    url(r'scorecards/malaria/compliance\.php', views.malaria_compliance, {'org_unit_level': 3}, name='malaria_compliance'),
+    url(r'scorecards/malaria/compliance\.xls', views.malaria_compliance, {'org_unit_level': 3, 'output_format': 'EXCEL'}, name='malaria_compliance_excel'),
+    url(r'scorecards/malaria/compliance_districts\.php', views.malaria_compliance, {'org_unit_level': 1}, name='malaria_compliance_districts'),
+    url(r'scorecards/malaria/compliance_districts\.xls', views.malaria_compliance, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='malaria_compliance_districts_excel'),
     url(r'scorecards/malaria/ipt_subcounties\.php', views.malaria_ipt_scorecard, {'org_unit_level': 2}, name='ipt_subcounties'),
     url(r'scorecards/malaria/ipt_subcounties\.xls', views.malaria_ipt_scorecard, {'org_unit_level': 2, 'output_format': 'EXCEL'}, name='ipt_subcounties_excel'),
     url(r'scorecards/malaria/ipt_districts\.php', views.malaria_ipt_scorecard, {'org_unit_level': 1}, name='ipt_districts'),

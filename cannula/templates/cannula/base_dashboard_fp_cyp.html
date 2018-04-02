@@ -25,6 +25,32 @@
 <input class="w3-input w3-border" type="text">
 <label>Location</label>
 </div> -->
+{% if start_period and end_period %}
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="start_period">
+	{% for p in period_list %}
+	{% if p == start_period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>Start Period</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="end_period">
+	{% for p in period_list %}
+	{% if p == end_period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>End Period</label>
+</div>
+{% else %}
 <div class="w3-cell w3-quarter">
 <select class="w3-input w3-border" name="period">
 	{% for p in period_list %}
@@ -37,6 +63,7 @@
 </select>
 <label>Period</label>
 </div>
+{% endif %}
 <div class="w3-cell w3-quarter">
 <select class="w3-input w3-border" name="district" onchange="this.form.submit();">
 	<option value="">All districts</option>
