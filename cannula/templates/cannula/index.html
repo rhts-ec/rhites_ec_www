@@ -2,12 +2,15 @@
 {% block title %}RHITES-EC Performance Monitoring Tool - Home{% endblock %}
 {% block page-header %} Scorecards {% endblock %}
 {% block content %}
-	{% if 'malaria' in request.path %}
-	<ul>
-		<li><a href="{% url 'malaria_compliance' %}">Malaria - Compliance</a></li>
-		<li><a href="{% url 'ipt_quarterly' %}">Malaria - IPT</a></li>
-	</ul>
-	{% endif %}
+<h4>Scorecards</h4>
+{% if 'malaria' in request.path %}
+<ul>
+	<li><a href="{% url 'malaria_compliance' %}">Malaria: Compliance - Facilities</a></li>
+	<li><a href="{% url 'malaria_compliance_districts' %}">Malaria: Compliance - Districts</a></li>
+	<li><a href="{% url 'ipt_subcounties' %}">Malaria: IPT - Subcounties</a></li>
+	<li><a href="{% url 'ipt_districts' %}">Malaria: IPT - Districts</a></li>
+</ul>
+{% endif %}
 
 {% if 'hts' in request.path %}
 <ul>
@@ -27,15 +30,18 @@
 {% if 'vmmc' in request.path %}
 <ul>
 	<li><a href="{% url 'vmmc_sites' %}">VMMC - Facilities</a></li>
+	<li><a href="{% url 'vmmc_districts' %}">VMMC - Districts</a></li>
 </ul>
 {% endif %}
 
 {% if 'lab' in request.path %}
 <ul>
 	<li><a href="{% url 'lab_sites' %}">Lab. Tests - Facilities</a></li>
+	<li><a href="{% url 'lab_districts' %}">Lab. Tests - Districts</a></li>
 </ul>
 <ul>
 	<li><a href="{% url 'vl_sites' %}">Viral Load - Facilities</a></li>
+	<li><a href="{% url 'vl_districts' %}">Viral Load - Districts</a></li>
 </ul>
 {% endif %}
 
@@ -80,8 +86,10 @@
 
 {% if 'mnch' in request.path %}
 <ul>
-	<li><a href="{% url 'mnch_subcounties' %}">MNCH: Pregnancy &amp; Birth - Subcounties</a></li>
-	<li><a href="{% url 'mnch_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
+	<li><a href="{% url 'mnch_preg_birth_subcounties' %}">MNCH: Pregnancy &amp; Birth - Subcounties</a></li>
+	<li><a href="{% url 'mnch_preg_birth_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
+	<li><a href="{% url 'mnch_pnc_child_subcounties' %}">MNCH: PNC, Neonatal and Child Health - Subcounties</a></li>
+	<li><a href="{% url 'mnch_pnc_child_districts' %}">MNCH: PNC, Neonatal and Child Health - Districts</a></li>
 </ul>
 {% endif %}
 

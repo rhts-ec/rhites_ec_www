@@ -12,19 +12,45 @@
 	</style>
 	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
 	<script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
-	<title>HTS (Facilities)</title>
+	<title>{% block title %}<<Dashboard Page Title>>{% endblock %}</title>
 </head>
 <body>
-<h2>HIV Testing and Counselling - By Facilities scorecard</h2>
+<h2>{% block heading %}&lt;&lt;Dashboard Heading&gt;&gt;{% endblock %}</h2>
 <span class="no-print"><a href="{% url 'index' %}">Return to homepage</a></span>
 <h3>{{ period_desc }} ({{ request.GET.period }})</h3>
 
 <div class="w3-bar w3-row-padding no-print">
-<form class="w3-bar-item" style="width:75%" action="{% url 'hts_sites' %}">
+<form class="w3-bar-item" style="width:75%" action="{{ request.path }}">
 <!-- <div class="w3-cell w3-quarter">
 <input class="w3-input w3-border" type="text">
 <label>Location</label>
 </div> -->
+{% if start_period and end_period %}
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="start_period">
+	{% for p in period_list %}
+	{% if p == start_period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>Start Period</label>
+</div>
+<div class="w3-cell w3-quarter">
+<select class="w3-input w3-border" name="end_period">
+	{% for p in period_list %}
+	{% if p == end_period %}
+	<option selected="selected">{{ p }}</option>
+	{% else %}
+	<option>{{ p }}</option>
+	{% endif %}
+	{% endfor %}
+</select>
+<label>End Period</label>
+</div>
+{% else %}
 <div class="w3-cell w3-quarter">
 <select class="w3-input w3-border" name="period">
 	{% for p in period_list %}
@@ -37,6 +63,7 @@
 </select>
 <label>Period</label>
 </div>
+{% endif %}
 <div class="w3-cell w3-quarter">
 <select class="w3-input w3-border" name="district" onchange="this.form.submit();">
 	<option value="">All districts</option>
@@ -60,9 +87,9 @@
 {% for ls in legend_sets %}
 {% for l in ls.legends reversed %}
 {% if forloop.first %}
-<table class="w3-table w3-bordered w3-bar-item w3-right" style="width: 12em;" border="1">
+<table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
 	<thead>
-		<tr><th>Legend: {{ ls.name }}</th></tr>
+		<tr><th style="width: 10em">Legend: {{ ls.name }}</th></tr>
 	</thead>
 	<tbody>
 {% endif %}
@@ -77,19 +104,24 @@
 {% endfor %}
 </div>
 
-
+{% block content %}
 <div class="w3-container">
+	{% if excel_url %}
 <span class="w3-small no-print">
-<a href="{% url 'hts_sites_excel' %}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+<a href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+{% if csv_url %}
+<br/>
+<a href="{{ csv_url }}?{{ request.META.QUERY_STRING }}">Download as CSV</a>
+{% endif %}
 </span>
-
-<div class="w3-container">
+	{% endif %}
 	<table class="w3-table w3-border w3-bordered" border="1">
 	<thead class="w3-gray">
 	<tr>
-		<th class="w3-center" rowspan="2">District</th>
-		<th class="w3-center" rowspan="2">Subcounty</th>
-		<th class="w3-center" rowspan="2">Facility</th>
+		{% for h in ou_headers %}
+		<th class="w3-center" rowspan="2">{{ h }}</th>
+		{% endfor %}
+
 		{% for de_name, cat_combo in data_element_names %}
 		{% if cat_combo %}
 		<th class="w3-center">{{ de_name }}</th>
@@ -107,26 +139,21 @@
 	</tr>
 	</thead>
 	<tbody>
-	{% for org_path,group in grouped_data %}
+	{% for ou_path, group in grouped_data %}
 	<tr>
-		{% for op in org_path %}
-		<td>{{ op }}</td>
+		{% for ou in ou_path %}
+		<td>{{ ou }}</td>
 		{% endfor %}
 		{% for x in group %}
-		{% if forloop.counter0 >= 15 %}
-		{% endif %}
-		{% if x.de_name == 'Tested (%)' or x.de_name == 'HIV+ (%)' %}
-		<td class="w3-right-align traffic_light_90_75_unbounded">{{ x.numeric_sum|floatformat }}</td>
-		{% elif x.de_name == 'Linked (%)' %}
-		<td class="w3-right-align traffic_light_90_80">{{ x.numeric_sum|floatformat }}</td>
-		{% else %}
-		<td class="w3-right-align">{{ x.numeric_sum|floatformat }}</td>
-		{% endif %}
+		{% block datacell %}
+		<td class="w3-right-align{% for mapping_indices,canonical_name in legend_set_mappings.items %}{% if forloop.parentloop.counter0 in mapping_indices %} {{ canonical_name }}{% endif %}{% endfor %}">{{ x.numeric_sum|floatformat }}</td>
+		{% endblock datacell %}
 		{% endfor %}
 	</tr>
 	{% endfor %}
 	</tbody>
 	</table>
 </div>
+{% endblock %}
 </body>
 </html>

@@ -43,7 +43,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else
-    if ( has( a[i].className, "traffic_light_90_75_unbounded" ) ) {
+    if ( has( a[i].className, "0_75_90_none_red_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -55,7 +55,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "traffic_light_90_80" ) ) {
+    if ( has( a[i].className, "0_80_90_100_red_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
@@ -79,7 +79,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "traffic_light_80_50_unbounded" ) ) {
+    if ( has( a[i].className, "0_50_80_none_red_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -91,7 +91,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "traffic_light_50_25_unbounded" ) ) {
+    if ( has( a[i].className, "0_25_50_none_red_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -103,7 +103,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "traffic_light_71_unbounded" ) ) {
+    if ( has( a[i].className, "0_71_none_yellow_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -125,7 +125,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_good_80_unbounded" ) ) {
+    if ( has( a[i].className, "unary_good_80_unbounded" ) || has( a[i].className, "80_none_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0) {
@@ -137,7 +137,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_good_80" ) ) {
+    if ( has( a[i].className, "unary_good_80" )  || has( a[i].className, "80_100_green" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
@@ -149,7 +149,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_bad_half_percent" ) ) {
+    if ( has( a[i].className, "0.5_none_red" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
@@ -161,7 +161,7 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else 
-    if ( has( a[i].className, "unary_bad_4_orange" ) ) {
+    if ( has( a[i].className, "4_none_orange" ) ) {
       var percent_val = extractNumber(a[i]);
 
       if ( percent_val != null && percent_val >= 0 && percent_val <= 100) {
@@ -313,6 +313,54 @@ addEvent( window, "load", function() {
         if ( percent_val >= 15 ) percent_categ = "w3-red";
         else if ( percent_val >= 10 ) percent_categ = "";
         else if ( percent_val >= 6 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_1.1_1.4_none_green_yellow_red" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 1.4 ) percent_categ = "w3-red";
+        else if ( percent_val >= 1.1 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-green";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_20_30_none_green_yellow_red" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 30 ) percent_categ = "w3-red";
+        else if ( percent_val >= 20 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_70_90_none_red_yellow_green" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 90 ) percent_categ = "w3-green";
+        else if ( percent_val >= 70 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
+    if ( has( a[i].className, "0_80_97_none_red_yellow_green" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 97 ) percent_categ = "w3-green";
+        else if ( percent_val >= 80 ) percent_categ = "w3-yellow";
         else percent_categ = "w3-red";
         a[i].className += (" " + percent_categ);
         a[i].style.fontWeight = "bolder";
