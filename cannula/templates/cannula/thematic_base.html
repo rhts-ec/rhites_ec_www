@@ -51,6 +51,11 @@
                             <span class="fa fa-search"></span> Filter
                         </button>                               
                     </div> <!-- form group [order by] --> 
+                    <div class="form-group pull-right">
+                        <button type="button" onclick="goBack()" class="btn btn-success">
+                            <span class="fa fa-backward"></span> Go Back
+                        </button>                               
+                    </div> <!-- form group [back button] --> 
                 </form>
             </div>
         </div>
@@ -136,4 +141,9 @@
 
 {% block extra-js %}
     <script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
+    <script type="text/javascript">
+        function goBack() {
+            window.history.back();
+        }
+    </script>
 {% endblock %}
