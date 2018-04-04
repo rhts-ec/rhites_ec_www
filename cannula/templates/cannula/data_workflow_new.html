@@ -1,81 +1,117 @@
 {% extends "startmin/base.html" %}
+
+{% load l10n %}
+
 {% load widget_tweaks %}
-{% block page-header %} Upload New {{ menu_name }} Dataset {% endblock %}
-{% block title %}New Workflow{% endblock %}
+
+{% block heading %} Upload New* <span class="text-danger"> {{ menu_name }} Dataset </span> {% endblock %}
+
+{% block title %} New Workflow {% endblock %}
 
 {% block content %}
-<div class="w3-panel">
-<form id=upload_form enctype="multipart/form-data" method="post" action="">
-{% csrf_token %}
-    {{ form.file1|attr:"onchange:uploadFile()" }}
-<!--<input type="submit" value="Upload to Workflow" />-->
-    <progress id="progressBar" value="0" max="100" style="width:400px;"></progress>
-    <h3 id="status"></h3>
-    <p id="loaded_n_total"></p>
-</form>
-</div>
+
+<div class="panel tabbed-panel panel-default">
+        <div class="panel-heading clearfix">
+            <div class="panel-title pull-left">Browse and Upload Dataset File</div>
+            <div class="pull-right">
+                <ul class="nav nav-tabs">
+                    <li {% ifequal step 1 %} class="active" {% endifequal %}><a href="#tab-default-1" data-toggle="tab"><button type="button" class="btn btn-primary btn-circle">1</button> Browse &amp; Upload</a></li>
+                    <li {% ifequal step 2 %} class="active" {% endifequal %}><a href="#tab-default-2" data-toggle="tab"><button type="button" class="btn btn-primary btn-circle">2</button> View Uploaded Files</a></li>
+                    <li {% ifequal step 3 %} class="active" {% endifequal %}><a href="#tab-default-3" data-toggle="tab"><button type="button" class="btn btn-primary btn-circle">3</button> Load Data Elements</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="tab-content">
+                <div class="tab-pane fade {% ifequal step 1 %} in active {% endifequal %}" id="tab-default-1">
+                        <form enctype="multipart/form-data" method="post" action="">
+                            {% csrf_token %}
+                                {{ form }}
+                            <input type="submit" class="btn btn-success" value="Click to Start Upload" />
+                            <input type="hidden" name="menu_name" value="{{ menu_name }}" />
+                        </form>
+                    <!--<form id=upload_form enctype="multipart/form-data" method="post" action="">
+                    {% csrf_token %}
+                        {{ form.file1|attr:"onchange:uploadFile()" }}
+                        <progress id="progressBar" value="0" max="100" style="width:400px;"></progress>
+                        <h3 id="status"></h3>
+                        <p id="loaded_n_total"></p>
+                    </form>-->
+                
+                </div>
+                <div class="tab-pane fade {% ifequal step 2 %} in active {% endifequal %}" id="tab-default-2">
+                    {% if workflows %}
+                        <table class="table table-bordered table-striped"  width="100%">
+                            <thead class="w3-grey">
+                                <th>Filename</th><th>Uploaded At</th><th>Actions</th>
+                            </thead>
+                            <tbody>
+                                {% for wf in workflows %}
+                                    <tr>
+                                        <td>{{ wf.orig_filename }}</td><td>{{ wf.uploaded_at }}</td>
+                                        <td><a href="{% url 'data_workflow_detail' %}?wf_id={{ wf.id }}">View Details</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                </div>
+                <div class="tab-pane fade {% ifequal step 3 %} in active {% endifequal %}" id="tab-default-3">
+                    {% ifequal step 3 %}
+                        <h4>Workflow source: {{ srcdoc.orig_filename}} (Uploaded: {{srcdoc.uploaded_at}})</h4>
+                            <!--<a href="{% url 'data_workflow_listing' %}">Back to list of Data Workflows</a>-->
+
+                            <form method="post" id="workflow_actions">{% csrf_token %}
+                            <div class="w3-panel">
+                            <p>Individual Data Values: {{ num_values|localize }}</p>
+
+                            <p>
+                            Data Elements
+                            <ul style="column-count: 3">
+                                {% for de in data_elements %}
+                                <li>
+                                    {{ de.name }} {% if de.alias %}<i>[aliased as "{{ de.alias }}"]</i>{% endif %}
+                                    <a href="{% url 'data_element_alias' %}?de_id={{ de.id }}&wf_id={{ request.GET.wf_id }}">Edit Alias</a>
+                                </li>
+                                {% empty %}
+                                <li>
+                                    <button type="submit" form="workflow_actions" name="load_values">Load Data Elements/Values</button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            </p>
+
+                            <div>
+                            Validation Rules
+                            <ul style="column-count: 3">
+                                {% for rule in validation_rules %}
+                                <li>{{ rule.name }}: "{{ rule.expression }}"</li>
+                                {% empty %}
+                                {% if data_elements|length > 0 %}
+                                <li>
+                                    <button type="submit" form="workflow_actions" name="load_validations">Load Validation Rules</button>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+                            </ul>
+                            </div>
+                            <div class="form-group pull-right">
+                                    <button type="button" onclick="goBack()" class="btn btn-success">
+                                        <span class="fa fa-backward"></span> Go Back
+                                    </button>                               
+                            </div> <!-- form group [back button] -->
+                            </div>
+                    {% endifequal %}
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra-js %}
     <script type="text/javascript">
-        function getCookie(name) {
-            var cookieValue = null;
-            if (document.cookie && document.cookie != '') {
-                var cookies = document.cookie.split(';');
-                for (var i = 0; i < cookies.length; i++) {
-                    var cookie = jQuery.trim(cookies[i]);
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        
-        function _(el) {
-            return document.getElementById(el);
-        }
-
-        function uploadFile() {
-            //var file = _("file1").files[0];
-            //alert(this.files);alert(this.FormData);
-            //var file = this.files[0];
-            var file = document.getElementById("id_file1");
-            // alert(file.name+" | "+file.size+" | "+file.type);
-            var menu_name = "{{ menu_name }}";
-            var ajax = new XMLHttpRequest();
-            ajax.upload.addEventListener("progress", progressHandler, false);
-            ajax.addEventListener("load", completeHandler, false);
-            ajax.addEventListener("error", errorHandler, false);
-            ajax.addEventListener("abort", abortHandler, false);
-            ajax.open("POST", "/data_workflow_new.php/" + menu_name + "/", true);
-            var csrftoken = getCookie('csrftoken');
-            ajax.setRequestHeader('X-CSRFToken', csrftoken);
-            var formdata = new FormData();
-            formdata.append("file1", file);
-            ajax.send(formdata);
-        }
-
-        function progressHandler(event) {
-            _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total;
-            var percent = (event.loaded / event.total) * 100;
-            _("progressBar").value = Math.round(percent);
-            _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
-        }
-
-        function completeHandler(event) {
-            _("status").innerHTML = event.target.responseText;
-            _("progressBar").value = 0; //wil clear progress bar after successful upload
-        }
-
-        function errorHandler(event) {
-            _("status").innerHTML = "Upload Failed";
-        }
-
-        function abortHandler(event) {
-            _("status").innerHTML = "Upload Aborted";
+        function goBack() {
+            window.history.back();
         }
     </script>
 {% endblock %}

@@ -459,7 +459,7 @@ def load_excel_to_datavalues(source_doc):
 
     db_cursor = connection.cursor()
 
-    wb = openpyxl.load_workbook(source_doc.file.path, read_only=True)
+    wb = openpyxl.load_workbook(source_doc.file1.path, read_only=True)
     logger.debug(wb.get_sheet_names())
 
     for ws_name in wb.get_sheet_names():

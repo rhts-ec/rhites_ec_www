@@ -437,15 +437,22 @@ def data_workflow_new(request, menu_name):
         form = SourceDocumentForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            return redirect('data_workflow_listing')
-        # else:
-        #     messages.error(request, "Error")
+            docs = SourceDocument.objects.all().annotate(num_values=Count('data_values'))
+            docs = docs.order_by('uploaded_at')
+
+            context = {
+                'workflows': docs,
+                'menu_name': menu_name,
+                'step': 2,
+            }
+            return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
     else:
         form = SourceDocumentForm()
 
     context = {
         'form': form,
-        'menu_name': menu_name
+        'menu_name': menu_name,
+        'step': 1,
     }
 
     return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
@@ -480,9 +487,10 @@ def data_workflow_detail(request):
         'num_values': num_values,
         'data_elements': doc_elements,
         'validation_rules': doc_rules,
+        'step': 3,
     }
-
-    return render(request, 'cannula/data_workflow_detail.html', context)
+    return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
+    # return render(request, 'cannula/data_workflow_detail.html', context)
 
 @login_required
 def data_workflow_listing(request):
