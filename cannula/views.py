@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, render_to_response, redirect
 from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When
 from django.db.models import Value, CharField
-from django.db.models.functions import Substr
+from django.db.models.functions import Substr, Concat
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.template import RequestContext
@@ -17,7 +17,7 @@ import openpyxl
 from . import dateutil, grabbag
 from .grabbag import default_zero, sum_zero, all_not_none, grouper
 
-from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
+from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict, get_validation_view_names
 from .forms import SourceDocumentForm, DataElementAliasForm
 
 from .dashboards import LegendSet
@@ -25,7 +25,8 @@ from .dashboards import LegendSet
 @login_required
 def index(request):
     context = {
-        'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
+        'validation_rules': ValidationRule.objects.all().annotate(view_name=Concat(Value('vw_validation_'), 'id')).values_list('id', 'name', 'view_name'),
+        'validation_views': get_validation_view_names(),
     }
     return render(request, 'cannula/index.html', context)
 
@@ -500,7 +501,7 @@ def dictfetchall(cursor):
     ]
 
 @login_required
-def validation_rule(request, output_format='HTML'):
+def validation_report(request, output_format='HTML'):
     from django.db import connection
     cursor = connection.cursor()
     vr_id = int(request.GET['id'])
@@ -585,7 +586,7 @@ def validation_rule(request, output_format='HTML'):
         'excel_url': make_excel_url(request.path)
     }
 
-    return render(request, 'cannula/validation_rule.html', context)
+    return render(request, 'cannula/validation_report.html', context)
 
 @login_required
 def data_element_alias(request):

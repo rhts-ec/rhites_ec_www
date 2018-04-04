@@ -94,8 +94,11 @@
 
 <h4>Validation Reports</h4>
 <ul>
-{% for id, name in validation_rules %}
-	<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
+{% for id, name, view_name in validation_rules %}
+	<li>
+		<a href="">{{name}}</a>
+		{% if view_name in validation_views %}: <a href="{% url 'validation_report' %}?id={{id}}&exclude_true">View Report</a>{% else %}{% endif %}
+	</li>
 {% endfor %}
 </ul>
 
