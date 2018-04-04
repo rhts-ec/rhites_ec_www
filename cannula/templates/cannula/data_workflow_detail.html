@@ -19,10 +19,6 @@ Data Elements
 		{{ de.name }} {% if de.alias %}<i>[aliased as "{{ de.alias }}"]</i>{% endif %}
 		<a href="{% url 'data_element_alias' %}?de_id={{ de.id }}&wf_id={{ request.GET.wf_id }}">Edit Alias</a>
 	</li>
-	{% empty %}
-	<li>
-		<button type="submit" form="workflow_actions" name="load_values">Load Data Elements/Values</button>
-	</li>
 	{% endfor %}
 </ul>
 </p>
@@ -32,13 +28,10 @@ Validation Rules
 <ul style="column-count: 3">
 	{% for rule in validation_rules %}
 	<li>{{ rule.name }}: "{{ rule.expression }}"</li>
-	{% empty %}
-	{% if data_elements|length > 0 %}
-	<li>
-		<button type="submit" form="workflow_actions" name="load_validations">Load Validation Rules</button>
-	</li>
-	{% endif %}
 	{% endfor %}
+	<li>
+		<button type="submit" form="workflow_actions" name="load_validations">Reload Validation Rules</button>
+	</li>
 </ul>
 </div>
 </div>

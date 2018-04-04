@@ -433,10 +433,18 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
 
 @login_required
 def data_workflow_new(request):
+    from .models import load_excel_to_datavalues, load_excel_to_validations
+
     if request.method == 'POST':
         form = SourceDocumentForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            src_doc = form.save()
+
+            all_values = load_excel_to_datavalues(src_doc)
+            for site_name, site_vals in all_values.items():
+                DataValue.objects.bulk_create(site_vals)
+            load_excel_to_validations(src_doc)
+            
             return redirect('data_workflow_listing')
     else:
         form = SourceDocumentForm()
@@ -449,18 +457,14 @@ def data_workflow_new(request):
 
 @login_required
 def data_workflow_detail(request):
-    from .models import load_excel_to_datavalues, load_excel_to_validations
+    from .models import load_excel_to_validations
 
     if 'wf_id' in request.GET:
         src_doc_id = int(request.GET['wf_id'])
         src_doc = get_object_or_404(SourceDocument, id=src_doc_id)
 
         if request.method == 'POST':
-            if 'load_values' in request.POST:
-                all_values = load_excel_to_datavalues(src_doc)
-                for site_name, site_vals in all_values.items():
-                    DataValue.objects.bulk_create(site_vals)
-            elif 'load_validations' in request.POST:
+            if 'load_validations' in request.POST:
                 load_excel_to_validations(src_doc)
 
             #TODO: redirect with to detail page?
