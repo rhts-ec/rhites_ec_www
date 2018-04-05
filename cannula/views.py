@@ -368,6 +368,8 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
     compliance_ls = LegendSet()
     compliance_ls.name = 'Compliance'
     compliance_ls.add_interval('green', 80, None)
+    compliance_ls.add_interval('yellow', 50, 80)
+    compliance_ls.add_interval('red', 0, 50)
     for i in range(len(periods)):
         compliance_ls.mappings[num_path_elements+len(periods)+i*2+1] = True
     legend_sets.append(compliance_ls)
