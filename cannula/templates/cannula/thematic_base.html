@@ -92,6 +92,27 @@
 
 {% block content %}
 <div class="row">
+    <span class="pull-right">
+        <div class="w3-bar w3-row-padding w3-small">
+            {% for ls in legend_sets %}
+            {% for l in ls.legends reversed %}
+            {% if forloop.first %}
+            <table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
+                <tr><th style="width: 10em" colspan="{{ ls.legends|length }}">Legend: {{ ls.name }}</th></tr><tr>
+            {% endif %}
+                    <td class="w3-{{l.color}} w3-right-align">
+                        {{l.start|yesno:",,<"}}{{l.start|default_if_none:""}}{% if l.start != None and l.end != None %} to {% endif %}{{l.end|default_if_none:""}}{{ l.end|yesno:",,+"}} %
+                    </td>
+            {% if forloop.last %}
+                </tr>
+            </table>
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+            </div>
+    </span>
+</div>
+<div class="row">
 	{% if excel_url %}
 <span class="w3-small no-print">
 <a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
@@ -135,30 +156,6 @@
 	{% endfor %}
 	</tbody>
 	</table>
-</div>
-<div class="row">
-    <span class="pull-right">
-        <div class="w3-bar w3-row-padding w3-small">
-            {% for ls in legend_sets %}
-            {% for l in ls.legends reversed %}
-            {% if forloop.first %}
-            <table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
-                <thead>
-                    <tr><th style="width: 10em">Legend: {{ ls.name }}</th></tr>
-                </thead>
-                <tbody>
-            {% endif %}
-                    <tr><td class="w3-{{l.color}} w3-right-align">
-                        {{l.start|yesno:",,<"}}{{l.start|default_if_none:""}}{% if l.start != None and l.end != None %} to {% endif %}{{l.end|default_if_none:""}}{{ l.end|yesno:",,+"}} %
-                    </td></tr>
-            {% if forloop.last %}
-                </tbody>
-            </table>
-            {% endif %}
-            {% endfor %}
-            {% endfor %}
-            </div>
-    </span>
 </div>
 {% endblock %}
 
