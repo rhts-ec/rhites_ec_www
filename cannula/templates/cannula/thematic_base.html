@@ -21,6 +21,32 @@
         <div class="panel panel-default">
             <div class="panel-body">
                 <form class="form-inline" role="form" action="{{ request.path }}">
+                    {% if start_period and end_period %}
+                    <div class="form-group">
+                        <label class="filter-col" style="margin-right:0;" for="pref-perpage">Start Period:</label>
+                        <select class="form-control" name="start_period">
+                            {% for p in period_list %}
+                            {% if p == start_period %}
+                            <option selected="selected">{{ p }}</option>
+                            {% else %}
+                            <option>{{ p }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>                               
+                    </div>
+                    <div class="form-group">
+                        <label class="filter-col" style="margin-right:0;" for="pref-perpage">End Period:</label>
+                        <select class="form-control" name="end_period">
+                            {% for p in period_list %}
+                            {% if p == end_period %}
+                            <option selected="selected">{{ p }}</option>
+                            {% else %}
+                            <option>{{ p }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>                               
+                    </div>
+                    {% else %}
                     <div class="form-group">
                         <label class="filter-col" style="margin-right:0;" for="pref-perpage">Period:</label>
                         <select class="form-control" name="period">
@@ -33,6 +59,7 @@
                             {% endfor %}
                         </select>                               
                     </div> <!-- form group [rows] -->
+                    {% endif %}
                     <div class="form-group">
                         <label class="filter-col" style="margin-right:0;" for="pref-search">Coverage:</label>
                         <select class="form-control" name="district" onchange="this.form.submit();">
