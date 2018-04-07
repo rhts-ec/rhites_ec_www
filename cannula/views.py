@@ -30,6 +30,40 @@ def index(request):
     return render(request, 'cannula/index.html', context)
 
 @login_required
+def validation_rule_listing(request, thematic_area):
+    from django.db.models.functions import Concat
+    import functools
+    import operator
+
+    RULE_PREFIX_MAP = {
+        'hiv': ('PMT_', 'HCT_', 'HTS_'),
+        'malaria': ('MAL_',),
+        'mnch': ('MNCH_',),
+        'nutrition': ('NUT_',),
+        'tb': ('TB_',),
+        'lab': ('LAB_', 'VL_'),
+        'vmmc': ('VMMC_',),
+        'fp': ('FP_',),
+        'gbv': ('GBV_',),
+        'sc': ('SCM_',),
+        'qi': ('QI_',),
+    }
+
+    rule_prefixes = RULE_PREFIX_MAP.get(thematic_area)
+    if rule_prefixes:
+        rule_filters = [Q(name__istartswith=r_prefix) for r_prefix in rule_prefixes]
+        rule_filters_combined = functools.reduce(operator.__or__, rule_filters)
+        qs_vr = ValidationRule.objects.filter(rule_filters_combined)
+    else:
+        qs_vr = ValidationRule.objects.all()
+    qs_vr = qs_vr.annotate(expression=Concat('left_expr', Value(' '), 'operator', Value(' '), 'right_expr')).values_list('id', 'name', 'expression')
+
+    context = {
+        'validation_rules': qs_vr,
+    }
+    return render(request, 'cannula/validation_rule_listing.html', context)
+
+@login_required
 def data_elements(request):
     data_elements = DataElement.objects.order_by('name').all()
     return render(request, 'cannula/data_element_listing.html', {'data_elements': data_elements})

@@ -109,28 +109,28 @@
                 <a href="{% url 'index' %}"><i class="fa fa-table fa-fw"></i> Validation Reports <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
                     <li>
-                        <a href="#">HIV</a>
+                        <a href="{% url 'validation_rule_listing' 'hiv' %}">HIV</a>
                     </li>
                     <li>
-                        <a href="#">Malaria</a>
+                        <a href="{% url 'validation_rule_listing' 'malaria' %}">Malaria</a>
                     </li>
                     <li>
-                        <a href="#">Maternal &amp; Child Health</a>
+                        <a href="{% url 'validation_rule_listing' 'mnch' %}">Maternal &amp; Child Health</a>
                     </li>
                     <li>
-                        <a href="#">Nutrition</a>
+                        <a href="{% url 'validation_rule_listing' 'nutrition' %}">Nutrition</a>
                     </li>
                     <li>
-                        <a href="#">Tuberclosis</a>
+                        <a href="{% url 'validation_rule_listing' 'tb' %}">Tuberclosis &amp; TB/HIV</a>
                     </li>
                     <li>
-                        <a href="#">Lab Tests</a>
+                        <a href="{% url 'validation_rule_listing' 'lab' %}">Lab Tests</a>
                     </li>
                     <li>
-                        <a href="#">VMMC</a>
+                        <a href="{% url 'validation_rule_listing' 'vmmc' %}">VMMC</a>
                     </li>
                     <li>
-                        <a href="#">Family Planning</a>
+                        <a href="{% url 'validation_rule_listing' 'fp' %}">Family Planning</a>
                     </li>
                 </ul>
             </li>

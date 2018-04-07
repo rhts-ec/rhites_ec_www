@@ -1,0 +1,12 @@
+{% extends "startmin/base.html" %}
+{% block title %}RHITES-EC Performance Monitoring Tool - Home{% endblock %}
+{% block page-header %}Validation Rules &amp; Reports{% endblock %}
+{% block content %}
+
+<h4>Validation Rules &amp; Reports</h4>
+<ul>
+{% for id, name, expression in validation_rules %}
+	<li>{{name}}: {{ expression }} <a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">View Report</a></li>
+{% endfor %}
+</ul>
+{% endblock %}
