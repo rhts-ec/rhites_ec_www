@@ -551,7 +551,7 @@ def validation_expr_elements(expr):
     return tuple(filter(None, m))
 
 def load_excel_to_validations(source_doc):
-    wb = openpyxl.load_workbook(source_doc.file.path) #TODO: ensure we close the workbook file. use a context manager?
+    wb = openpyxl.load_workbook(source_doc.file1.path) #TODO: ensure we close the workbook file. use a context manager?
     logger.debug(wb.get_sheet_names())
 
     for ws_name in wb.get_sheet_names():
