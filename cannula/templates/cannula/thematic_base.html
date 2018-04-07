@@ -95,7 +95,7 @@
     <span class="pull-right">
         <div class="w3-bar w3-row-padding w3-small">
             {% for ls in legend_sets %}
-            {% for l in ls.legends reversed %}
+            {% for l in ls.legends %}
             {% if forloop.first %}
             <table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
                 <tr><th style="width: 10em" colspan="{{ ls.legends|length }}">Legend: {{ ls.name }}</th></tr><tr>
