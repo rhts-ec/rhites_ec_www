@@ -570,15 +570,13 @@ def load_excel_to_validations(source_doc):
             l_element_names = validation_expr_elements(l_exp)
             r_element_names = validation_expr_elements(r_exp)
             element_names = l_element_names + r_element_names
-            bad_rules = ['Mal_1', 'Mal_6', 'Mal_7', 'Mal_11']
-            if len(element_names) > 0 and len(l_element_names) > 0 and len(r_element_names) > 0 and validation_name not in bad_rules: #TODO: exclude dodgy rule for demo
-                try:
-                    vr = ValidationRule.objects.get(name=validation_name)
-                    vr.left_expr, vr.right_expr, vr.operator = l_exp, r_exp, op
-                except ValidationRule.DoesNotExist as e:
-                    vr = ValidationRule(name=validation_name, left_expr=l_exp, right_expr=r_exp, operator=op)
-                vr.save()
-                print(vr.view_name())
+            try:
+                vr = ValidationRule.objects.get(name=validation_name)
+                vr.left_expr, vr.right_expr, vr.operator = l_exp, r_exp, op
+            except ValidationRule.DoesNotExist as e:
+                vr = ValidationRule(name=validation_name, left_expr=l_exp, right_expr=r_exp, operator=op)
+            vr.save()
+            print(vr.view_name())
 
     return
 
@@ -787,15 +785,16 @@ class ValidationRule(models.Model):
     def view_name(self):
         return 'vw_validation_%d' % (self.id,)
 
-    def save(self, *args, **kwargs):
+    def instanciate(self):
         from django.db import connection
 
-        super(ValidationRule, self).save(*args, **kwargs)
-        
         # parse and collect data element names
         l_element_names = validation_expr_elements(self.left_expr)
         r_element_names = validation_expr_elements(self.right_expr)
         element_names = l_element_names + r_element_names
+
+        if len(l_element_names) == 0 or len(r_element_names) == 0:
+            return # short-circuit, rule can be instanciated later
         
         # modify list of data elements
         new_meta_list = query_de_meta(element_names)
@@ -807,14 +806,18 @@ class ValidationRule(models.Model):
             if de_meta not in curr_meta_list:
                 self.data_elements.add(DataElement.objects.get(id=de_meta.id))
 
-        super(ValidationRule, self).save(*args, **kwargs)
-
         # create the view
         sql = mk_validation_rule_sql(self.expression(), element_names)
         view_sql = 'CREATE OR REPLACE VIEW %s AS\n%s' % (self.view_name(), sql)
         cursor = connection.cursor()
         cursor.execute(view_sql, [])
 
+    def save(self, *args, **kwargs):
+        super(ValidationRule, self).save(*args, **kwargs)
+
+        self.instanciate()
+
+        super(ValidationRule, self).save(*args, **kwargs)
+
     def __str__(self):
         return self.name
-        
