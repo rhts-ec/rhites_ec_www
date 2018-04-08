@@ -16,7 +16,7 @@
 
 {% block data_filters_and_navigation %}
 <div class="row">
-    <h3>{{ period_desc }} ({{ request.GET.period }})</h3>
+    <h3>{{ period_desc }} ({% firstof request.GET.period periods %})</h3>
     <div id="filter-panel" class="filter-panel collapse in" style="height: auto;">
         <div class="panel panel-default">
             <div class="panel-body">
