@@ -544,7 +544,7 @@ def validation_expr_elements(expr):
     for de_tup in DataElement.objects.all().values_list('name', 'alias'):
         names.extend(de_tup)
     names = filter(None, names)
-    sorted_names = list(sorted(names, reverse=True)) # sort puts longest matches first
+    sorted_names = list(sorted(names, key=len, reverse=True)) # sort puts longest matches first
     DE_REGEX = '|'.join('%s' % (re.escape(de_name),) for de_name in sorted_names)
     m = re.findall(DE_REGEX, expr, flags=re.IGNORECASE)
     print(m)
@@ -789,11 +789,31 @@ class ValidationRule(models.Model):
         from django.db import connection
 
         # parse and collect data element names
-        l_element_names = validation_expr_elements(self.left_expr)
-        r_element_names = validation_expr_elements(self.right_expr)
+        l_element_names = validation_expr_elements(self.left_expr.replace('\n', ''))
+        r_element_names = validation_expr_elements(self.right_expr.replace('\n', ''))
         element_names = l_element_names + r_element_names
 
         if len(l_element_names) == 0 or len(r_element_names) == 0:
+            return # short-circuit, rule can be instanciated later
+        remainder = self.left_expr
+        for name in element_names:
+            remainder = remainder.replace(name, '')
+        remainder = remainder.replace('+', '')
+        remainder = remainder.replace('-', '')
+        remainder = remainder.replace('\n', '')
+        remainder = remainder.replace(' ', '')
+        if len(remainder):
+            print('REMAINDER: ', remainder)
+            return # short-circuit, rule can be instanciated later
+        remainder = self.right_expr
+        for name in element_names:
+            remainder = remainder.replace(name, '')
+        remainder = remainder.replace('+', '')
+        remainder = remainder.replace('-', '')
+        remainder = remainder.replace('\n', '')
+        remainder = remainder.replace(' ', '')
+        if len(remainder):
+            print('REMAINDER: ', remainder)
             return # short-circuit, rule can be instanciated later
         
         # modify list of data elements
