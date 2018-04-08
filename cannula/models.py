@@ -841,3 +841,9 @@ class ValidationRule(models.Model):
 
     def __str__(self):
         return self.name
+
+def get_validation_view_names():
+    from django.db import connection
+    cursor = connection.cursor()
+    cursor.execute('SELECT viewname FROM pg_catalog.pg_views WHERE viewowner=%s and viewname LIKE %s;', (settings.DATABASES['default']['USER'], 'vw_validation_%'))
+    return [x[0] for x in cursor]

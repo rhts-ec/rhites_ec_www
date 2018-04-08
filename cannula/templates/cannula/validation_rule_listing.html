@@ -5,8 +5,16 @@
 
 <h4>Validation Rules &amp; Reports</h4>
 <ul>
-{% for id, name, expression in validation_rules %}
-	<li>{{name}}: {{ expression }} <a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">View Report</a></li>
+{% for vr in validation_rules %}
+	<li>
+		{{vr.name}}: {{ vr.expression }}
+		{% if vr.view_name in validation_views %}<a href="{% url 'validation_rule' %}?id={{vr.id}}&exclude_true">View Report</a>{% endif %}
+	</li>
 {% endfor %}
 </ul>
+
+    <h4>Workflows</h4>
+    <p>
+        <a href="{% url 'data_workflow_listing' %}">Create/Edit/View Data Workflows</a>
+    </p>
 {% endblock %}

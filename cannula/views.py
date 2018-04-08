@@ -34,6 +34,7 @@ def validation_rule_listing(request, thematic_area):
     from django.db.models.functions import Concat
     import functools
     import operator
+    from cannula.models import get_validation_view_names
 
     RULE_PREFIX_MAP = {
         'hiv': ('PMT_', 'HCT_', 'HTS_'),
@@ -56,10 +57,11 @@ def validation_rule_listing(request, thematic_area):
         qs_vr = ValidationRule.objects.filter(rule_filters_combined)
     else:
         qs_vr = ValidationRule.objects.all()
-    qs_vr = qs_vr.annotate(expression=Concat('left_expr', Value(' '), 'operator', Value(' '), 'right_expr')).values_list('id', 'name', 'expression')
+    qs_vr = qs_vr.order_by('name').annotate(expression=Concat('left_expr', Value(' '), 'operator', Value(' '), 'right_expr'))
 
     context = {
         'validation_rules': qs_vr,
+        'validation_views': get_validation_view_names(),
     }
     return render(request, 'cannula/validation_rule_listing.html', context)
 
