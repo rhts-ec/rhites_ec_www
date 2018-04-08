@@ -155,7 +155,7 @@ class LegendSet():
             rule_ignore_blanks = Rule(type="containsBlanks", stopIfTrue=True)
             yield rule_ignore_blanks
 
-        for l_i in self.__legends:
+        for l_i in sorted(self.__legends, key=legend_sort_key):
             interval_color = _COLOR_MAP.get(l_i.color.upper(), l_i.color)
             color_fill = PatternFill(start_color=interval_color, end_color=interval_color, fill_type='solid')
             # use a contrasting text colour, like white, against dark coloured fills
