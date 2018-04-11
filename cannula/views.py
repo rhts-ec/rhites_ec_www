@@ -700,16 +700,16 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas = list()
 
     hts_de_names = ( #TODO: collation problem
-        '105-4 Number of clients who have been linked to care',
         '105-4 Number of Individuals who received HIV test results',
         '105-4 Number of Individuals who tested HIV positive',
+        '105-4 Number of clients who have been linked to care',
     )
     hts_short_names = (
         'Linked',
         'Tested',
         'HIV+',
     )
-    subcategory_names = ['(<15, Female)', '(<15, Male)', '(15+, Female)', '(15+, Male)']
+    subcategory_names = ['(15+, Female)', '(15+, Male)', '(<15, Female)', '(<15, Male)']
     de_positivity_meta = list(product(hts_de_names, subcategory_names))
 
     qs_positivity = DataValue.objects.what(*hts_de_names)
@@ -718,10 +718,10 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
     #TODO: cc_lt_15_f = CategoryCombo.from_cat_names(['Female', '<15']) gives a CategoryCombo instance that makes the Case statement clearer/safer
     qs_positivity = qs_positivity.annotate(
         cat_combo=Case(
-            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
-            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
-            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
-            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
             default=None, output_field=CharField()
         )
     )
@@ -808,8 +808,8 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
     val_pmtct_child2 = list(gen_raster)
 
     target_de_names = (
-        'HTC_TST_TARGET',
         'HTC_TST_POS_TARGET',
+        'HTC_TST_TARGET',
     )
     de_target_meta = list(product(target_de_names, subcategory_names))
 
@@ -820,7 +820,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
         qs_target = qs_target.where(filter_district)
     qs_target = qs_target.annotate(**FACILITY_LEVEL_ANNOTATIONS)
     qs_target = qs_target.when(filter_period[:4])
-    qs_target = qs_target.order_by(*OU_PATH_FIELDS, '-de_name', 'cat_combo', 'period') # note reversed order of data element names
+    qs_target = qs_target.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_target = qs_target.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
 
     gen_raster = grabbag.rasterize(ou_list, de_target_meta, val_target, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
@@ -833,7 +833,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (linked_under15_f, linked_under15_m, linked_over15_f, linked_over15_m, tst_under15_f, tst_under15_m, tst_over15_f, tst_over15_m, pos_under15_f, pos_under15_m, pos_over15_f, pos_over15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
+        (_group_ou_path, (tst_over15_f, tst_over15_m, tst_under15_f, tst_under15_m, pos_over15_f, pos_over15_m, pos_under15_f, pos_under15_m, linked_over15_f, linked_over15_m, linked_under15_f, linked_under15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -935,7 +935,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
         calculated_vals.append(linked_over15_m)
 
         # calculate the percentages
-        target_under15_f, target_under15_m, target_over15_f, target_over15_m, target_pos_under15_f, target_pos_under15_m, target_pos_over15_f, target_pos_over15_m, *further_vals = other_vals
+        target_pos_under15_f, target_pos_under15_m, target_pos_over15_f, target_pos_over15_m, target_over15_f, target_over15_m, target_under15_f, target_under15_m, *further_vals = other_vals
 
         if all_not_none(under15_f_sum, target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
             under15_f_percent = (under15_f_sum * 100) / target_under15_f['numeric_sum']
@@ -1085,15 +1085,16 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
         _group[1] = calculated_vals
     
     data_element_metas = list()
+    calc_subcategory_names = ('(<15, Female)', '(<15, Male)', '(15+, Female)', '(15+, Male)')
     
-    data_element_metas += list(product(['Tested',], subcategory_names))
-    data_element_metas += list(product(['HIV+',], subcategory_names))
+    data_element_metas += list(product(['Tested',], calc_subcategory_names))
+    data_element_metas += list(product(['HIV+',], calc_subcategory_names))
     data_element_metas += list(product(['Tested',], [None,]))
     data_element_metas += list(product(['HIV+',], [None,]))
-    data_element_metas += list(product(['Linked',], subcategory_names))
-    data_element_metas += list(product(['Tested (%)',], subcategory_names))
-    data_element_metas += list(product(['HIV+ (%)',], subcategory_names))
-    data_element_metas += list(product(['Linked (%)',], subcategory_names))
+    data_element_metas += list(product(['Linked',], calc_subcategory_names))
+    data_element_metas += list(product(['Tested (%)',], calc_subcategory_names))
+    data_element_metas += list(product(['HIV+ (%)',], calc_subcategory_names))
+    data_element_metas += list(product(['Linked (%)',], calc_subcategory_names))
 
     num_path_elements = len(ou_headers)
     legend_sets = list()
@@ -5543,7 +5544,7 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_target_all_meta, val_target_all, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_target_all2 = list(gen_raster)
 
-    subcategory_names = ('(<15, Female)', '(<15, Male)', '(15+, Female)', '(15+, Male)')
+    subcategory_names = ('(15+, Female)', '(15+, Male)', '(<15, Female)', '(<15, Male)')
     subcategory_names2 = ('(<1, Female)', '(<1, Male)', '(1-9, Female)', '(1-9, Male)', '(10-14, Female)', '(10-14, Male)', '(15+, Female)', '(15+, Male)')
     cc_lt_15 = ['<2 Years', '2 - < 5 Years (HIV Care)', '5 - 14 Years']
     cc_ge_15 = ['15 Years and above']
@@ -6213,9 +6214,9 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     val_targets2 = list(gen_raster)
 
     anc_de_names = (
+        '105-2.1 A17:HIV+ Pregnant Women already on ART before 1st ANC (ART-K)',
         '105-2.1 A1:ANC 1st Visit for women',
         '105-2.1 A1:ANC 1st Visit for women (No. in 1st Trimester)',
-        '105-2.1 A17:HIV+ Pregnant Women already on ART before 1st ANC (ART-K)',
         '105-2.1 A2:ANC 4th Visit for women',
         '105-2.1 A6:First dose IPT (IPT1)',
         '105-2.1 A7:Second dose IPT (IPT2)',
@@ -6255,7 +6256,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (catchment_pop, anc1, anc1_1st_trimester, anc_already_art, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, caesarian, *other_vals)) = _group
+        (_group_ou_path, (catchment_pop, anc_already_art, anc1, anc1_1st_trimester, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, caesarian, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
