@@ -544,14 +544,14 @@ def validation_expr_elements(expr):
     for de_tup in DataElement.objects.all().values_list('name', 'alias'):
         names.extend(de_tup)
     names = filter(None, names)
-    sorted_names = list(sorted(names, reverse=True)) # sort puts longest matches first
+    sorted_names = list(sorted(names, key=len, reverse=True)) # sort puts longest matches first
     DE_REGEX = '|'.join('%s' % (re.escape(de_name),) for de_name in sorted_names)
     m = re.findall(DE_REGEX, expr, flags=re.IGNORECASE)
     print(m)
     return tuple(filter(None, m))
 
 def load_excel_to_validations(source_doc):
-    wb = openpyxl.load_workbook(source_doc.file.path) #TODO: ensure we close the workbook file. use a context manager?
+    wb = openpyxl.load_workbook(source_doc.file1.path) #TODO: ensure we close the workbook file. use a context manager?
     logger.debug(wb.get_sheet_names())
 
     for ws_name in wb.get_sheet_names():
@@ -564,21 +564,22 @@ def load_excel_to_validations(source_doc):
         
         for row in ws.rows[1:]: # skip header row
             validation_name, l_exp, op, r_exp, *_ = [c.value for c in row]
+            op = op.replace(' ', '')
             if not l_exp or not op or not r_exp:
                 continue # ignore rows where any part of the rule is missing
+            if op not in ('>', '>=', '=', '<', '<='):
+                continue # ignore rows with an invalid operator
             print(validation_name, l_exp, op, r_exp)
             l_element_names = validation_expr_elements(l_exp)
             r_element_names = validation_expr_elements(r_exp)
             element_names = l_element_names + r_element_names
-            bad_rules = ['Mal_1', 'Mal_6', 'Mal_7', 'Mal_11']
-            if len(element_names) > 0 and len(l_element_names) > 0 and len(r_element_names) > 0 and validation_name not in bad_rules: #TODO: exclude dodgy rule for demo
-                try:
-                    vr = ValidationRule.objects.get(name=validation_name)
-                    vr.left_expr, vr.right_expr, vr.operator = l_exp, r_exp, op
-                except ValidationRule.DoesNotExist as e:
-                    vr = ValidationRule(name=validation_name, left_expr=l_exp, right_expr=r_exp, operator=op)
-                vr.save()
-                print(vr.view_name())
+            try:
+                vr = ValidationRule.objects.get(name=validation_name)
+                vr.left_expr, vr.right_expr, vr.operator = l_exp, r_exp, op
+            except ValidationRule.DoesNotExist as e:
+                vr = ValidationRule(name=validation_name, left_expr=l_exp, right_expr=r_exp, operator=op)
+            vr.save()
+            print(vr.view_name())
 
     return
 
@@ -787,15 +788,36 @@ class ValidationRule(models.Model):
     def view_name(self):
         return 'vw_validation_%d' % (self.id,)
 
-    def save(self, *args, **kwargs):
+    def instanciate(self):
         from django.db import connection
 
-        super(ValidationRule, self).save(*args, **kwargs)
-        
         # parse and collect data element names
-        l_element_names = validation_expr_elements(self.left_expr)
-        r_element_names = validation_expr_elements(self.right_expr)
+        l_element_names = validation_expr_elements(self.left_expr.replace('\n', ''))
+        r_element_names = validation_expr_elements(self.right_expr.replace('\n', ''))
         element_names = l_element_names + r_element_names
+
+        if len(l_element_names) == 0 or len(r_element_names) == 0:
+            return # short-circuit, rule can be instanciated later
+        remainder = self.left_expr
+        for name in element_names:
+            remainder = remainder.replace(name, '')
+        remainder = remainder.replace('+', '')
+        remainder = remainder.replace('-', '')
+        remainder = remainder.replace('\n', '')
+        remainder = remainder.replace(' ', '')
+        if len(remainder):
+            print('REMAINDER: ', remainder)
+            return # short-circuit, rule can be instanciated later
+        remainder = self.right_expr
+        for name in element_names:
+            remainder = remainder.replace(name, '')
+        remainder = remainder.replace('+', '')
+        remainder = remainder.replace('-', '')
+        remainder = remainder.replace('\n', '')
+        remainder = remainder.replace(' ', '')
+        if len(remainder):
+            print('REMAINDER: ', remainder)
+            return # short-circuit, rule can be instanciated later
         
         # modify list of data elements
         new_meta_list = query_de_meta(element_names)
@@ -807,14 +829,24 @@ class ValidationRule(models.Model):
             if de_meta not in curr_meta_list:
                 self.data_elements.add(DataElement.objects.get(id=de_meta.id))
 
-        super(ValidationRule, self).save(*args, **kwargs)
-
         # create the view
         sql = mk_validation_rule_sql(self.expression(), element_names)
         view_sql = 'CREATE OR REPLACE VIEW %s AS\n%s' % (self.view_name(), sql)
         cursor = connection.cursor()
         cursor.execute(view_sql, [])
 
+    def save(self, *args, **kwargs):
+        super(ValidationRule, self).save(*args, **kwargs)
+
+        self.instanciate()
+
+        super(ValidationRule, self).save(*args, **kwargs)
+
     def __str__(self):
         return self.name
-        
+
+def get_validation_view_names():
+    from django.db import connection
+    cursor = connection.cursor()
+    cursor.execute('SELECT viewname FROM pg_catalog.pg_views WHERE viewowner=%s and viewname LIKE %s;', (settings.DATABASES['default']['USER'], 'vw_validation_%'))
+    return [x[0] for x in cursor]

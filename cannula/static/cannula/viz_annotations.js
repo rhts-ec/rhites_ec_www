@@ -392,7 +392,7 @@ addEvent( window, "load", function() {
       var current_val = extractNumber(a[i]);
       if (current_val != null && 'previous' in a[i].attributes) {
         var previous_val = Number.parseFloat(a[i].attributes['previous'].value);
-        if (previous_val != null & previous_val != '') {
+        if (!Number.isNaN(previous_val) && !Number.isNaN(current_val) && (previous_val != null & previous_val != '')) {
           var percent_categ = "same";
           if ( current_val > previous_val ) percent_categ = "rise";
           else if ( current_val < previous_val ) percent_categ = "fall";

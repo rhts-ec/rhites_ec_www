@@ -13,6 +13,7 @@ urlpatterns = [
     url(r'scorecards/malaria/ipt_subcounties\.xls', views.malaria_ipt_scorecard, {'org_unit_level': 2, 'output_format': 'EXCEL'}, name='ipt_subcounties_excel'),
     url(r'scorecards/malaria/ipt_districts\.php', views.malaria_ipt_scorecard, {'org_unit_level': 1}, name='ipt_districts'),
     url(r'scorecards/malaria/ipt_districts\.xls', views.malaria_ipt_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='ipt_districts_excel'),
+    url(r'validation/(?P<thematic_area>\w+)/rules\.php', views.validation_rule_listing, name='validation_rule_listing'),
     url(r'validation_rule\.php', views.validation_rule, name='validation_rule'),
     url(r'data_workflow_new\.php/(?P<menu_name>.*)/$', views.data_workflow_new, name='data_workflow_new'),
     url(r'validation_rule\.xls', views.validation_rule, {'output_format': 'EXCEL'}, name='validation_rule_excel'),

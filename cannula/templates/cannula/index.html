@@ -92,11 +92,4 @@
 	<li><a href="{% url 'mnch_pnc_child_districts' %}">MNCH: PNC, Neonatal and Child Health - Districts</a></li>
 </ul>
 {% endif %}
-
-<h4>Validation Reports</h4>
-<ul>
-{% for id, name in validation_rules %}
-	<li><a href="{% url 'validation_rule' %}?id={{id}}&exclude_true">{{name}}</a></li>
-{% endfor %}
-</ul>
 {% endblock %}
