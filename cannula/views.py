@@ -5569,7 +5569,7 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     qs_targets = DataValue.objects.what(*targets_de_names)
     qs_targets = qs_targets.annotate(cat_combo=F('category_combo__name'))
-    qs_targets = qs_targets.filter(category_combo__name__in=subcategory_names2)
+    qs_targets = qs_targets.filter(category_combo__name__in=subcategory_names)
     if filter_district:
         qs_targets = qs_targets.where(filter_district)
     qs_targets = qs_targets.annotate(**FACILITY_LEVEL_ANNOTATIONS)
@@ -5605,45 +5605,13 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_art_new_meta, val_art_new, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_art_new2 = list(gen_raster)
     
-    art_new_lt_15_de_names = (
-        '106a ART No. of new clients started on ART at this facility during the quarter',
-    )
-    art_new_lt_15_short_names = (
-        'New on ART',
-    )
-    de_art_new_lt_15_meta = list(product(art_new_lt_15_short_names, subcategory_names[:2]))
-    data_element_metas += de_art_new_lt_15_meta
-
-    qs_art_new_lt_15 = DataValue.objects.what(*art_new_lt_15_de_names)
-    qs_art_new_lt_15 = qs_art_new_lt_15.annotate(de_name=Value(art_new_lt_15_short_names[0], output_field=CharField()))
-    qs_art_new_lt_15 = qs_art_new_lt_15.filter(Q(category_combo__categories__name='<2 Years')|Q(category_combo__categories__name='2 - < 5 Years (HIV Care)')|Q(category_combo__categories__name='5 - 14 Years'))
-    qs_art_new_lt_15 = qs_art_new_lt_15.annotate(
-        cat_combo=Case(
-            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
-            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
-            # When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
-            # When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
-            default=None, output_field=CharField()
-        )
-    )
-    if filter_district:
-        qs_art_new_lt_15 = qs_art_new_lt_15.where(filter_district)
-    qs_art_new_lt_15 = qs_art_new_lt_15.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_art_new_lt_15 = qs_art_new_lt_15.when(filter_period)
-    qs_art_new_lt_15 = qs_art_new_lt_15.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
-    val_art_new_lt_15 = qs_art_new_lt_15.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
-    val_art_new_lt_15 = list(val_art_new_lt_15)
-
-    gen_raster = grabbag.rasterize(ou_list, de_art_new_lt_15_meta, val_art_new_lt_15, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
-    val_art_new_lt_152 = list(gen_raster)
-    
     art_new_gt_15_de_names = (
         '106a ART No. of new clients started on ART at this facility during the quarter',
     )
     art_new_gt_15_short_names = (
         'New on ART',
     )
-    de_art_new_gt_15_meta = list(product(art_new_gt_15_short_names, subcategory_names[2:]))
+    de_art_new_gt_15_meta = list(product(art_new_gt_15_short_names, subcategory_names[:2]))
     data_element_metas += de_art_new_gt_15_meta
 
     qs_art_new_gt_15 = DataValue.objects.what(*art_new_gt_15_de_names)
@@ -5651,10 +5619,10 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
     qs_art_new_gt_15 = qs_art_new_gt_15.filter(Q(category_combo__categories__name='15 Years and above'))
     qs_art_new_gt_15 = qs_art_new_gt_15.annotate(
         cat_combo=Case(
-            # When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
-            # When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
-            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
-            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            # When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            # When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
             default=None, output_field=CharField()
         )
     )
@@ -5668,17 +5636,49 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     gen_raster = grabbag.rasterize(ou_list, de_art_new_gt_15_meta, val_art_new_gt_15, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_art_new_gt_152 = list(gen_raster)
+    
+    art_new_lt_15_de_names = (
+        '106a ART No. of new clients started on ART at this facility during the quarter',
+    )
+    art_new_lt_15_short_names = (
+        'New on ART',
+    )
+    de_art_new_lt_15_meta = list(product(art_new_lt_15_short_names, subcategory_names[2:]))
+    data_element_metas += de_art_new_lt_15_meta
+
+    qs_art_new_lt_15 = DataValue.objects.what(*art_new_lt_15_de_names)
+    qs_art_new_lt_15 = qs_art_new_lt_15.annotate(de_name=Value(art_new_lt_15_short_names[0], output_field=CharField()))
+    qs_art_new_lt_15 = qs_art_new_lt_15.filter(Q(category_combo__categories__name='<2 Years')|Q(category_combo__categories__name='2 - < 5 Years (HIV Care)')|Q(category_combo__categories__name='5 - 14 Years'))
+    qs_art_new_lt_15 = qs_art_new_lt_15.annotate(
+        cat_combo=Case(
+            # When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            # When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            default=None, output_field=CharField()
+        )
+    )
+    if filter_district:
+        qs_art_new_lt_15 = qs_art_new_lt_15.where(filter_district)
+    qs_art_new_lt_15 = qs_art_new_lt_15.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_art_new_lt_15 = qs_art_new_lt_15.when(filter_period)
+    qs_art_new_lt_15 = qs_art_new_lt_15.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_art_new_lt_15 = qs_art_new_lt_15.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_art_new_lt_15 = list(val_art_new_lt_15)
+
+    gen_raster = grabbag.rasterize(ou_list, de_art_new_lt_15_meta, val_art_new_lt_15, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_art_new_lt_152 = list(gen_raster)
 
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_target_all2, val_targets2, val_art_new2, val_art_new_lt_152, val_art_new_gt_152), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_target_all2, val_targets2, val_art_new2, val_art_new_gt_152, val_art_new_lt_152), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (target_all, target_under15_f, target_under15_m, target_over15_f, target_over15_m, art_new, art_new_under15_f, art_new_under15_m, art_new_over15_f, art_new_over15_m, *other_vals)) = _group
+        (_group_ou_path, (target_all, target_over15_f, target_over15_m, target_under15_f, target_under15_m, art_new, art_new_over15_f, art_new_over15_m, art_new_under15_f, art_new_under15_m, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -5694,30 +5694,6 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
         }
         perf_art_new_val.update(_group_ou_dict)
         calculated_vals.append(perf_art_new_val)
-
-        if all_not_none(art_new_under15_f['numeric_sum'], target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
-            perf_art_new_under15_f = 100 * art_new_under15_f['numeric_sum'] / target_under15_f['numeric_sum']
-        else:
-            perf_art_new_under15_f = None
-        perf_art_new_under15_f_val = {
-            'de_name': 'Perf% New on ART',
-            'cat_combo': '(<15, Female)',
-            'numeric_sum': perf_art_new_under15_f,
-        }
-        perf_art_new_under15_f_val.update(_group_ou_dict)
-        calculated_vals.append(perf_art_new_under15_f_val)
-
-        if all_not_none(art_new_under15_m['numeric_sum'], target_under15_m['numeric_sum']) and target_under15_m['numeric_sum']:
-            perf_art_new_under15_m = 100 * art_new_under15_m['numeric_sum'] / target_under15_m['numeric_sum']
-        else:
-            perf_art_new_under15_m = None
-        perf_art_new_under15_m_val = {
-            'de_name': 'Perf% New on ART',
-            'cat_combo': '(<15, Male)',
-            'numeric_sum': perf_art_new_under15_m,
-        }
-        perf_art_new_under15_m_val.update(_group_ou_dict)
-        calculated_vals.append(perf_art_new_under15_m_val)
 
         if all_not_none(art_new_over15_f['numeric_sum'], target_over15_f['numeric_sum']) and target_over15_f['numeric_sum']:
             perf_art_new_over15_f = 100 * art_new_over15_f['numeric_sum'] / target_over15_f['numeric_sum']
@@ -5743,13 +5719,37 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
         perf_art_new_over15_m_val.update(_group_ou_dict)
         calculated_vals.append(perf_art_new_over15_m_val)
 
+        if all_not_none(art_new_under15_f['numeric_sum'], target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
+            perf_art_new_under15_f = 100 * art_new_under15_f['numeric_sum'] / target_under15_f['numeric_sum']
+        else:
+            perf_art_new_under15_f = None
+        perf_art_new_under15_f_val = {
+            'de_name': 'Perf% New on ART',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': perf_art_new_under15_f,
+        }
+        perf_art_new_under15_f_val.update(_group_ou_dict)
+        calculated_vals.append(perf_art_new_under15_f_val)
+
+        if all_not_none(art_new_under15_m['numeric_sum'], target_under15_m['numeric_sum']) and target_under15_m['numeric_sum']:
+            perf_art_new_under15_m = 100 * art_new_under15_m['numeric_sum'] / target_under15_m['numeric_sum']
+        else:
+            perf_art_new_under15_m = None
+        perf_art_new_under15_m_val = {
+            'de_name': 'Perf% New on ART',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': perf_art_new_under15_m,
+        }
+        perf_art_new_under15_m_val.update(_group_ou_dict)
+        calculated_vals.append(perf_art_new_under15_m_val)
+
         _group[1].extend(calculated_vals)
 
     data_element_metas += list(product(['Perf% New on ART'], (None,)))
-    data_element_metas += list(product(['Perf% New on ART'], ('(<15, Female)',)))
-    data_element_metas += list(product(['Perf% New on ART'], ('(<15, Male)',)))
     data_element_metas += list(product(['Perf% New on ART'], ('(15+, Female)',)))
     data_element_metas += list(product(['Perf% New on ART'], ('(15+, Male)',)))
+    data_element_metas += list(product(['Perf% New on ART'], ('(<15, Female)',)))
+    data_element_metas += list(product(['Perf% New on ART'], ('(<15, Male)',)))
 
 
     num_path_elements = len(ou_headers)
@@ -5882,7 +5882,7 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_target_all_meta, val_target_all, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_target_all2 = list(gen_raster)
 
-    subcategory_names = ('(<15, Female)', '(<15, Male)', '(15+, Female)', '(15+, Male)')
+    subcategory_names = ('(15+, Female)', '(15+, Male)', '(<15, Female)', '(<15, Male)')
     subcategory_names2 = ('(<1, Female)', '(<1, Male)', '(1-9, Female)', '(1-9, Male)', '(10-14, Female)', '(10-14, Male)', '(15+, Female)', '(15+, Male)')
     cc_lt_15 = ['<2 Years', '2 - < 5 Years (HIV Care)', '5 - 14 Years']
     cc_ge_15 = ['15 Years and above']
@@ -5938,40 +5938,6 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_art_active_meta, val_art_active, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_art_active2 = list(gen_raster)
     
-    art_active_lt_15_de_names = (
-        '106a ART No. active on ART on 1st line ARV regimen',
-        '106a ART No. active on ART on 2nd line ARV regimen',
-        '106a ART No. active on ART on 3rd line or higher ARV regimen',
-    )
-    art_active_lt_15_short_names = (
-        'Active on ART',
-    )
-    de_art_active_lt_15_meta = list(product(art_active_lt_15_short_names, subcategory_names[:2]))
-    data_element_metas += de_art_active_lt_15_meta
-
-    qs_art_active_lt_15 = DataValue.objects.what(*art_active_lt_15_de_names)
-    qs_art_active_lt_15 = qs_art_active_lt_15.annotate(de_name=Value(art_active_lt_15_short_names[0], output_field=CharField()))
-    qs_art_active_lt_15 = qs_art_active_lt_15.filter(Q(category_combo__categories__name='<2 Years')|Q(category_combo__categories__name='2 - < 5 Years (HIV Care)')|Q(category_combo__categories__name='5 - 14 Years'))
-    qs_art_active_lt_15 = qs_art_active_lt_15.annotate(
-        cat_combo=Case(
-            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
-            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
-            # When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
-            # When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
-            default=None, output_field=CharField()
-        )
-    )
-    if filter_district:
-        qs_art_active_lt_15 = qs_art_active_lt_15.where(filter_district)
-    qs_art_active_lt_15 = qs_art_active_lt_15.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_art_active_lt_15 = qs_art_active_lt_15.when(filter_period)
-    qs_art_active_lt_15 = qs_art_active_lt_15.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
-    val_art_active_lt_15 = qs_art_active_lt_15.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
-    val_art_active_lt_15 = list(val_art_active_lt_15)
-
-    gen_raster = grabbag.rasterize(ou_list, de_art_active_lt_15_meta, val_art_active_lt_15, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
-    val_art_active_lt_152 = list(gen_raster)
-    
     art_active_gt_15_de_names = (
         '106a ART No. active on ART on 1st line ARV regimen',
         '106a ART No. active on ART on 2nd line ARV regimen',
@@ -5980,7 +5946,7 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     art_active_gt_15_short_names = (
         'Active on ART',
     )
-    de_art_active_gt_15_meta = list(product(art_active_gt_15_short_names, subcategory_names[2:]))
+    de_art_active_gt_15_meta = list(product(art_active_gt_15_short_names, subcategory_names[:2]))
     data_element_metas += de_art_active_gt_15_meta
 
     qs_art_active_gt_15 = DataValue.objects.what(*art_active_gt_15_de_names)
@@ -5988,10 +5954,10 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     qs_art_active_gt_15 = qs_art_active_gt_15.filter(Q(category_combo__categories__name='15 Years and above'))
     qs_art_active_gt_15 = qs_art_active_gt_15.annotate(
         cat_combo=Case(
-            # When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
-            # When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
-            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
-            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            # When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            # When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
             default=None, output_field=CharField()
         )
     )
@@ -6005,17 +5971,51 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     gen_raster = grabbag.rasterize(ou_list, de_art_active_gt_15_meta, val_art_active_gt_15, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_art_active_gt_152 = list(gen_raster)
+    
+    art_active_lt_15_de_names = (
+        '106a ART No. active on ART on 1st line ARV regimen',
+        '106a ART No. active on ART on 2nd line ARV regimen',
+        '106a ART No. active on ART on 3rd line or higher ARV regimen',
+    )
+    art_active_lt_15_short_names = (
+        'Active on ART',
+    )
+    de_art_active_lt_15_meta = list(product(art_active_lt_15_short_names, subcategory_names[2:]))
+    data_element_metas += de_art_active_lt_15_meta
+
+    qs_art_active_lt_15 = DataValue.objects.what(*art_active_lt_15_de_names)
+    qs_art_active_lt_15 = qs_art_active_lt_15.annotate(de_name=Value(art_active_lt_15_short_names[0], output_field=CharField()))
+    qs_art_active_lt_15 = qs_art_active_lt_15.filter(Q(category_combo__categories__name='<2 Years')|Q(category_combo__categories__name='2 - < 5 Years (HIV Care)')|Q(category_combo__categories__name='5 - 14 Years'))
+    qs_art_active_lt_15 = qs_art_active_lt_15.annotate(
+        cat_combo=Case(
+            # When(Q(category_combo__categories__name__in=cc_ge_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[0])),
+            # When(Q(category_combo__categories__name__in=cc_ge_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[1])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & Q(category_combo__name__contains='Female'), then=Value(subcategory_names[2])),
+            When(Q(category_combo__categories__name__in=cc_lt_15) & ~Q(category_combo__name__contains='Female'), then=Value(subcategory_names[3])),
+            default=None, output_field=CharField()
+        )
+    )
+    if filter_district:
+        qs_art_active_lt_15 = qs_art_active_lt_15.where(filter_district)
+    qs_art_active_lt_15 = qs_art_active_lt_15.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_art_active_lt_15 = qs_art_active_lt_15.when(filter_period)
+    qs_art_active_lt_15 = qs_art_active_lt_15.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_art_active_lt_15 = qs_art_active_lt_15.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_art_active_lt_15 = list(val_art_active_lt_15)
+
+    gen_raster = grabbag.rasterize(ou_list, de_art_active_lt_15_meta, val_art_active_lt_15, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_art_active_lt_152 = list(gen_raster)
 
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_target_all2, val_targets2, val_art_active2, val_art_active_lt_152, val_art_active_gt_152), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_target_all2, val_targets2, val_art_active2, val_art_active_gt_152, val_art_active_lt_152), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (target_all, target_under15_f, target_under15_m, target_over15_f, target_over15_m, art_active, art_active_under15_f, art_active_under15_m, art_active_over15_f, art_active_over15_m, *other_vals)) = _group
+        (_group_ou_path, (target_all, target_over15_f, target_over15_m, target_under15_f, target_under15_m, art_active, art_active_over15_f, art_active_over15_m, art_active_under15_f, art_active_under15_m, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -6031,30 +6031,6 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
         }
         perf_art_active_val.update(_group_ou_dict)
         calculated_vals.append(perf_art_active_val)
-
-        if all_not_none(art_active_under15_f['numeric_sum'], target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
-            perf_art_active_under15_f = 100 * art_active_under15_f['numeric_sum'] / target_under15_f['numeric_sum']
-        else:
-            perf_art_active_under15_f = None
-        perf_art_active_under15_f_val = {
-            'de_name': 'Perf% Active on ART',
-            'cat_combo': '(<15, Female)',
-            'numeric_sum': perf_art_active_under15_f,
-        }
-        perf_art_active_under15_f_val.update(_group_ou_dict)
-        calculated_vals.append(perf_art_active_under15_f_val)
-
-        if all_not_none(art_active_under15_m['numeric_sum'], target_under15_m['numeric_sum']) and target_under15_m['numeric_sum']:
-            perf_art_active_under15_m = 100 * art_active_under15_m['numeric_sum'] / target_under15_m['numeric_sum']
-        else:
-            perf_art_active_under15_m = None
-        perf_art_active_under15_m_val = {
-            'de_name': 'Perf% Active on ART',
-            'cat_combo': '(<15, Male)',
-            'numeric_sum': perf_art_active_under15_m,
-        }
-        perf_art_active_under15_m_val.update(_group_ou_dict)
-        calculated_vals.append(perf_art_active_under15_m_val)
 
         if all_not_none(art_active_over15_f['numeric_sum'], target_over15_f['numeric_sum']) and target_over15_f['numeric_sum']:
             perf_art_active_over15_f = 100 * art_active_over15_f['numeric_sum'] / target_over15_f['numeric_sum']
@@ -6080,13 +6056,37 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
         perf_art_active_over15_m_val.update(_group_ou_dict)
         calculated_vals.append(perf_art_active_over15_m_val)
 
+        if all_not_none(art_active_under15_f['numeric_sum'], target_under15_f['numeric_sum']) and target_under15_f['numeric_sum']:
+            perf_art_active_under15_f = 100 * art_active_under15_f['numeric_sum'] / target_under15_f['numeric_sum']
+        else:
+            perf_art_active_under15_f = None
+        perf_art_active_under15_f_val = {
+            'de_name': 'Perf% Active on ART',
+            'cat_combo': '(<15, Female)',
+            'numeric_sum': perf_art_active_under15_f,
+        }
+        perf_art_active_under15_f_val.update(_group_ou_dict)
+        calculated_vals.append(perf_art_active_under15_f_val)
+
+        if all_not_none(art_active_under15_m['numeric_sum'], target_under15_m['numeric_sum']) and target_under15_m['numeric_sum']:
+            perf_art_active_under15_m = 100 * art_active_under15_m['numeric_sum'] / target_under15_m['numeric_sum']
+        else:
+            perf_art_active_under15_m = None
+        perf_art_active_under15_m_val = {
+            'de_name': 'Perf% Active on ART',
+            'cat_combo': '(<15, Male)',
+            'numeric_sum': perf_art_active_under15_m,
+        }
+        perf_art_active_under15_m_val.update(_group_ou_dict)
+        calculated_vals.append(perf_art_active_under15_m_val)
+
         _group[1].extend(calculated_vals)
 
     data_element_metas += list(product(['Perf% Active on ART'], (None,)))
-    data_element_metas += list(product(['Perf% Active on ART'], ('(<15, Female)',)))
-    data_element_metas += list(product(['Perf% Active on ART'], ('(<15, Male)',)))
     data_element_metas += list(product(['Perf% Active on ART'], ('(15+, Female)',)))
     data_element_metas += list(product(['Perf% Active on ART'], ('(15+, Male)',)))
+    data_element_metas += list(product(['Perf% Active on ART'], ('(<15, Female)',)))
+    data_element_metas += list(product(['Perf% Active on ART'], ('(<15, Male)',)))
 
 
     num_path_elements = len(ou_headers)
