@@ -520,12 +520,23 @@ def data_workflow_detail(request):
     else:
         raise Http404("Workflow does not exist or workflow id is missing/invalid")
 
+    editable_ids = ""
+    editable_names = ""
+    ids = ""
+    for de in doc_elements:
+        ids += " %s" % de.id
+        editable_ids += " editable_%s" % de.id
+        editable_names += "|%s" % de.name
+
     context = {
         'srcdoc': src_doc,
         'num_values': num_values,
         'data_elements': doc_elements,
         'validation_rules': doc_rules,
         'step': 3,
+        'ids': ids,
+        'editable': editable_ids,
+        'editable_names': editable_names,
     }
     return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
     # return render(request, 'cannula/data_workflow_detail.html', context)
@@ -639,6 +650,7 @@ def validation_rule(request, output_format='HTML'):
 
 @login_required
 def data_element_alias(request):
+    # import pdb;pdb.set_trace();
     if 'de_id' in request.GET:
         de_id = int(request.GET['de_id'])
         de = get_object_or_404(DataElement, id=de_id)
@@ -646,7 +658,11 @@ def data_element_alias(request):
         if request.method == 'POST':
             form = DataElementAliasForm(request.POST, instance=de)
             if form.is_valid():
-                form.save()
+                # form.save()
+                obj = form.save(commit=False)
+                obj.name = request.POST['value[name]']
+                obj.alias = request.POST['value[alias]']
+                obj.save()
                 de_url = '%s?wf_id=%d' % (reverse('data_workflow_detail'), int(request.GET['wf_id']))
                 return redirect(de_url, de)
         else:

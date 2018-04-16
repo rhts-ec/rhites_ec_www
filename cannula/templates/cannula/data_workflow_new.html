@@ -1,5 +1,7 @@
 {% extends "startmin/base.html" %}
 
+{% load staticfiles %}
+
 {% load l10n %}
 
 {% load widget_tweaks %}
@@ -63,7 +65,8 @@
                                 {% for de in data_elements %}
                                 <li>
                                     {{ de.name }} {% if de.alias %}<i>[aliased as "{{ de.alias }}"]</i>{% endif %}
-                                    <a href="{% url 'data_element_alias' %}?de_id={{ de.id }}&wf_id={{ request.GET.wf_id }}">Edit Alias</a>
+                                    <!--<a href="{% url 'data_element_alias' %}?de_id={{ de.id }}&wf_id={{ request.GET.wf_id }}">Edit Alias</a>-->
+                                    <a href="#" id="editable_{{de.id}}" data-name="alias" data-type="alias" data-params="{csrfmiddlewaretoken:'{{csrf_token}}'}" data-pk="{{ de.id }}">Edit Elias</a>
                                 </li>
                                 {% empty %}
                                 <li>
@@ -100,11 +103,34 @@
     </div>
 {% endblock %}
 
+{% block extra-styles %}
+    <link rel="stylesheet" type="text/css" href="{% static 'startmin/css/bootstrap-editable.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'startmin/css/alias.css' %}" />
+{% endblock %}
+
 {% block extra-js %}
+    <script language="javascript" src="{% static 'startmin/js/bootstrap-editable.min.js' %}"></script>
+    <script language="javascript" src="{% static 'startmin/js/alias.js' %}"></script>
     <script type="text/javascript">
+        
         function goBack() {
             window.history.back();
         }
+
+        // $.fn.editable.defaults.mode = 'inline';
+        $(document).ready(function() {
+            var ids = '{{ ids }}'.split(" ");
+            var editable = '{{ editable }}'.split(" ");
+            var editable_names = '{{ editable_names }}'.split("|");
+            for (var i = 0; i < editable.length; i++) {
+                $('#' + editable[i]).editable({ 
+                    url: "{% url 'data_element_alias' %}?de_id=" + ids[i] + "&wf_id={{ request.GET.wf_id }}", 
+                    title: 'Enter New Alias', 
+                    value: { name: "" + editable_names[i] + "", alias: "" } 
+                });
+            }
+        });
+
     </script>
 {% endblock %}
 
