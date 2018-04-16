@@ -43,7 +43,7 @@ def validation_rule_listing(request, thematic_area):
         'nutrition': ('NUT_',),
         'tb': ('TB_',),
         'lab': ('LAB_', 'VL_'),
-        'vmmc': ('VMMC_',),
+        'vmmc': ('VMC_',),
         'fp': ('FP_',),
         'gbv': ('GBV_',),
         'sc': ('SCM_',),
