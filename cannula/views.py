@@ -369,6 +369,7 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
     for _group in grouped_vals:
         (_group_ou_path, other_vals) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+        calculated_vals = list()
 
         totals, confirmeds = other_vals[:len(periods)], other_vals[len(periods):]
         for i, (total_val, confirmed_val) in enumerate(reversed(list(zip(totals, confirmeds)))):
@@ -384,6 +385,7 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
                 }
                 confirmed_rate_val.update(_group_ou_dict)
                 _group[1].insert(len(other_vals)-i*2, confirmed_rate_val)
+                calculated_vals.append(confirmed_rate_val)
 
         prev_vals = None
         for total_val, confirmed_val in zip(totals, confirmeds):
@@ -391,6 +393,11 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
                 total_val['previous'], confirmed_val['previous'] = prev_vals
             
             prev_vals = total_val['numeric_sum'], confirmed_val['numeric_sum']
+        prev_val = None
+        for calc_val in reversed(calculated_vals):
+            if prev_val:
+                calc_val['previous'] = prev_val
+            prev_val = calc_val['numeric_sum']
 
     data_element_names = list()
     for de_n in cases_de_names:
