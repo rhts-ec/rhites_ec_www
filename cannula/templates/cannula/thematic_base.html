@@ -98,7 +98,7 @@
             {% for l in ls.legends %}
             {% if forloop.first %}
             <table class="w3-table w3-bordered w3-bar-item w3-right" border="1">
-                <tr><th style="width: 10em" colspan="{{ ls.legends|length }}">Legend: {{ ls.name }}</th></tr><tr>
+                <tr><th style="width: 10em; white-space:nowrap" colspan="{{ ls.legends|length }}">Legend: {{ ls.name }}</th></tr><tr>
             {% endif %}
                     <td class="w3-{{l.color}} w3-right-align">
                         {{l.start|yesno:",,<"}}{{l.start|default_if_none:""}}{% if l.start != None and l.end != None %} to {% endif %}{{l.end|default_if_none:""}}{{ l.end|yesno:",,+"}} %
