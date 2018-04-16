@@ -200,6 +200,7 @@ class CategoryCombo(models.Model):
 CATEGORIES = [
     'Male',
     'Female',
+    'Outreach',
     '18 Mths-<5 Years',
     '5-<10 Years',
     '10-<15 Years',
@@ -235,7 +236,6 @@ CATEGORIES = [
     '1-4 Years',
     '5-14 Years',
     'Static',
-    'Outreach',
     # HMIS 105: 1.3 OPD
     '0-28 Days',
     '29 Days-4 Years',
@@ -295,7 +295,7 @@ CATEGORIES = [
 SEP_REGEX_STR = '[\s,]+' # one or more of these characters in sequence
 CATEGORY_REGEX_STR = '|'.join('%s?(%s)(?:[^\w]|$)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES, key=lambda x: (len(x), x), reverse=True))
 CATEGORY_REGEX = re.compile(CATEGORY_REGEX_STR)
-SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)' % (SEP_REGEX_STR, re.escape(categ)) for categ in CATEGORIES[2:]) #TODO: even more horrible a hack
+SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)(?:[^\w]|$)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES[3:], key=lambda x: (len(x), x), reverse=True)) #TODO: even more horrible a hack
 SEXLESS_CATEGORY_REGEX = re.compile(SEXLESS_CATEGORY_REGEX_STR)
 
 ICKY_CATEGS = (
@@ -303,6 +303,8 @@ ICKY_CATEGS = (
     'Male partners',
     'Female Condom',
     'Male Condom',
+    'Device Based (DC)',
+    'Surgical(SC)',
 )
 
 def unpack_data_element(de_long):
@@ -322,6 +324,7 @@ def unpack_data_element(de_long):
         if cat_str not in CATEGORIES:
             de_name = de_long
             cat_str = ''
+            category_list = () # empty tuple
 
     de_instance, created = DataElement.objects.get_or_create(name__iexact=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM', defaults={'name':de_name})
     if len(category_list):
