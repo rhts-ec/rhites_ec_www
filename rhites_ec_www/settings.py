@@ -41,6 +41,7 @@ INSTALLED_APPS = (
     'django_extensions',
     'mptt',
     'widget_tweaks',
+    'easyaudit',
     'cannula',
 )
 
@@ -53,6 +54,8 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+
+    'easyaudit.middleware.easyaudit.EasyAuditMiddleware',
 )
 
 ROOT_URLCONF = 'rhites_ec_www.urls'
