@@ -1,107 +1,113 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title>{{ rule.name }} - Validation Rule Check</title>
-	<style type="text/css">
-		.sparkline { display: none; width: 6em; height: 1ex;}
-		.sparkline_bar { display: none; width: 6em; height: 1ex;}
-		body { font-family: sans-serif; font-size: 12px; }
-		td.disabled_cell { background-color: rgb(200, 200, 200); }
-		@media print {
-			.no-print, .no-print * { display: none !important; }
-		}
-	</style>
-	{% load staticfiles %}
+{% extends "startmin/base.html" %}
+
+{% load staticfiles %}
+
+{% load l10n %}
+
+{% load widget_tweaks %}
+
+{% block heading %} Validation Reports: <span class="text-danger"> { {{ rule.expression }} } </span> {% endblock %}
+
+{% block title %} {{ rule.name }} - Validation Rule Check {% endblock %}
+
+{% block data_filters_and_navigation %}
+	<div class="row">
+		<div id="filter-panel" class="filter-panel collapse in" style="height: auto;">
+			<div class="panel panel-default">
+				<div class="panel-body">
+					<form class="form-inline" role="form" action="{% url 'validation_rule' %}">
+						<input type="hidden" name="id" value="{{ rule.id }}">
+							{% if 'exclude_true' in request.GET %}<input type="hidden" name="exclude_true"/>{% endif %}
+							<div class="form-group">
+							<label class="filter-col" style="margin-right:0;" for="pref-perpage">Coverage:</label>
+							<select class="w3-input w3-border" name="district" onchange="this.form.submit();">
+								<option value="">All districts</option>
+								{% for district in district_list %}
+								{% if district == request.GET.district %}
+								<option selected="selected">{{ district }}</option>
+								{% else %}
+								<option>{{ district }}</option>
+								{% endif %}
+								{% endfor %}
+							</select>                               
+						</div>
+						<div class="form-group">
+							<button type="submit" class="btn btn-primary">
+								<span class="fa fa-search"></span> Filter
+							</button>                               
+						</div> <!-- form group [order by] -->
+						<div class="form-group">
+							<span class="w3-small no-print">
+								<!-- Use javascript with location.replace to stop clicks from adding to the back/forward buttons -->
+								<label class="filter-col" style="margin-right:0;" for="pref-perpage">Toggle Validation Successes:</label>
+								{% if 'exclude_true' in request.GET %}
+								<!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}'); return false" href="">Show Validation Successes</a> -->
+								<button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING|cut:"exclude_true" }}'); return false">Show</button>
+								{% else %}
+								<!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}&exclude_true'); return false" href="">Hide Validation Successes</a> -->
+								<button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING }}&exclude_true'); return false">Hide</button>
+								{% endif %}
+							</span>                              
+						</div> <!-- form group [order by] -->
+						<div class="form-group pull-right">
+							<button type="button" onclick="goBack()" class="btn btn-success">
+								<span class="fa fa-backward"></span> Go Back
+							</button>                               
+						</div> <!-- form group [back button] --> 
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block content %}
+
+	{% if excel_url %}<br/>
+	<a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+	{% endif %}
+	</span>
+
+	<table class="w3-table w3-border w3-bordered w3-small" border="1">
+	<thead class="w3-gray">
+	<tr>
+		<th class="w3-center" rowspan="2">Period</th>
+		<th class="w3-center" rowspan="2">District</th>
+		<th class="w3-center" rowspan="2">Subcounty</th>
+		<th class="w3-center" rowspan="2">Facility</th>
+		<th class="w3-center" rowspan="2">Validates?</th>
+	</tr>
+	</thead>
+	{% for row in results %}
+	<tr>
+		<td>{% firstof row.month row.quarter row.year %}</td>
+		<td>{{ row.district }}</td>
+		<td>{{ row.subcounty }}</td>
+		<td>{{ row.facility }}</td>
+		<td {% if row.de_calc_1 %}class="w3-green"{% else %}class="w3-red"{% endif %}><b>{{ row.de_calc_1 }}</b>
+		{% if not row.de_calc_1 %}
+		{% for de_name, val in row.data_values.items %}
+		<br/>{{  de_name }}: {{ val }}
+		{% endfor %}
+		{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+	</table>
+	</div>
+{% endblock %}
+
+{% block old-styles %}
 	<link rel="stylesheet" type="text/css" href="{% static 'cannula/w3.css' %}" />
-	<script language="javascript" src="{% static 'cannula/viz_annotations.js' %}"></script>
-</head>
-<body>
-<h2>{{ rule.name }} - Validation Rule Check</h2>
-<span class="no-print"><a href="{% url 'index' %}">Return to homepage</a></span>
-<h3>{ {{ rule.expression }} }</h3>
+{% endblock %}
+{% block extra-styles %}{% endblock %}
 
-<div class="w3-bar w3-row-padding no-print">
-<form class="w3-bar-item" style="width:75%" action="{% url 'validation_rule' %}">
-<input type="hidden" name="id" value="{{ rule.id }}">
-	{% if 'exclude_true' in request.GET %}<input type="hidden" name="exclude_true"/>{% endif %}
-<!-- <div class="w3-cell w3-quarter">
-<input class="w3-input w3-border" type="text">
-<label>Location</label>
-</div> -->
-<!-- <div class="w3-cell w3-quarter">
-<select class="w3-input w3-border" name="period">
-	{% for p in period_list %}
-	{% if p == request.GET.period %}
-	<option selected="selected">{{ p }}</option>
-	{% else %}
-	<option>{{ p }}</option>
-	{% endif %}
-	{% endfor %}
-</select>
-<label>Period</label>
-</div> -->
-<div class="w3-cell w3-quarter">
-<select class="w3-input w3-border" name="district" onchange="this.form.submit();">
-	<option value="">All districts</option>
-	{% for district in district_list %}
-	{% if district == request.GET.district %}
-	<option selected="selected">{{ district }}</option>
-	{% else %}
-	<option>{{ district }}</option>
-	{% endif %}
-	{% endfor %}
-</select>
-<label>Coverage</label>
-</div>
-<div class="w3-cell w3-cell-bottom w3-quarter">
-<button class="w3-button w3-round-xxlarge w3-blue">Filter</button>
-</div>
-</form>
-</div>
+{% block extra-js %}
+	<script type="text/javascript">
+		
+		function goBack() {
+			window.history.back();
+		}
 
-<div class="w3-container">
-<span class="w3-small no-print">
-<!-- Use javascript with location.replace to stop clicks from adding to the back/forward buttons -->
-Toggle Validation Successes:
-{% if 'exclude_true' in request.GET %}
-<!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}'); return false" href="">Show Validation Successes</a> -->
-<button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING|cut:"exclude_true" }}'); return false">Show</button>
-{% else %}
-<!-- <a onclick="window.location.replace('{% url 'validation_rule' %}?id={{ rule.id }}&exclude_true'); return false" href="">Hide Validation Successes</a> -->
-<button onclick="window.location.replace('{% url 'validation_rule' %}?{{ request.META.QUERY_STRING }}&exclude_true'); return false">Hide</button>
-{% endif %}
-
-{% if excel_url %}<br/>
-<a href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
-{% endif %}
-</span>
-
-<table class="w3-table w3-border w3-bordered w3-small" border="1">
-<thead class="w3-gray">
-<tr>
-	<th class="w3-center" rowspan="2">Period</th>
-	<th class="w3-center" rowspan="2">District</th>
-	<th class="w3-center" rowspan="2">Subcounty</th>
-	<th class="w3-center" rowspan="2">Facility</th>
-	<th class="w3-center" rowspan="2">Validates?</th>
-</tr>
-</thead>
-{% for row in results %}
-<tr>
-	<td>{% firstof row.month row.quarter row.year %}</td>
-	<td>{{ row.district }}</td>
-	<td>{{ row.subcounty }}</td>
-	<td>{{ row.facility }}</td>
-	<td {% if row.de_calc_1 %}class="w3-green"{% else %}class="w3-red"{% endif %}><b>{{ row.de_calc_1 }}</b>
-	{% if not row.de_calc_1 %}
-	{% for de_name, val in row.data_values.items %}
-	<br/>{{  de_name }}: {{ val }}
-	{% endfor %}
-	{% endif %}
-	</td>
-</tr>
-{% endfor %}
-</table>
-</div>
-</body>
-</html>
+	</script>
+{% endblock %}
