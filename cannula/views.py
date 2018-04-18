@@ -573,7 +573,16 @@ def validation_rule(request, output_format='HTML'):
     cursor = connection.cursor()
     vr_id = int(request.GET['id'])
     vr = ValidationRule.objects.get(id=vr_id)
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
     DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+        PREV_5YR_QTRS = list(filter(lambda x: x <= filter_period, PREV_5YR_QTRS))
 
     if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
         filter_district = OrgUnit.objects.get(name=request.GET['district'])
@@ -581,9 +590,17 @@ def validation_rule(request, output_format='HTML'):
         filter_district = None
 
     if filter_district:
-        cursor.execute('SELECT * FROM %s WHERE district=\'%s\'' % (vr.view_name(), filter_district.name))
+        sql_str = 'SELECT * FROM %s WHERE district=\'%s\'' % (vr.view_name(), filter_district.name)
     else:
-        cursor.execute('SELECT * FROM %s' % (vr.view_name(),))
+        sql_str = 'SELECT * FROM %s' % (vr.view_name(),)
+
+    if filter_period:
+        if 'WHERE' in sql_str:
+            cursor.execute(sql_str+' AND quarter=%s', (filter_period,))
+        else:
+            cursor.execute(sql_str+' WHERE quarter=%s', (filter_period,))
+    else:
+        cursor.execute(sql_str)
 
     columns = [col[0] for col in cursor.description]
     de_name_map = dict()
@@ -649,6 +666,7 @@ def validation_rule(request, output_format='HTML'):
         'results': results,
         'columns': columns,
         'rule': vr,
+        'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path)
     }

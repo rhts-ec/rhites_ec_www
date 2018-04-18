@@ -18,6 +18,18 @@
 					<form class="form-inline" role="form" action="{% url 'validation_rule' %}">
 						<input type="hidden" name="id" value="{{ rule.id }}">
 							{% if 'exclude_true' in request.GET %}<input type="hidden" name="exclude_true"/>{% endif %}
+						<div class="form-group">
+						<label>Period:</label>
+						<select class="w3-input w3-border" name="period">
+							{% for p in period_list %}
+							{% if p == request.GET.period %}
+							<option selected="selected">{{ p }}</option>
+							{% else %}
+							<option>{{ p }}</option>
+							{% endif %}
+							{% endfor %}
+						</select>
+						</div>
 							<div class="form-group">
 							<label class="filter-col" style="margin-right:0;" for="pref-perpage">Coverage:</label>
 							<select class="w3-input w3-border" name="district" onchange="this.form.submit();">
