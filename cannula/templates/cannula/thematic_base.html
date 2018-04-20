@@ -118,6 +118,11 @@
 <a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
 </span>
 	{% endif %}
+    {% if csv_url %}
+<span class="w3-small no-print">
+<a class="btn btn-primary w3-margin-bottom" href="{{ csv_url }}?{{ request.META.QUERY_STRING }}">Download as CSV</a>
+</span>
+    {% endif %}
 	<table class="w3-table w3-border w3-bordered" border="1">
 	<thead class="w3-gray">
 	<tr>

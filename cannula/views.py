@@ -5239,6 +5239,26 @@ def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
     legend_sets.append(gbv_ls)
 
 
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="gbv_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -5286,6 +5306,7 @@ def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_excel_url(request.path).replace('.xls', '.csv'),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
