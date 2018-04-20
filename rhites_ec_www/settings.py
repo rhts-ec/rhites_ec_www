@@ -41,7 +41,7 @@ INSTALLED_APPS = (
     'django_extensions',
     'mptt',
     'widget_tweaks',
-    'easyaudit',
+    'rhites_ec_www.apps.AuditLogConfig',
     'cannula',
 )
 
@@ -130,6 +130,9 @@ ORG_UNIT_LEVELS = {
     3: 'Facility',
 }
 ORG_UNIT_ROOT_NAME = 'Uganda'
+
+# audit logging settings
+DJANGO_EASY_AUDIT_WATCH_REQUEST_EVENTS = False # don't log HTTP requests
 
 # import local settings
 try:
