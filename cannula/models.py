@@ -635,9 +635,6 @@ def query_de_meta(de_names):
     DataElementMeta = namedtuple('DataElementMeta', ['name', 'alias', 'id', 'ou_level', 'month_multiple'])
     return tuple(DataElementMeta(**v) for v in qs.values('name', 'alias', 'id', 'ou_level', 'month_multiple'))
 
-def fields_for_ou_level(ou_level):
-    return ('country', 'district', 'subcounty', 'facility')[:ou_level+1]
-
 def fields_for_month_multiple(month_mul):
     return ('year', 'quarter', 'month')[:(12, 3, 1).index(month_mul)+1]
 
@@ -666,7 +663,7 @@ def mk_de_group_sql(de_meta_list, all_fields, ou_level):
 def mk_union_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
     from itertools import groupby
 
-    ou_fields = fields_for_ou_level(ou_level)
+    ou_fields = OrgUnit.level_fields(ou_level)
     period_fields = fields_for_month_multiple(period_month_multiple)
     print(ou_fields, period_fields)
 
@@ -701,7 +698,7 @@ def mk_union_sql(de_meta_list, ou_list, ou_level, period_list, period_month_mult
 
 def mk_aggregate_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
     union_sql = mk_union_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple)
-    ou_fields = fields_for_ou_level(ou_level)
+    ou_fields = OrgUnit.level_fields(ou_level)
     period_fields = fields_for_month_multiple(period_month_multiple)
     groupby_fields = period_fields+ou_fields+('de_name',)
     groupby_fields_str = ', '.join(groupby_fields)
@@ -714,7 +711,7 @@ def mk_aggregate_sql(de_meta_list, ou_list, ou_level, period_list, period_month_
 
 def mk_pivot_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple):
     aggregate_sql = mk_aggregate_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple)
-    ou_fields = fields_for_ou_level(ou_level)
+    ou_fields = OrgUnit.level_fields(ou_level)
     period_fields = fields_for_month_multiple(period_month_multiple)
     pivot_fields = list()
     for de in de_meta_list:
@@ -750,7 +747,7 @@ def mk_calculation_sql(calculations, de_meta_list, ou_list, ou_level, period_lis
     print('OU_PARAM: %d, PERIOD_PARAM: %d' % (ou_level, period_month_multiple))
     
     pivot_sql = mk_pivot_sql(de_meta_list, ou_list, ou_level, period_list, period_month_multiple)
-    ou_fields = fields_for_ou_level(ou_level)
+    ou_fields = OrgUnit.level_fields(ou_level)
     period_fields = fields_for_month_multiple(period_month_multiple)
     calc_src_fields =  tuple('DE_%d' % (de.id,) for de in de_meta_list)
     calc_fields = mk_calc_fields(calculations)
