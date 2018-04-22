@@ -18,7 +18,7 @@ from . import dateutil, grabbag
 from .grabbag import default_zero, sum_zero, all_not_none, grouper
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
-from .forms import SourceDocumentForm, DataElementAliasForm
+from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
 
 from .dashboards import LegendSet
 
@@ -64,6 +64,37 @@ def validation_rule_listing(request, thematic_area):
         'validation_views': get_validation_view_names(),
     }
     return render(request, 'cannula/validation_rule_listing.html', context)
+
+@login_required
+def user_profile_edit(request):
+    from django.contrib.auth import update_session_auth_hash
+    from django.contrib.auth.forms import PasswordChangeForm
+    from django.contrib import messages
+
+    if request.POST and 'profile_save' in request.POST:
+        profile_form = UserProfileForm(request.POST, instance=request.user)
+        if profile_form.is_valid():
+            profile_form.save()
+            messages.success(request, 'Profile updated')
+    else:
+        # create form from current user profile data
+        profile_form = UserProfileForm(instance=request.user)
+
+    if request.POST and 'passwd_change' in request.POST:
+        passwd_form = PasswordChangeForm(request.user, request.POST)
+        if passwd_form.is_valid():
+            passwd_form.save()
+            update_session_auth_hash(request, request.user)  # stop user from having to login again
+            messages.success(request, 'Your password has been changed')
+    else:
+        # create form from current user profile data
+        passwd_form = PasswordChangeForm(request.user)
+
+    context = {
+        'profile_form': profile_form,
+        'passwd_form': passwd_form,
+    }
+    return render(request, 'cannula/user_profile_edit.html', context)
 
 @login_required
 def data_elements(request):

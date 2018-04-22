@@ -1,0 +1,34 @@
+{% extends "startmin/base.html" %}
+
+{% block heading %}User Profile for {{ request.user.get_username }}{% endblock %}
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    {{ profile_form.as_p }}
+    <p>
+        <button name="profile_save" class="btn btn-success" type="submit">Save Profile</button>
+    </p>
+</form>
+
+<hr/>
+
+<form method="POST">
+    {% csrf_token %}
+    {{ passwd_form.as_p }}
+    <p>
+        <button name="passwd_change" class="btn btn-success" type="submit">Change Password</button>
+    </p>
+</form>
+
+<hr/>
+
+{% if messages %}
+<p>
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+</p>
+{% endif %}
+{% endblock %}

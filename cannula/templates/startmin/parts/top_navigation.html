@@ -79,7 +79,7 @@
                 <i class="fa fa-user fa-fw"></i> {%if user.first_name %} {{ user.first_name }} {% endif %} <b class="caret"></b>
             </a>
             <ul class="dropdown-menu dropdown-user">
-                <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
+                <li><a href="{% url 'user_profile_edit' %}"><i class="fa fa-user fa-fw"></i> User Profile</a>
                 </li>
                 <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
                 </li>
