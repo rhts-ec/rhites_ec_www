@@ -92,6 +92,9 @@ def make_excel_url(request_path):
     excel_path = ''.join([os.path.splitext(path)[0], '.xls'])
     return urllib.parse.urlunparse([a, b, excel_path, *others])
 
+def make_csv_url(request_path):
+    return make_excel_url(request_path).replace('.xls', '.csv')
+
 @login_required
 def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
@@ -231,6 +234,27 @@ def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
     ipt_ls.mappings[num_path_elements+4] = True
     legend_sets.append(ipt_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_names))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="malaria_ipt_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -281,6 +305,7 @@ def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -417,6 +442,27 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
         compliance_ls.mappings[num_path_elements+len(periods)+i*2+1] = True
     legend_sets.append(compliance_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="malaria_compliance_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -470,6 +516,7 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -1156,6 +1203,27 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
         linked_ls.mappings[i] = True
     legend_sets.append(linked_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="hts_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -1201,6 +1269,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -2003,6 +2072,27 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
     adverse_ls.mappings[num_path_elements+19] = True
     legend_sets.append(adverse_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="vmmc_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -2049,6 +2139,7 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -2352,6 +2443,27 @@ def lab_scorecard(request, org_unit_level=3, output_format='HTML'):
     # lab_ls.add_interval('green', 60, None)
     # legend_sets.append(lab_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="lab_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -2397,6 +2509,7 @@ def lab_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -2765,6 +2878,27 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
     # fp_ls.add_interval('green', 60, None)
     # legend_sets.append(fp_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="family_planning_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -2811,6 +2945,7 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -3174,6 +3309,27 @@ def fp_cyp_scorecard(request, org_unit_level=3, output_format='HTML'):
     # fp_cyp_ls.add_interval('green', 60, None)
     # legend_sets.append(fp_cyp_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="fp_cyp_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -3220,6 +3376,7 @@ def fp_cyp_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -4172,6 +4329,27 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     cnr_ls.add_interval('green', 115, None)
     legend_sets.append(cnr_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="tb_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -4218,6 +4396,7 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -4607,6 +4786,27 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
         malnourished_ls.mappings[i] = True
     legend_sets.append(malnourished_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="nutrition_hospitals_scorecard.csv"'
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -4653,6 +4853,7 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -4829,6 +5030,27 @@ def vl_scorecard(request, org_unit_level=3, output_format='HTML'):
     rejection_ls.mappings[num_path_elements+4] = True
     legend_sets.append(rejection_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="viral_load_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -4875,6 +5097,7 @@ def vl_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -5306,7 +5529,7 @@ def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
-        'csv_url': make_excel_url(request.path).replace('.xls', '.csv'),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -5491,6 +5714,27 @@ def sc_mos_by_site(request, output_format='HTML'):
             sc_soh_ls.mappings[mos_base_index+(i)] = True
     legend_sets.append(sc_soh_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_names))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="sc_mos_sites_scorecard.csv"'
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -5537,6 +5781,7 @@ def sc_mos_by_site(request, output_format='HTML'):
         'period_list': PREV_5YR_MONTHS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         #TODO: this doesn't work if you have more than one LegendSet mapped to the exact same columns
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
@@ -5822,6 +6067,27 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
     art_new_ls.mappings[num_path_elements+14] = True
     legend_sets.append(art_new_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="art_new_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -5869,6 +6135,7 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -6159,6 +6426,27 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     art_active_ls.mappings[num_path_elements+14] = True
     legend_sets.append(art_active_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="art_active_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -6206,6 +6494,7 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -6560,6 +6849,27 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     caesarian_ls.mappings[num_path_elements+13] = True
     legend_sets.append(caesarian_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mnch_preg_birth_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -6607,6 +6917,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
@@ -7064,6 +7375,27 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     vita_deworm_pcv_ls.mappings[num_path_elements+15] = True
     legend_sets.append(vita_deworm_pcv_ls)
 
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mnch_pnc_child_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
     if output_format == 'EXCEL':
         wb = openpyxl.workbook.Workbook()
         ws = wb.active # workbooks are created with at least one worksheet
@@ -7111,6 +7443,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         'period_list': PREV_5YR_QTRS,
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
