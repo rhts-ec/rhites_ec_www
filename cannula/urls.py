@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^user_profile_edit$', views.user_profile_edit, name='user_profile_edit'),
-    url(r'dashboards/malaria/$', views.index, name='thematic_malaria'),
+    url(r'dashboards/malaria/$', views.malaria_dashboard, name='thematic_malaria'),
     url(r'scorecards/malaria/compliance\.php', views.malaria_compliance, {'org_unit_level': 3}, name='malaria_compliance'),
     url(r'scorecards/malaria/compliance\.xls', views.malaria_compliance, {'org_unit_level': 3, 'output_format': 'EXCEL'}, name='malaria_compliance_excel'),
     url(r'scorecards/malaria/compliance\.csv', views.malaria_compliance, {'org_unit_level': 3, 'output_format': 'CSV'}, name='malaria_compliance_csv'),

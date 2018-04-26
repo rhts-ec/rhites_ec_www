@@ -127,6 +127,98 @@ def make_csv_url(request_path):
     return make_excel_url(request_path).replace('.xls', '.csv')
 
 @login_required
+def malaria_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    # period_list = ('2016-Q4', '2017-Q1', '2017-Q2', '2017-Q3', '2017-Q4')
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    malaria_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+        '105-2.1 A7:Second dose IPT (IPT2)',
+    )
+    de_malaria_meta = list(product(malaria_de_names, (None,)))
+    qs_malaria = DataValue.objects.what(*malaria_de_names)
+    qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_malaria = qs_malaria.when(*period_list)
+    qs_malaria = qs_malaria.order_by('period', 'de_name')
+    val_malaria = qs_malaria.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_malaria = list(val_malaria)
+    val_malaria = list(grabbag.rasterize(period_list, malaria_de_names, val_malaria, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun))
+
+    preg_de_names =(
+        'Expected Pregnancies',
+    )
+    de_preg_meta = list(product(preg_de_names, (None,)))
+    qs_preg = DataValue.objects.what(*preg_de_names)
+    qs_preg = qs_preg.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_preg = qs_preg.when('2016', '2017')
+    qs_preg = qs_preg.order_by('period', 'de_name')
+    val_preg = qs_preg.values('period', 'de_name').annotate(numeric_sum=(Sum('numeric_value')))
+    val_preg = list(val_preg)
+    # convert annual expected pregnancies to quarterly
+    for v in val_preg[::-1]: # in reverse, since we'll be adding to the end
+        v['numeric_sum'] = v['numeric_sum']/4
+        year = v['period']
+        v['period'] = '{0}-Q{1}'.format(year, 1)
+        for q in ['{0}-Q{1}'.format(year, i) for i in range(2, 5)]:
+            v_quarter = dict(v)
+            v_quarter['period'] = q
+            v_quarter['numeric_sum'] = v_quarter['numeric_sum']
+            val_preg.append(v_quarter)
+    val_preg.sort(key=lambda x: (x['period'], x['de_name']))
+    val_preg = list(grabbag.rasterize(period_list, preg_de_names, val_preg, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun))
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_preg, val_malaria), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (expected_pregnancies, malaria_total, malaria_confirmed, ipt2, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(ipt2['numeric_sum'], expected_pregnancies['numeric_sum']) and expected_pregnancies['numeric_sum']:
+            ipt2_rate = (ipt2['numeric_sum'] * 100) / expected_pregnancies['numeric_sum']
+        else:
+            ipt2_rate = None
+        ipt2_rate_val = {
+            'period': period,
+            'de_name': 'IPT2 Rate (%)',
+            'numeric_sum': ipt2_rate,
+        }
+        calculated_vals.append(ipt2_rate_val)
+
+        if all_not_none(malaria_confirmed['numeric_sum'], malaria_total['numeric_sum']) and malaria_total['numeric_sum']:
+            presumptive_rate = 100 - (malaria_confirmed['numeric_sum'] * 100) / malaria_total['numeric_sum']
+        else:
+            presumptive_rate = None
+        presumptive_rate_val = {
+            'period': period,
+            'de_name': 'Presumptive Treatment Rate (%)',
+            'numeric_sum': presumptive_rate,
+        }
+        calculated_vals.append(presumptive_rate_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [('IPT Rate (%)', None)] + [('Presumptive Treatment Rate (%)', None)],
+        'grouped_data': grouped_vals,
+        'calculated_vals': calculated_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
+@login_required
 def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year

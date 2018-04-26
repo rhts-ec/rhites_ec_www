@@ -2,7 +2,80 @@
 {% block title %}RHITES-EC Performance Monitoring Tool - Home{% endblock %}
 {% block page-header %} Scorecards {% endblock %}
 {% block content %}
+{% if grouped_data %}
+<script src="/static/startmin/js/jquery.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script language="JavaScript">
+$(document).ready(function() {
+	var data = {
+		table: 'datatable'
+	};
+	var chart = {
+		type: 'column'
+	};
+	var title = {
+		// text: 'Data extracted from a HTML table in the page'
+		text: 'Key Indicators'
+	};
+	var yAxis = {
+			allowDecimals: false,
+			title: {
+			text: 'Units'
+		}
+	};
+	var tooltip = {
+		formatter: function () {
+		return '<b>' + this.series.name + '</b><br/>' +
+		this.point.y + ' ' + this.point.name.toLowerCase();
+		}
+	};
+	var credits = {
+		enabled: false
+	};  
+	var json = {};   
+	json.chart = chart; 
+	json.title = title; 
+	json.data = data;
+	json.yAxis = yAxis;
+	json.credits = credits;  
+	json.tooltip = tooltip;  
+	// $('#container').highcharts(json);
+	json.chart['renderTo'] = 'container';
+	var chart = new Highcharts.Chart(json);
+});
+</script>
+<p>
+<div id="container" style="width: 550px; height: 400px; margin: 0 auto"></div>
+<table id="datatable" border="1">
+<thead>
+<tr>
+	<th>Period</th>
+	{% for de_name, cat_combo in data_element_names %}
+	{% if cat_combo %}
+	<th class="w3-center">{{ de_name }}<br/>{{ cat_combo }}</th>
+	{% else %}
+	<th class="w3-center" rowspan="2">{{ de_name }}</th>
+	{% endif %}
+	{% endfor %}
+</tr>
+</thead>
+<tbody>
+{% for g_name, g_vals in grouped_data %}
+<tr>
+	<td>{{ g_name }}</td>
+	{% for g_val in g_vals %}
+	<td>{{ g_val.numeric_sum|floatformat }}</td>
+	{% endfor %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</p>
+{% endif %}
+
 <h4>Scorecards</h4>
+
 {% if 'malaria' in request.path %}
 <ul>
 	<li><a href="{% url 'malaria_compliance' %}">Malaria: Compliance - Facilities</a></li>
