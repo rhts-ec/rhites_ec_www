@@ -15,7 +15,7 @@ from collections import OrderedDict
 import openpyxl
 
 from . import dateutil, grabbag
-from .grabbag import default_zero, sum_zero, all_not_none, grouper
+from .grabbag import default_zero, default, sum_zero, all_not_none, grouper
 
 from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
 from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
@@ -125,6 +125,312 @@ def make_excel_url(request_path):
 
 def make_csv_url(request_path):
     return make_excel_url(request_path).replace('.xls', '.csv')
+
+@login_required
+def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    malaria_de_names = (
+        '105-1.1 OPD New Attendance',
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+        '105-2.1 A3:Total ANC visits (New clients + Re-attendances)',
+        '105-2.1 A9:Pregnant Women receiving free LLINs',
+        'Malaria tests - WEP Microscopy Positive Cases',
+        'Malaria tests - WEP Microscopy Tested Cases',
+        'Malaria tests - WEP RDT Positve Cases',
+        'Malaria tests - WEP RDT Tested Cases',
+        'Malaria tests - WEP Suspected Malaria (fever)',
+        'Malaria treated - WEP Microscopy Negative Cases Treated',
+        'Malaria treated - WEP RDT Negative Cases Treated',
+    )
+    malaria_short_names = (
+        '2D - OPD attendance',
+        '2N - OPD malaria cases',
+        '3N - OPD malaria cases confirmed',
+        '1D - ANC visits',
+        '1N - Pregnant women receiving free LLINs',
+        'Malaria tests - WEP Microscopy Positive Cases',
+        'Malaria tests - WEP Microscopy Tested Cases',
+        'Malaria tests - WEP RDT Positve Cases',
+        'Malaria tests - WEP RDT Tested Cases',
+        '4D - Suspected malaria (fever)',
+        'Malaria treated - WEP Microscopy Negative Cases Treated',
+        'Malaria treated - WEP RDT Negative Cases Treated',
+    )
+    de_malaria_meta = list(product(malaria_de_names, (None,)))
+    data_element_metas += list(product(malaria_short_names, (None,)))
+
+    qs_malaria = DataValue.objects.what(*malaria_de_names)
+    qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_malaria = qs_malaria.where(filter_district)
+    qs_malaria = qs_malaria.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_malaria = qs_malaria.when(filter_period)
+    qs_malaria = qs_malaria.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_malaria = qs_malaria.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_malaria = list(val_malaria)
+
+    gen_raster = grabbag.rasterize(ou_list, de_malaria_meta, val_malaria, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_malaria2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_malaria2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (_group_ou_path, (opd_attend, opd_malaria, opd_malaria_confirmed, anc_visits, preg_given_nets, micro_pos, micro_tested, rdt_pos, rdt_tested, suspected, micro_neg_treated, rdt_neg_treated, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+        
+        calculated_vals = list()
+
+        calculated_vals.append(preg_given_nets)
+        calculated_vals.append(anc_visits)
+
+        if all_not_none(preg_given_nets['numeric_sum']) and anc_visits['numeric_sum']:
+            pct_preg_given_nets = 100 * preg_given_nets['numeric_sum'] / anc_visits['numeric_sum']
+        else:
+            pct_preg_given_nets = None
+        pct_preg_given_nets_val = {
+            'de_name': '1 - % women who received ITNs at ANC clinics',
+            'cat_combo': None,
+            'numeric_sum': pct_preg_given_nets,
+        }
+        pct_preg_given_nets_val.update(_group_ou_dict)
+        calculated_vals.append(pct_preg_given_nets_val)
+
+        calculated_vals.append(opd_malaria)
+        calculated_vals.append(opd_attend)
+
+        if all_not_none(opd_malaria['numeric_sum']) and opd_attend['numeric_sum']:
+            pct_opd_malaria = 100 * opd_malaria['numeric_sum'] / opd_attend['numeric_sum']
+        else:
+            pct_opd_malaria = None
+        pct_opd_malaria_val = {
+            'de_name': '2 - Proportion of OPD cases diagnosed with malaria (%)',
+            'cat_combo': None,
+            'numeric_sum': pct_opd_malaria,
+        }
+        pct_opd_malaria_val.update(_group_ou_dict)
+        calculated_vals.append(pct_opd_malaria_val)
+        
+        calculated_vals.append(opd_malaria_confirmed)
+
+        if all_not_none(opd_malaria_confirmed['numeric_sum']) and opd_malaria['numeric_sum']:
+            pct_opd_malaria_confirmed = 100 * opd_malaria_confirmed['numeric_sum'] / opd_malaria['numeric_sum']
+        else:
+            pct_opd_malaria_confirmed = None
+        pct_opd_malaria_confirmed_val = {
+            'de_name': '3 - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)',
+            'cat_combo': None,
+            'numeric_sum': pct_opd_malaria_confirmed,
+        }
+        pct_opd_malaria_confirmed_val.update(_group_ou_dict)
+        calculated_vals.append(pct_opd_malaria_confirmed_val)
+
+        if default(micro_tested['numeric_sum'], rdt_tested['numeric_sum']):
+            suspected_tested = sum_zero(micro_tested['numeric_sum'], rdt_tested['numeric_sum'])
+        else:
+            suspected_tested = None
+        suspected_tested_val = {
+            'de_name': '4N - Suspected tested',
+            'cat_combo': None,
+            'numeric_sum': suspected_tested,
+        }
+        suspected_tested_val.update(_group_ou_dict)
+        calculated_vals.append(suspected_tested_val)
+        
+        calculated_vals.append(suspected)
+
+        if all_not_none(suspected_tested) and suspected['numeric_sum']:
+            pct_suspected_tested = 100 * suspected_tested / suspected['numeric_sum']
+        else:
+            pct_suspected_tested = None
+        pct_suspected_tested_val = {
+            'de_name': '4 - Proportion of Suspected tested (%)',
+            'cat_combo': None,
+            'numeric_sum': pct_suspected_tested,
+        }
+        pct_suspected_tested_val.update(_group_ou_dict)
+        calculated_vals.append(pct_suspected_tested_val)
+
+        if default(micro_neg_treated['numeric_sum'], rdt_neg_treated['numeric_sum']):
+            neg_treated = sum_zero(micro_neg_treated['numeric_sum'], rdt_neg_treated['numeric_sum'])
+        else:
+            neg_treated = None
+        neg_treated_val = {
+            'de_name': '5N - Negative cases treated',
+            'cat_combo': None,
+            'numeric_sum': neg_treated,
+        }
+        neg_treated_val.update(_group_ou_dict)
+        calculated_vals.append(neg_treated_val)
+
+        if default(micro_tested['numeric_sum'], rdt_tested['numeric_sum']):
+            negative = sum_zero(micro_tested['numeric_sum'], rdt_tested['numeric_sum']) - sum_zero(micro_pos['numeric_sum'], rdt_pos['numeric_sum'])
+        else:
+            negative = None
+        negative_val = {
+            'de_name': '5D - Negative cases',
+            'cat_combo': None,
+            'numeric_sum': negative,
+        }
+        negative_val.update(_group_ou_dict)
+        calculated_vals.append(negative_val)
+
+        if all_not_none(neg_treated) and negative:
+            pct_neg_treated = 100 * neg_treated / negative
+        else:
+            pct_neg_treated = None
+        pct_neg_treated_val = {
+            'de_name': '5 - Proportion of negative cases treated (%)',
+            'cat_combo': None,
+            'numeric_sum': pct_neg_treated,
+        }
+        pct_neg_treated_val.update(_group_ou_dict)
+        calculated_vals.append(pct_neg_treated_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals # replace the output indicators
+
+    data_element_metas = list() # replace the list of output indicators
+    data_element_metas += list(product(['1N - Pregnant women receiving free LLINs'], (None,)))
+    data_element_metas += list(product(['1D - ANC visits'], (None,)))
+    data_element_metas += list(product(['1 - % women who received ITNs at ANC clinics'], (None,)))
+    data_element_metas += list(product(['2N - OPD malaria cases'], (None,)))
+    data_element_metas += list(product(['2D - OPD attendance'], (None,)))
+    data_element_metas += list(product(['2 - Proportion of OPD cases diagnosed with malaria (%)'], (None,)))
+    data_element_metas += list(product(['3N - OPD malaria cases confirmed'], (None,)))
+    data_element_metas += list(product(['3 - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], (None,)))
+    data_element_metas += list(product(['4N - Suspected tested'], (None,)))
+    data_element_metas += list(product(['4D - Suspected malaria (fever)'], (None,)))
+    data_element_metas += list(product(['4 - Proportion of Suspected tested (%)'], (None,)))
+    data_element_metas += list(product(['5N - Negative cases treated'], (None,)))
+    data_element_metas += list(product(['5D - Negative cases'], (None,)))
+    data_element_metas += list(product(['5 - Proportion of negative cases treated (%)'], (None,)))
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    tested_ls = LegendSet()
+    tested_ls.name = 'Testing and Treatment'
+    # tested_ls.add_interval('orange', 0, 25)
+    # tested_ls.add_interval('yellow', 25, 40)
+    # tested_ls.add_interval('light-green', 40, 60)
+    # tested_ls.add_interval('green', 60, 100)
+    tested_ls.add_interval('red', 100, None)
+    tested_ls.mappings[num_path_elements+10] = True
+    tested_ls.mappings[num_path_elements+13] = True
+    legend_sets.append(tested_ls)
+
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="malaria_cases_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="malaria_cases_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/malaria_cases_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
 def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
