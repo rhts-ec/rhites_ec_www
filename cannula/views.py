@@ -209,14 +209,92 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_malaria_meta, val_malaria, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_malaria2 = list(gen_raster)
 
+    age_under5_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+    )
+    age_under5_short_names = (
+        '2N - OPD malaria cases',
+        '3N - OPD malaria cases confirmed',
+    )
+    de_age_under5_meta = list(product(age_under5_de_names, ('<5 yrs',)))
+    data_element_metas += list(product(age_under5_short_names, (None,)))
+
+    qs_age_under5 = DataValue.objects.what(*age_under5_de_names)
+    qs_age_under5 = qs_age_under5.filter(category_combo__categories__name='29 Days-4 Years')
+    qs_age_under5 = qs_age_under5.annotate(cat_combo=Value('<5 yrs', output_field=CharField()))
+    # qs_age_under5 = qs_age_under5.annotate(cat_combo=F('category_combo__name'))
+    if filter_district:
+        qs_age_under5 = qs_age_under5.where(filter_district)
+    qs_age_under5 = qs_age_under5.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_age_under5 = qs_age_under5.when(filter_period)
+    qs_age_under5 = qs_age_under5.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_age_under5 = qs_age_under5.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_age_under5 = list(val_age_under5)
+
+    gen_raster = grabbag.rasterize(ou_list, de_age_under5_meta, val_age_under5, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_age_under52 = list(gen_raster)
+
+    age_5_to_59_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+    )
+    age_5_to_59_short_names = (
+        '2N - OPD malaria cases',
+        '3N - OPD malaria cases confirmed',
+    )
+    de_age_5_to_59_meta = list(product(age_5_to_59_de_names, ('5-59 yrs',)))
+    data_element_metas += list(product(age_5_to_59_short_names, (None,)))
+
+    qs_age_5_to_59 = DataValue.objects.what(*age_5_to_59_de_names)
+    qs_age_5_to_59 = qs_age_5_to_59.filter(category_combo__categories__name='5-59 Years')
+    qs_age_5_to_59 = qs_age_5_to_59.annotate(cat_combo=Value('5-59 yrs', output_field=CharField()))
+    # qs_age_5_to_59 = qs_age_5_to_59.annotate(cat_combo=F('category_combo__name'))
+    if filter_district:
+        qs_age_5_to_59 = qs_age_5_to_59.where(filter_district)
+    qs_age_5_to_59 = qs_age_5_to_59.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_age_5_to_59 = qs_age_5_to_59.when(filter_period)
+    qs_age_5_to_59 = qs_age_5_to_59.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_age_5_to_59 = qs_age_5_to_59.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_age_5_to_59 = list(val_age_5_to_59)
+
+    gen_raster = grabbag.rasterize(ou_list, de_age_5_to_59_meta, val_age_5_to_59, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_age_5_to_592 = list(gen_raster)
+
+    age_60_plus_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+    )
+    age_60_plus_short_names = (
+        '2N - OPD malaria cases',
+        '3N - OPD malaria cases confirmed',
+    )
+    de_age_60_plus_meta = list(product(age_60_plus_de_names, ('60+ yrs',)))
+    data_element_metas += list(product(age_60_plus_short_names, (None,)))
+
+    qs_age_60_plus = DataValue.objects.what(*age_60_plus_de_names)
+    qs_age_60_plus = qs_age_60_plus.filter(category_combo__categories__name='60andAbove Years')
+    qs_age_60_plus = qs_age_60_plus.annotate(cat_combo=Value('60+ yrs', output_field=CharField()))
+    # qs_age_60_plus = qs_age_60_plus.annotate(cat_combo=F('category_combo__name'))
+    if filter_district:
+        qs_age_60_plus = qs_age_60_plus.where(filter_district)
+    qs_age_60_plus = qs_age_60_plus.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_age_60_plus = qs_age_60_plus.when(filter_period)
+    qs_age_60_plus = qs_age_60_plus.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_age_60_plus = qs_age_60_plus.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_age_60_plus = list(val_age_60_plus)
+
+    gen_raster = grabbag.rasterize(ou_list, de_age_60_plus_meta, val_age_60_plus, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_age_60_plus2 = list(gen_raster)
+
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_malaria2), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_malaria2, val_age_under52, val_age_5_to_592, val_age_60_plus2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (opd_attend, opd_malaria, opd_malaria_confirmed, anc_visits, preg_given_nets, micro_pos, micro_tested, rdt_pos, rdt_tested, suspected, micro_neg_treated, rdt_neg_treated, *other_vals)) = _group
+        (_group_ou_path, (opd_attend, opd_malaria, opd_malaria_confirmed, anc_visits, preg_given_nets, micro_pos, micro_tested, rdt_pos, rdt_tested, suspected, micro_neg_treated, rdt_neg_treated, under_5, under_5_confirmed, from_5_to_59, from_5_to_59_confirmed, over_60, over_60_confirmed, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -250,6 +328,42 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
         }
         pct_opd_malaria_val.update(_group_ou_dict)
         calculated_vals.append(pct_opd_malaria_val)
+
+        if all_not_none(under_5['numeric_sum']) and opd_attend['numeric_sum']:
+            pct_under_5 = 100 * under_5['numeric_sum'] / opd_attend['numeric_sum']
+        else:
+            pct_under_5 = None
+        pct_under_5_val = {
+            'de_name': '2a - Proportion of OPD cases diagnosed with malaria (%)',
+            'cat_combo': '<5 yrs',
+            'numeric_sum': pct_under_5,
+        }
+        pct_under_5_val.update(_group_ou_dict)
+        calculated_vals.append(pct_under_5_val)
+
+        if all_not_none(from_5_to_59['numeric_sum']) and opd_attend['numeric_sum']:
+            pct_from_5_to_59 = 100 * from_5_to_59['numeric_sum'] / opd_attend['numeric_sum']
+        else:
+            pct_from_5_to_59 = None
+        pct_from_5_to_59_val = {
+            'de_name': '2a - Proportion of OPD cases diagnosed with malaria (%)',
+            'cat_combo': '5-59 yrs',
+            'numeric_sum': pct_from_5_to_59,
+        }
+        pct_from_5_to_59_val.update(_group_ou_dict)
+        calculated_vals.append(pct_from_5_to_59_val)
+
+        if all_not_none(over_60['numeric_sum']) and opd_attend['numeric_sum']:
+            pct_over_60 = 100 * over_60['numeric_sum'] / opd_attend['numeric_sum']
+        else:
+            pct_over_60 = None
+        pct_over_60_val = {
+            'de_name': '2c - Proportion of OPD cases diagnosed with malaria (%)',
+            'cat_combo': '60+ yrs',
+            'numeric_sum': pct_over_60,
+        }
+        pct_over_60_val.update(_group_ou_dict)
+        calculated_vals.append(pct_over_60_val)
         
         calculated_vals.append(opd_malaria_confirmed)
 
@@ -264,6 +378,42 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
         }
         pct_opd_malaria_confirmed_val.update(_group_ou_dict)
         calculated_vals.append(pct_opd_malaria_confirmed_val)
+
+        if all_not_none(under_5_confirmed['numeric_sum']) and opd_malaria['numeric_sum']:
+            pct_under_5_confirmed = 100 * under_5_confirmed['numeric_sum'] / opd_malaria['numeric_sum']
+        else:
+            pct_under_5_confirmed = None
+        pct_under_5_confirmed_val = {
+            'de_name': '3a - Proportion of OPD malaria cases confirmed (%)',
+            'cat_combo': '<5 yrs',
+            'numeric_sum': pct_under_5_confirmed,
+        }
+        pct_under_5_confirmed_val.update(_group_ou_dict)
+        calculated_vals.append(pct_under_5_confirmed_val)
+
+        if all_not_none(from_5_to_59_confirmed['numeric_sum']) and opd_malaria['numeric_sum']:
+            pct_from_5_to_59_confirmed = 100 * from_5_to_59_confirmed['numeric_sum'] / opd_malaria['numeric_sum']
+        else:
+            pct_from_5_to_59_confirmed = None
+        pct_from_5_to_59_confirmed_val = {
+            'de_name': '3b - Proportion of OPD malaria cases confirmed (%)',
+            'cat_combo': '5-59 yrs',
+            'numeric_sum': pct_from_5_to_59_confirmed,
+        }
+        pct_from_5_to_59_confirmed_val.update(_group_ou_dict)
+        calculated_vals.append(pct_from_5_to_59_confirmed_val)
+
+        if all_not_none(over_60_confirmed['numeric_sum']) and opd_malaria['numeric_sum']:
+            pct_over_60_confirmed = 100 * over_60_confirmed['numeric_sum'] / opd_malaria['numeric_sum']
+        else:
+            pct_over_60_confirmed = None
+        pct_over_60_confirmed_val = {
+            'de_name': '3c - Proportion of OPD malaria cases confirmed (%)',
+            'cat_combo': '60+ yrs',
+            'numeric_sum': pct_over_60_confirmed,
+        }
+        pct_over_60_confirmed_val.update(_group_ou_dict)
+        calculated_vals.append(pct_over_60_confirmed_val)
 
         if default(micro_tested['numeric_sum'], rdt_tested['numeric_sum']):
             suspected_tested = sum_zero(micro_tested['numeric_sum'], rdt_tested['numeric_sum'])
@@ -337,8 +487,14 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += list(product(['2N - OPD malaria cases'], (None,)))
     data_element_metas += list(product(['2D - OPD attendance'], (None,)))
     data_element_metas += list(product(['2 - Proportion of OPD cases diagnosed with malaria (%)'], (None,)))
+    data_element_metas += list(product(['2a - Proportion of OPD cases diagnosed with malaria (%)'], ('<5 yrs',)))
+    data_element_metas += list(product(['2b - Proportion of OPD cases diagnosed with malaria (%)'], ('5-59 yrs',)))
+    data_element_metas += list(product(['2c - Proportion of OPD cases diagnosed with malaria (%)'], ('60+ yrs',)))
     data_element_metas += list(product(['3N - OPD malaria cases confirmed'], (None,)))
     data_element_metas += list(product(['3 - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], (None,)))
+    data_element_metas += list(product(['3a - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('<5 yrs',)))
+    data_element_metas += list(product(['3b - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('5-59 yrs',)))
+    data_element_metas += list(product(['3c - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('60+ yrs',)))
     data_element_metas += list(product(['4N - Suspected tested'], (None,)))
     data_element_metas += list(product(['4D - Suspected malaria (fever)'], (None,)))
     data_element_metas += list(product(['4 - Proportion of Suspected tested (%)'], (None,)))
@@ -355,8 +511,8 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     # tested_ls.add_interval('light-green', 40, 60)
     # tested_ls.add_interval('green', 60, 100)
     tested_ls.add_interval('red', 100, None)
-    tested_ls.mappings[num_path_elements+10] = True
-    tested_ls.mappings[num_path_elements+13] = True
+    tested_ls.mappings[num_path_elements+16] = True
+    tested_ls.mappings[num_path_elements+19] = True
     legend_sets.append(tested_ls)
 
 
