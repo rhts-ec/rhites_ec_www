@@ -287,14 +287,66 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_age_60_plus_meta, val_age_60_plus, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_age_60_plus2 = list(gen_raster)
 
+    female_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+    )
+    female_short_names = (
+        '2N - OPD malaria cases',
+        '3N - OPD malaria cases confirmed',
+    )
+    de_female_meta = list(product(female_de_names, ('Female',)))
+    data_element_metas += list(product(female_short_names, (None,)))
+
+    qs_female = DataValue.objects.what(*female_de_names)
+    qs_female = qs_female.filter(category_combo__categories__name='Female')
+    qs_female = qs_female.annotate(cat_combo=Value('Female', output_field=CharField()))
+    # qs_female = qs_female.annotate(cat_combo=F('category_combo__name'))
+    if filter_district:
+        qs_female = qs_female.where(filter_district)
+    qs_female = qs_female.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_female = qs_female.when(filter_period)
+    qs_female = qs_female.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_female = qs_female.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_female = list(val_female)
+
+    gen_raster = grabbag.rasterize(ou_list, de_female_meta, val_female, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_female2 = list(gen_raster)
+
+    male_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+    )
+    male_short_names = (
+        '2N - OPD malaria cases',
+        '3N - OPD malaria cases confirmed',
+    )
+    de_male_meta = list(product(male_de_names, ('Male',)))
+    data_element_metas += list(product(male_short_names, (None,)))
+
+    qs_male = DataValue.objects.what(*male_de_names)
+    qs_male = qs_male.filter(category_combo__categories__name='Male')
+    qs_male = qs_male.annotate(cat_combo=Value('Male', output_field=CharField()))
+    # qs_male = qs_male.annotate(cat_combo=F('category_combo__name'))
+    if filter_district:
+        qs_male = qs_male.where(filter_district)
+    qs_male = qs_male.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_male = qs_male.when(filter_period)
+    qs_male = qs_male.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_male = qs_male.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_male = list(val_male)
+
+    gen_raster = grabbag.rasterize(ou_list, de_male_meta, val_male, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_male2 = list(gen_raster)
+
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_malaria2, val_age_under52, val_age_5_to_592, val_age_60_plus2), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_malaria2, val_age_under52, val_age_5_to_592, val_age_60_plus2, val_female2, val_male2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (opd_attend, opd_malaria, opd_malaria_confirmed, anc_visits, preg_given_nets, micro_pos, micro_tested, rdt_pos, rdt_tested, suspected, micro_neg_treated, rdt_neg_treated, under_5, under_5_confirmed, from_5_to_59, from_5_to_59_confirmed, over_60, over_60_confirmed, *other_vals)) = _group
+        (_group_ou_path, (opd_attend, opd_malaria, opd_malaria_confirmed, anc_visits, preg_given_nets, micro_pos, micro_tested, rdt_pos, rdt_tested, suspected, micro_neg_treated, rdt_neg_treated, under_5, under_5_confirmed, from_5_to_59, from_5_to_59_confirmed, over_60, over_60_confirmed, female, female_confirmed, male, male_confirmed, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -358,12 +410,36 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
         else:
             pct_over_60 = None
         pct_over_60_val = {
-            'de_name': '2c - Proportion of OPD cases diagnosed with malaria (%)',
+            'de_name': '2a - Proportion of OPD cases diagnosed with malaria (%)',
             'cat_combo': '60+ yrs',
             'numeric_sum': pct_over_60,
         }
         pct_over_60_val.update(_group_ou_dict)
         calculated_vals.append(pct_over_60_val)
+
+        if all_not_none(female['numeric_sum']) and opd_attend['numeric_sum']:
+            pct_female = 100 * female['numeric_sum'] / opd_attend['numeric_sum']
+        else:
+            pct_female = None
+        pct_female_val = {
+            'de_name': '2b - Proportion of OPD cases diagnosed with malaria (%)',
+            'cat_combo': 'Female',
+            'numeric_sum': pct_female,
+        }
+        pct_female_val.update(_group_ou_dict)
+        calculated_vals.append(pct_female_val)
+
+        if all_not_none(male['numeric_sum']) and opd_attend['numeric_sum']:
+            pct_male = 100 * male['numeric_sum'] / opd_attend['numeric_sum']
+        else:
+            pct_male = None
+        pct_male_val = {
+            'de_name': '2b - Proportion of OPD cases diagnosed with malaria (%)',
+            'cat_combo': 'Male',
+            'numeric_sum': pct_male,
+        }
+        pct_male_val.update(_group_ou_dict)
+        calculated_vals.append(pct_male_val)
         
         calculated_vals.append(opd_malaria_confirmed)
 
@@ -396,7 +472,7 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
         else:
             pct_from_5_to_59_confirmed = None
         pct_from_5_to_59_confirmed_val = {
-            'de_name': '3b - Proportion of OPD malaria cases confirmed (%)',
+            'de_name': '3a - Proportion of OPD malaria cases confirmed (%)',
             'cat_combo': '5-59 yrs',
             'numeric_sum': pct_from_5_to_59_confirmed,
         }
@@ -408,12 +484,36 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
         else:
             pct_over_60_confirmed = None
         pct_over_60_confirmed_val = {
-            'de_name': '3c - Proportion of OPD malaria cases confirmed (%)',
+            'de_name': '3a - Proportion of OPD malaria cases confirmed (%)',
             'cat_combo': '60+ yrs',
             'numeric_sum': pct_over_60_confirmed,
         }
         pct_over_60_confirmed_val.update(_group_ou_dict)
         calculated_vals.append(pct_over_60_confirmed_val)
+
+        if all_not_none(female_confirmed['numeric_sum']) and opd_malaria['numeric_sum']:
+            pct_female_confirmed = 100 * female_confirmed['numeric_sum'] / opd_malaria['numeric_sum']
+        else:
+            pct_female_confirmed = None
+        pct_female_confirmed_val = {
+            'de_name': '3b - Proportion of OPD malaria cases confirmed (%)',
+            'cat_combo': 'Female',
+            'numeric_sum': pct_female_confirmed,
+        }
+        pct_female_confirmed_val.update(_group_ou_dict)
+        calculated_vals.append(pct_female_confirmed_val)
+
+        if all_not_none(male_confirmed['numeric_sum']) and opd_malaria['numeric_sum']:
+            pct_male_confirmed = 100 * male_confirmed['numeric_sum'] / opd_malaria['numeric_sum']
+        else:
+            pct_male_confirmed = None
+        pct_male_confirmed_val = {
+            'de_name': '3b - Proportion of OPD malaria cases confirmed (%)',
+            'cat_combo': 'Male',
+            'numeric_sum': pct_male_confirmed,
+        }
+        pct_male_confirmed_val.update(_group_ou_dict)
+        calculated_vals.append(pct_male_confirmed_val)
 
         if default(micro_tested['numeric_sum'], rdt_tested['numeric_sum']):
             suspected_tested = sum_zero(micro_tested['numeric_sum'], rdt_tested['numeric_sum'])
@@ -488,13 +588,17 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += list(product(['2D - OPD attendance'], (None,)))
     data_element_metas += list(product(['2 - Proportion of OPD cases diagnosed with malaria (%)'], (None,)))
     data_element_metas += list(product(['2a - Proportion of OPD cases diagnosed with malaria (%)'], ('<5 yrs',)))
-    data_element_metas += list(product(['2b - Proportion of OPD cases diagnosed with malaria (%)'], ('5-59 yrs',)))
-    data_element_metas += list(product(['2c - Proportion of OPD cases diagnosed with malaria (%)'], ('60+ yrs',)))
+    data_element_metas += list(product(['2a - Proportion of OPD cases diagnosed with malaria (%)'], ('5-59 yrs',)))
+    data_element_metas += list(product(['2a - Proportion of OPD cases diagnosed with malaria (%)'], ('60+ yrs',)))
+    data_element_metas += list(product(['2b - Proportion of OPD cases diagnosed with malaria (%)'], ('Female',)))
+    data_element_metas += list(product(['2b - Proportion of OPD cases diagnosed with malaria (%)'], ('Male',)))
     data_element_metas += list(product(['3N - OPD malaria cases confirmed'], (None,)))
     data_element_metas += list(product(['3 - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], (None,)))
     data_element_metas += list(product(['3a - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('<5 yrs',)))
-    data_element_metas += list(product(['3b - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('5-59 yrs',)))
-    data_element_metas += list(product(['3c - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('60+ yrs',)))
+    data_element_metas += list(product(['3a - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('5-59 yrs',)))
+    data_element_metas += list(product(['3a - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('60+ yrs',)))
+    data_element_metas += list(product(['3b - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('Female',)))
+    data_element_metas += list(product(['3b - Proportion of OPD malaria cases confirmed by RDT or microscopy (%)'], ('Male',)))
     data_element_metas += list(product(['4N - Suspected tested'], (None,)))
     data_element_metas += list(product(['4D - Suspected malaria (fever)'], (None,)))
     data_element_metas += list(product(['4 - Proportion of Suspected tested (%)'], (None,)))
@@ -511,8 +615,8 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     # tested_ls.add_interval('light-green', 40, 60)
     # tested_ls.add_interval('green', 60, 100)
     tested_ls.add_interval('red', 100, None)
-    tested_ls.mappings[num_path_elements+16] = True
-    tested_ls.mappings[num_path_elements+19] = True
+    tested_ls.mappings[num_path_elements+20] = True
+    tested_ls.mappings[num_path_elements+23] = True
     legend_sets.append(tested_ls)
 
 
