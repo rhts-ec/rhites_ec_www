@@ -212,7 +212,10 @@ def malaria_dashboard(request):
         _group[1] = calculated_vals
     
     context = {
-        'data_element_names': [('IPT Rate (%)', None)] + [('Presumptive Treatment Rate (%)', None)],
+        'data_element_names': [
+            ('IPT Rate (%)', None),
+            ('Presumptive Treatment Rate (%)', None),
+        ],
         'grouped_data': grouped_vals,
         'calculated_vals': calculated_vals,
     }
