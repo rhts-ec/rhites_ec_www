@@ -4529,6 +4529,178 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/tb_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
+def nutrition_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    # period_list = ('2016-Q4', '2017-Q1', '2017-Q2', '2017-Q3', '2017-Q4')
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    malaria_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+        '105-2.1 A7:Second dose IPT (IPT2)',
+    )
+    de_malaria_meta = list(product(malaria_de_names, (None,)))
+    qs_malaria = DataValue.objects.what(*malaria_de_names)
+    qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_malaria = qs_malaria.when(*period_list)
+    qs_malaria = qs_malaria.order_by('period', 'de_name')
+    val_malaria = qs_malaria.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_malaria = list(val_malaria)
+    val_malaria = list(grabbag.rasterize(period_list, malaria_de_names, val_malaria, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun))
+
+    data_element_metas = list()
+   
+    opd_attend_de_names = (
+        '105-1.1 OPD New Attendance',
+        '105-1.1 OPD Re-Attendance',
+    )
+    opd_attend_short_names = (
+        'Total OPD attendence',
+    )
+    de_opd_attend_meta = list(product(opd_attend_short_names, (None,)))
+    data_element_metas += de_opd_attend_meta
+
+    qs_opd_attend = DataValue.objects.what(*opd_attend_de_names)
+    qs_opd_attend = qs_opd_attend.annotate(de_name=Value(opd_attend_short_names[0], output_field=CharField()))
+    qs_opd_attend = qs_opd_attend.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_opd_attend = qs_opd_attend.when(*period_list)
+    qs_opd_attend = qs_opd_attend.order_by('period', 'de_name')
+    val_opd_attend = qs_opd_attend.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, opd_attend_short_names, val_opd_attend, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_opd_attend2 = list(gen_raster)
+   
+    muac_de_names = (
+        '106a Nutri No. 1 of clients who received nutrition assessment in this quarter using color coded MUAC tapes/Z score chart',
+    )
+    muac_short_names = (
+        'Clients assessed using MUAC/Z score in OPD',
+    )
+    de_muac_meta = list(product(muac_short_names, (None,)))
+    data_element_metas += de_muac_meta
+
+    qs_muac = DataValue.objects.what(*muac_de_names)
+    qs_muac = qs_muac.annotate(de_name=Value(muac_short_names[0], output_field=CharField()))
+    qs_muac = qs_muac.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_muac = qs_muac.when(*period_list)
+    qs_muac = qs_muac.order_by('period', 'de_name')
+    val_muac = qs_muac.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, muac_short_names, val_muac, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_muac2 = list(gen_raster)
+   
+    active_art_de_names = (
+        '106a ART No. active on ART on 1st line ARV regimen',
+        '106a ART No. active on ART on 2nd line ARV regimen',
+        '106a ART No. active on ART on 3rd line or higher ARV regimen',
+    )
+    active_art_short_names = (
+        'Total No. active on ART in the quarter',
+    )
+    de_active_art_meta = list(product(active_art_short_names, (None,)))
+    data_element_metas += de_active_art_meta
+
+    qs_active_art = DataValue.objects.what(*active_art_de_names)
+    qs_active_art = qs_active_art.annotate(de_name=Value(active_art_short_names[0], output_field=CharField()))
+    qs_active_art = qs_active_art.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_active_art = qs_active_art.when(*period_list)
+    qs_active_art = qs_active_art.order_by('period', 'de_name')
+    val_active_art = qs_active_art.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, active_art_short_names, val_active_art, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_active_art2 = list(gen_raster)
+   
+    active_art_malnourish_de_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+    )
+    active_art_malnourish_short_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+    )
+    de_active_art_malnourish_meta = list(product(active_art_malnourish_short_names, (None,)))
+    data_element_metas += de_active_art_malnourish_meta
+
+    qs_active_art_malnourish = DataValue.objects.what(*active_art_malnourish_de_names)
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(de_name=Value(active_art_malnourish_short_names[0], output_field=CharField()))
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_active_art_malnourish = qs_active_art_malnourish.when(*period_list)
+    qs_active_art_malnourish = qs_active_art_malnourish.order_by('period', 'de_name')
+    val_active_art_malnourish = qs_active_art_malnourish.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, active_art_malnourish_short_names, val_active_art_malnourish, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_active_art_malnourish2 = list(gen_raster)
+   
+    new_malnourish_de_names = (
+        '106a Nutri N4-No. of newly identified malnourished cases in this quarter - Total',
+    )
+    new_malnourish_short_names = (
+        'No of newly identified malnourished cases in this quarter',
+    )
+    de_new_malnourish_meta = list(product(new_malnourish_short_names, (None,)))
+    data_element_metas += de_new_malnourish_meta
+
+    qs_new_malnourish = DataValue.objects.what(*new_malnourish_de_names)
+    qs_new_malnourish = qs_new_malnourish.annotate(de_name=Value(new_malnourish_short_names[0], output_field=CharField()))
+    qs_new_malnourish = qs_new_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_new_malnourish = qs_new_malnourish.when(*period_list)
+    qs_new_malnourish = qs_new_malnourish.order_by('period', 'de_name')
+    val_new_malnourish = qs_new_malnourish.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, new_malnourish_short_names, val_new_malnourish, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_new_malnourish2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_opd_attend2, val_muac2, val_active_art2, val_active_art_malnourish2, val_new_malnourish2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (opd_attend, muac, active_art, active_art_malnourish, new_malnourish, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(muac['numeric_sum'], opd_attend['numeric_sum']) and opd_attend['numeric_sum']:
+            assessment_percent = (muac['numeric_sum'] * 100) / opd_attend['numeric_sum']
+        else:
+            assessment_percent = None
+        assessment_percent_val = {
+            'period': period,
+            'de_name': '% of clients who received nutrition asssessment  in OPD',
+            'numeric_sum': assessment_percent,
+        }
+        calculated_vals.append(assessment_percent_val)
+
+        if all_not_none(active_art['numeric_sum'], active_art_malnourish['numeric_sum']) and active_art['numeric_sum']:
+            active_art_malnourish_percent = (active_art_malnourish['numeric_sum'] * 100) / active_art['numeric_sum']
+        else:
+            active_art_malnourish_percent = None
+        active_art_malnourish_percent_val = {
+            'period': period,
+            'de_name': '% of active on ART assessed for Malnutrition at their visit in quarter',
+            'numeric_sum': active_art_malnourish_percent,
+        }
+        calculated_vals.append(active_art_malnourish_percent_val)
+
+        # _group[1].extend(calculated_vals)
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% of clients who received nutrition asssessment  in OPD', None),
+            ('% of active on ART assessed for Malnutrition at their visit in quarter', None),
+        ],
+        'grouped_data': grouped_vals,
+        # 'calculated_vals': calculated_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
+@login_required
 def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
