@@ -5000,7 +5000,7 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/tb_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
-def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
+def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
@@ -5054,7 +5054,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_opd_attend = qs_opd_attend.where(filter_district)
     qs_opd_attend = qs_opd_attend.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_opd_attend = qs_opd_attend.filter(facility__icontains='Hospital')
     qs_opd_attend = qs_opd_attend.when(filter_period)
     qs_opd_attend = qs_opd_attend.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_opd_attend = qs_opd_attend.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5077,7 +5076,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_muac = qs_muac.where(filter_district)
     qs_muac = qs_muac.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_muac = qs_muac.filter(facility__icontains='Hospital')
     qs_muac = qs_muac.when(filter_period)
     qs_muac = qs_muac.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_muac = qs_muac.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5100,7 +5098,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_muac_mothers = qs_muac_mothers.where(filter_district)
     qs_muac_mothers = qs_muac_mothers.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_muac_mothers = qs_muac_mothers.filter(facility__icontains='Hospital')
     qs_muac_mothers = qs_muac_mothers.when(filter_period)
     qs_muac_mothers = qs_muac_mothers.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_muac_mothers = qs_muac_mothers.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5124,7 +5121,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_mothers_total = qs_mothers_total.where(filter_district)
     qs_mothers_total = qs_mothers_total.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_mothers_total = qs_mothers_total.filter(facility__icontains='Hospital')
     qs_mothers_total = qs_mothers_total.when(filter_period)
     qs_mothers_total = qs_mothers_total.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_mothers_total = qs_mothers_total.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5147,7 +5143,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_i_f_counsel = qs_i_f_counsel.where(filter_district)
     qs_i_f_counsel = qs_i_f_counsel.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_i_f_counsel = qs_i_f_counsel.filter(facility__icontains='Hospital')
     qs_i_f_counsel = qs_i_f_counsel.when(filter_period)
     qs_i_f_counsel = qs_i_f_counsel.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_i_f_counsel = qs_i_f_counsel.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5170,7 +5165,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_m_n_counsel = qs_m_n_counsel.where(filter_district)
     qs_m_n_counsel = qs_m_n_counsel.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_m_n_counsel = qs_m_n_counsel.filter(facility__icontains='Hospital')
     qs_m_n_counsel = qs_m_n_counsel.when(filter_period)
     qs_m_n_counsel = qs_m_n_counsel.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_m_n_counsel = qs_m_n_counsel.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5195,7 +5189,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_active_art = qs_active_art.where(filter_district)
     qs_active_art = qs_active_art.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_active_art = qs_active_art.filter(facility__icontains='Hospital')
     qs_active_art = qs_active_art.when(filter_period)
     qs_active_art = qs_active_art.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_active_art = qs_active_art.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5218,7 +5211,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_active_art_malnourish = qs_active_art_malnourish.where(filter_district)
     qs_active_art_malnourish = qs_active_art_malnourish.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_active_art_malnourish = qs_active_art_malnourish.filter(facility__icontains='Hospital')
     qs_active_art_malnourish = qs_active_art_malnourish.when(filter_period)
     qs_active_art_malnourish = qs_active_art_malnourish.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_active_art_malnourish = qs_active_art_malnourish.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5241,7 +5233,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_new_malnourish = qs_new_malnourish.where(filter_district)
     qs_new_malnourish = qs_new_malnourish.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_new_malnourish = qs_new_malnourish.filter(facility__icontains='Hospital')
     qs_new_malnourish = qs_new_malnourish.when(filter_period)
     qs_new_malnourish = qs_new_malnourish.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_new_malnourish = qs_new_malnourish.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5264,7 +5255,6 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
     if filter_district:
         qs_supp_feeding = qs_supp_feeding.where(filter_district)
     qs_supp_feeding = qs_supp_feeding.annotate(**FACILITY_LEVEL_ANNOTATIONS)
-    qs_supp_feeding = qs_supp_feeding.filter(facility__icontains='Hospital')
     qs_supp_feeding = qs_supp_feeding.when(filter_period)
     qs_supp_feeding = qs_supp_feeding.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
     val_supp_feeding = qs_supp_feeding.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
@@ -5397,7 +5387,7 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
 
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="nutrition_hospitals_scorecard.csv"'
+        response['Content-Disposition'] = 'attachment; filename="nutrition_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
 
         writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
         writer.writerows(value_rows)
@@ -5437,7 +5427,7 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename="nutrition_hospitals_scorecard.xlsx"'
+        response['Content-Disposition'] = 'attachment; filename="nutrition_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
 
         return response
 
@@ -5454,7 +5444,7 @@ def nutrition_by_hospital(request, org_unit_level=3, output_format='HTML'):
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
-    return render(request, 'cannula/nutrition_hospitals.html', context)
+    return render(request, 'cannula/nutrition_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
 def vl_scorecard(request, org_unit_level=3, output_format='HTML'):
