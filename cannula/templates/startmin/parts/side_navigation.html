@@ -1,3 +1,4 @@
+{% load staticfiles %}
 <div class="navbar-default sidebar" role="navigation" id="sidebar">
     <div class="sidebar-nav navbar-collapse">
         <ul class="nav" id="side-menu">
@@ -174,6 +175,9 @@
                         <a href="{% url 'data_workflow_new' "Supply Chain" %}">Supply Chain</a>
                     </li>
                 </ul>
+            </li>
+            <li>
+                <img src="{% static 'cannula/lockup_rhites-ec_vert.png' %}" height="100%" width="100%"/>
             </li>
     </div>
 </div>
