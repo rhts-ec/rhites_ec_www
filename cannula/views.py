@@ -132,7 +132,6 @@ def malaria_dashboard(request):
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
     period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
-    # period_list = ('2016-Q4', '2017-Q1', '2017-Q2', '2017-Q3', '2017-Q4')
     def val_with_period_de_fun(row, col):
         period = row
         de_name = col
@@ -208,7 +207,6 @@ def malaria_dashboard(request):
         }
         calculated_vals.append(presumptive_rate_val)
 
-        # _group[1].extend(calculated_vals)
         _group[1] = calculated_vals
     
     context = {
@@ -651,7 +649,6 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
 @login_required
 def data_workflow_new(request, menu_name):
     if request.method == 'POST':
-        # import pdb;pdb.set_trace()
         form = SourceDocumentForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
@@ -691,8 +688,6 @@ def data_workflow_detail(request):
             elif 'load_validations' in request.POST:
                 load_excel_to_validations(src_doc)
 
-            #TODO: redirect with to detail page?
-
         qs_vals = DataValue.objects.filter(source_doc__id=src_doc_id).values('id')
         doc_elements = DataElement.objects.filter(data_values__id__in=qs_vals).order_by('name').distinct('name')
         doc_rules = ValidationRule.objects.filter(data_elements__data_values__id__in=qs_vals).order_by('name').distinct('name')
@@ -719,7 +714,6 @@ def data_workflow_detail(request):
         'editable_names': editable_names,
     }
     return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
-    # return render(request, 'cannula/data_workflow_detail.html', context)
 
 @login_required
 def data_workflow_listing(request):
@@ -848,7 +842,6 @@ def validation_rule(request, output_format='HTML'):
 
 @login_required
 def data_element_alias(request):
-    # import pdb;pdb.set_trace();
     if 'de_id' in request.GET:
         de_id = int(request.GET['de_id'])
         de = get_object_or_404(DataElement, id=de_id)
@@ -856,7 +849,6 @@ def data_element_alias(request):
         if request.method == 'POST':
             form = DataElementAliasForm(request.POST, instance=de)
             if form.is_valid():
-                # form.save()
                 obj = form.save(commit=False)
                 obj.name = request.POST['value[name]']
                 obj.alias = request.POST['value[alias]']
@@ -913,7 +905,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     data_element_metas = list()
 
-    hts_de_names = ( #TODO: collation problem
+    hts_de_names = (
         '105-4 Number of Individuals who received HIV test results',
         '105-4 Number of Individuals who tested HIV positive',
         '105-4 Number of clients who have been linked to care',
@@ -1818,16 +1810,9 @@ def hts_by_district(request, output_format='HTML'):
         }
         calculated_vals.append(linked_over15_m_percent_val)
 
-        # _group[1].extend(calculated_vals)
         _group[1] = calculated_vals
     
     data_element_names = list()
-    
-    # data_element_names += list(product(hts_short_names, subcategory_names))
-    # data_element_names += de_pmtct_mother_meta
-    # data_element_names += de_pmtct_mother_pos_meta
-    # data_element_names += list(product(pmtct_child_short_names, (None,)))
-    # data_element_names += de_target_meta
 
     data_element_names += list(product(['Tested',], subcategory_names))
     data_element_names += list(product(['HIV+',], subcategory_names))
@@ -4687,7 +4672,6 @@ def nutrition_dashboard(request):
         }
         calculated_vals.append(active_art_malnourish_percent_val)
 
-        # _group[1].extend(calculated_vals)
         _group[1] = calculated_vals
     
     context = {
@@ -4696,7 +4680,6 @@ def nutrition_dashboard(request):
             ('% of active on ART assessed for Malnutrition at their visit in quarter', None),
         ],
         'grouped_data': grouped_vals,
-        # 'calculated_vals': calculated_vals,
     }
     return render(request, 'cannula/index.html', context)
 
@@ -6162,8 +6145,6 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
     )
     de_targets_meta = list(product(targets_de_names, subcategory_names))
     data_element_metas += list(product(targets_short_names, subcategory_names))
-    # de_targets_meta = list(product(targets_de_names, subcategory_names2))
-    # data_element_metas += list(product(targets_short_names, subcategory_names2))
 
     qs_targets = DataValue.objects.what(*targets_de_names)
     qs_targets = qs_targets.annotate(cat_combo=F('category_combo__name'))
@@ -6515,8 +6496,6 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     )
     de_targets_meta = list(product(targets_de_names, subcategory_names))
     data_element_metas += list(product(targets_short_names, subcategory_names))
-    # de_targets_meta = list(product(targets_de_names, subcategory_names2))
-    # data_element_metas += list(product(targets_short_names, subcategory_names2))
 
     qs_targets = DataValue.objects.what(*targets_de_names)
     qs_targets = qs_targets.annotate(cat_combo=F('category_combo__name'))
@@ -6878,7 +6857,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         '108-3 MSP Caesarian Sections',
     )
     anc_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_anc_meta = list(product(anc_de_names, (None,)))
     data_element_metas += de_anc_meta
@@ -7078,10 +7057,9 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         caesarean_percent_val.update(_group_ou_dict)
         calculated_vals.append(caesarean_percent_val)
 
-        # _group[1].extend(calculated_vals)
-        _group[1] = calculated_vals # hide source values
+        _group[1] = calculated_vals # override source values
 
-    data_element_metas = list() # hide source values
+    data_element_metas = list() # override source values
     data_element_metas += list(product(['Expected Pregnancies (5 % of population)'], (None,)))
     data_element_metas += list(product(['Adolescent Population (12.8 % of population)'], (None,)))
     data_element_metas += list(product(['All expected pregnancies in a catchment population multiplied by HIV prevalence'], (None,)))
@@ -7295,7 +7273,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.3 Postnatal Attendances 6 Hours',
     )
     maternity_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_maternity_meta = list(product(maternity_de_names, (None,)))
     data_element_metas += de_maternity_meta
@@ -7319,7 +7297,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.11 Polio 3',
     )
     vaccine_under_1_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_vaccine_under_1_meta = list(product(vaccine_under_1_de_names, (None,)))
     data_element_metas += de_vaccine_under_1_meta
@@ -7348,7 +7326,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-1.3 OPD Pneumonia',
     )
     under_5_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_under_5_meta = list(product(under_5_de_names, (None,)))
     data_element_metas += de_under_5_meta
@@ -7373,7 +7351,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.8 Vit A Suplement 2nd Dose in theYear',
     )
     other_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_other_meta = list(product(other_de_names, (None,)))
     data_element_metas += de_other_meta
@@ -7599,9 +7577,9 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         calculated_vals.append(pcv_percent_val)
 
         # _group[1].extend(calculated_vals)
-        _group[1] = calculated_vals # hide source values
+        _group[1] = calculated_vals # override source values
 
-    data_element_metas = list() # hide source values
+    data_element_metas = list() # override source values
     data_element_metas += list(product(['Expected Deliveries (4.8 % of population)'], (None,)))
     data_element_metas += list(product(['Number of children below one year in a given population (4.3 % of population)'], (None,)))
     data_element_metas += list(product(['Expected under-five with positive test for malaria (17.7 % of population)'], (None,)))
