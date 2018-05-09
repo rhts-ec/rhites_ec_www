@@ -7577,6 +7577,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     maternity_de_names = (
         '105-1.3 OPD Neonatal  Sepsis (0-7days)',
         '105-2.2 Birth Asyphyxia',
+        '105-2.2 No. of mothers who initiated breastfeeding within the 1st hour after delivery (Total)',
         '105-2.2a Deliveries in unit',
         '105-2.2b Deliveries in unit(Fresh Still births)',
         '105-2.2c Deliveries in unit(Macerated still births)',
@@ -7689,7 +7690,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, deliveries, still_fresh, still_macerated, live_births, pnc_6_hours, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
+        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, breastfeeding, deliveries, still_fresh, still_macerated, live_births, pnc_6_hours, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -7741,6 +7742,18 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         }
         pnc_6_days_percent_val.update(_group_ou_dict)
         calculated_vals.append(pnc_6_days_percent_val)
+
+        if all_not_none(breastfeeding['numeric_sum'], deliveries['numeric_sum']) and deliveries:
+            breastfeeding_percent = 100 * breastfeeding['numeric_sum'] / deliveries['numeric_sum']
+        else:
+            breastfeeding_percent = None
+        breastfeeding_percent_val = {
+            'de_name': '% of  mothers initiating breastfeeding within 1 hour after birth--Target=90%',
+            'cat_combo': None,
+            'numeric_sum': breastfeeding_percent,
+        }
+        breastfeeding_percent_val.update(_group_ou_dict)
+        calculated_vals.append(breastfeeding_percent_val)
 
         if all_not_none(asyphyxia['numeric_sum'], live_births['numeric_sum']) and live_births['numeric_sum']:
             asyphyxia_percent = 100 * asyphyxia['numeric_sum'] / live_births['numeric_sum']
@@ -7895,6 +7908,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     data_element_metas += list(product(['Number of children below one year in a given population (4.3 % of population)'], (None,)))
     data_element_metas += list(product(['Expected under-five with positive test for malaria (17.7 % of population)'], (None,)))
     data_element_metas += list(product(['% of Mothers receiving PNC checks within 6 days----Target=60%'], (None,)))
+    data_element_metas += list(product(['% of  mothers initiating breastfeeding within 1 hour after birth--Target=90%'], (None,)))
     data_element_metas += list(product(['% of babies with Birth Asphyxia ---<1.1'], (None,)))
     data_element_metas += list(product(['% of neonates (aged 0 -28 days) presenting to health facilities with sepsis/infections <1.1'], (None,)))
     data_element_metas += list(product(['DPT 3 coverage--Target=97% '], (None,)))
@@ -7923,43 +7937,43 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     breast_vaccination_ls.add_interval('red', 0, 80)
     breast_vaccination_ls.add_interval('yellow', 80, 95)
     breast_vaccination_ls.add_interval('green', 95, None)
-    # breast_vaccination_ls.mappings[num_path_elements+4] = True
-    breast_vaccination_ls.mappings[num_path_elements+6] = True
+    breast_vaccination_ls.mappings[num_path_elements+4] = True
     breast_vaccination_ls.mappings[num_path_elements+7] = True
     breast_vaccination_ls.mappings[num_path_elements+8] = True
+    breast_vaccination_ls.mappings[num_path_elements+9] = True
     legend_sets.append(breast_vaccination_ls)
     asphyxia_sepsis_ls = LegendSet()
     asphyxia_sepsis_ls.name = 'Birth Asphyxia and Neonatal Sepsis'
     asphyxia_sepsis_ls.add_interval('green', 0, 1.1)
     asphyxia_sepsis_ls.add_interval('yellow', 1.1, 1.4)
     asphyxia_sepsis_ls.add_interval('red', 1.4, None)
-    asphyxia_sepsis_ls.mappings[num_path_elements+4] = True
     asphyxia_sepsis_ls.mappings[num_path_elements+5] = True
+    asphyxia_sepsis_ls.mappings[num_path_elements+6] = True
     legend_sets.append(asphyxia_sepsis_ls)
     mal_conf_treat_ls = LegendSet()
     mal_conf_treat_ls.name = 'Malaria Treatment with Lab Confirmation'
     mal_conf_treat_ls.add_interval('red', 0, 70)
     mal_conf_treat_ls.add_interval('yellow', 70, 90)
     mal_conf_treat_ls.add_interval('green', 90, None)
-    mal_conf_treat_ls.mappings[num_path_elements+9] = True
+    mal_conf_treat_ls.mappings[num_path_elements+10] = True
     legend_sets.append(mal_conf_treat_ls)
     mal_conf_diarr_pneum_ls = LegendSet()
     mal_conf_diarr_pneum_ls.name = 'Under 5: Confirmed Malaria, Diarrhorea and Pneumonia'
     mal_conf_diarr_pneum_ls.add_interval('green', 0, 20)
     mal_conf_diarr_pneum_ls.add_interval('yellow', 20, 30)
     mal_conf_diarr_pneum_ls.add_interval('red', 30, None)
-    mal_conf_diarr_pneum_ls.mappings[num_path_elements+10] = True
     mal_conf_diarr_pneum_ls.mappings[num_path_elements+11] = True
     mal_conf_diarr_pneum_ls.mappings[num_path_elements+12] = True
+    mal_conf_diarr_pneum_ls.mappings[num_path_elements+13] = True
     legend_sets.append(mal_conf_diarr_pneum_ls)
     vita_deworm_pcv_ls = LegendSet()
     vita_deworm_pcv_ls.name = 'Vit. A, Deworming and PCV3'
     vita_deworm_pcv_ls.add_interval('red', 0, 80)
     vita_deworm_pcv_ls.add_interval('yellow', 80, 97)
     vita_deworm_pcv_ls.add_interval('green', 97, None)
-    vita_deworm_pcv_ls.mappings[num_path_elements+13] = True
     vita_deworm_pcv_ls.mappings[num_path_elements+14] = True
     vita_deworm_pcv_ls.mappings[num_path_elements+15] = True
+    vita_deworm_pcv_ls.mappings[num_path_elements+16] = True
     legend_sets.append(vita_deworm_pcv_ls)
 
 
