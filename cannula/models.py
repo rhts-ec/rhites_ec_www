@@ -567,9 +567,9 @@ def load_excel_to_validations(source_doc):
         
         for row in ws.rows[1:]: # skip header row
             validation_name, l_exp, op, r_exp, *_ = [c.value for c in row]
-            op = op.replace(' ', '')
             if not l_exp or not op or not r_exp:
                 continue # ignore rows where any part of the rule is missing
+            op = op.replace(' ', '')
             if op not in ('>', '>=', '=', '<', '<='):
                 continue # ignore rows with an invalid operator
             print(validation_name, l_exp, op, r_exp)
