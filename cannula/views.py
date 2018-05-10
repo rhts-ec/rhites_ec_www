@@ -7582,6 +7582,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.2b Deliveries in unit(Fresh Still births)',
         '105-2.2c Deliveries in unit(Macerated still births)',
         '105-2.2d Deliveries in unit(Live Births)',
+        '105-2.3 Postnatal Attendances 6 Days',
         '105-2.3 Postnatal Attendances 6 Hours',
     )
     maternity_short_names = (
@@ -7690,7 +7691,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, breastfeeding, deliveries, still_fresh, still_macerated, live_births, pnc_6_hours, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
+        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, breastfeeding, deliveries, still_fresh, still_macerated, live_births, pnc_6_days, pnc_6_hours, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -7731,8 +7732,8 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         expected_under_5_malaria_val.update(_group_ou_dict)
         calculated_vals.append(expected_under_5_malaria_val)
 
-        if all_not_none(pnc_6_hours['numeric_sum'], expected_deliver) and expected_deliver:
-            pnc_6_days_percent = 100 * pnc_6_hours['numeric_sum'] / expected_deliver
+        if all_not_none(pnc_6_days['numeric_sum'], pnc_6_hours['numeric_sum'], expected_deliver) and expected_deliver:
+            pnc_6_days_percent = 100 * (pnc_6_days['numeric_sum']+pnc_6_hours['numeric_sum']) / expected_deliver
         else:
             pnc_6_days_percent = None
         pnc_6_days_percent_val = {
