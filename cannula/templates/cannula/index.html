@@ -29,6 +29,13 @@
 </ul>
 {% endif %}
 
+{% if 'pmtct' in request.path %}
+<ul>
+	<li><a href="{% url 'pmtct_sites' %}">PMTCT - Facilities</a></li>
+	<li><a href="{% url 'pmtct_districts' %}">PMTCT - Districts</a></li>
+</ul>
+{% endif %}
+
 {% if 'vmmc' in request.path %}
 <ul>
 	<li><a href="{% url 'vmmc_sites' %}">VMMC - Facilities</a></li>

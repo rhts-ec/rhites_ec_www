@@ -78,6 +78,9 @@
                         <a href="{% url 'thematic_hts' %}">HIV</a>
                     </li>
                     <li>
+                        <a href="{% url 'thematic_pmtct' %}">PMTCT/EID</a>
+                    </li>
+                    <li>
                         <a href="{% url 'thematic_malaria' %}">Malaria</a>
                     </li>
                     <li>
@@ -113,6 +116,9 @@
                         <a href="{% url 'validation_rule_listing' 'hiv' %}">HIV</a>
                     </li>
                     <li>
+                        <a href="{% url 'validation_rule_listing' 'pmtct' %}">PMTCT/EID</a>
+                    </li>
+                    <li>
                         <a href="{% url 'validation_rule_listing' 'malaria' %}">Malaria</a>
                     </li>
                     <li>
@@ -146,6 +152,9 @@
                 <ul class="nav nav-second-level">
                     <li>
                         <a href="{% url 'data_workflow_new' "HIV" %}">HIV</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'data_workflow_new' "PMTCT" %}">PMTCT</a>
                     </li>
                     <li>
                         <a href="{% url 'data_workflow_new' "Malaria" %}">Malaria</a>
