@@ -4519,25 +4519,10 @@ def nutrition_dashboard(request):
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
     PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
     period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
-    # period_list = ('2016-Q4', '2017-Q1', '2017-Q2', '2017-Q3', '2017-Q4')
     def val_with_period_de_fun(row, col):
         period = row
         de_name = col
         return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
-
-    malaria_de_names = (
-        '105-1.3 OPD Malaria (Total)',
-        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
-        '105-2.1 A7:Second dose IPT (IPT2)',
-    )
-    de_malaria_meta = list(product(malaria_de_names, (None,)))
-    qs_malaria = DataValue.objects.what(*malaria_de_names)
-    qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
-    qs_malaria = qs_malaria.when(*period_list)
-    qs_malaria = qs_malaria.order_by('period', 'de_name')
-    val_malaria = qs_malaria.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
-    val_malaria = list(val_malaria)
-    val_malaria = list(grabbag.rasterize(period_list, malaria_de_names, val_malaria, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun))
 
     data_element_metas = list()
    
