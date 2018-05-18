@@ -2257,6 +2257,115 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/vmmc_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
+def lab_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+
+    viral_target_de_names = (
+        'VL_TARGET',
+    )
+    viral_target_short_names = (
+        'Samples target',
+    )
+    de_viral_target_meta = list(product(viral_target_short_names, (None,)))
+
+    qs_viral_target = DataValue.objects.what(*viral_target_de_names)
+    qs_viral_target = qs_viral_target.annotate(cat_combo=Value(None, output_field=CharField()))
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    year_list = sorted(list(set(qstr[:4] for qstr in period_list)))
+    qs_viral_target = qs_viral_target.when(*year_list)
+    qs_viral_target = qs_viral_target.order_by('period', 'de_name')
+    val_viral_target = qs_viral_target.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_viral_target = list(val_viral_target)
+    q_list = sorted(['%s-Q%d' % (y, qnum,) for qnum in range(1, 5) for y in year_list])
+    q_list = [x for x in q_list if x in period_list]
+
+    def duplicate_values_over_periods(val_list, p_list):
+        def assign_period(v, p):
+            new_val = dict(v)
+            new_val['period'] = p
+            return new_val
+
+        return [assign_period(val, period) for val in val_list for period in p_list]
+
+    val_viral_target = duplicate_values_over_periods(val_viral_target, q_list)
+
+    gen_raster = grabbag.rasterize(period_list, viral_target_de_names, val_viral_target, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_viral_target2 = list(gen_raster)
+
+    viral_load_de_names = (
+        'VL samples rejected',
+        'VL samples sent',
+    )
+    viral_load_short_names = (
+        'VL samples rejected',
+        'VL samples sent',
+    )
+    de_viral_load_meta = list(product(viral_load_short_names, (None,)))
+
+    qs_viral_load = DataValue.objects.what(*viral_load_de_names)
+    qs_viral_load = qs_viral_load.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_viral_load = qs_viral_load.when(*period_list)
+    qs_viral_load = qs_viral_load.order_by('period', 'de_name')
+    val_viral_load = qs_viral_load.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_viral_load = list(val_viral_load)
+
+    gen_raster = grabbag.rasterize(period_list, viral_load_de_names, val_viral_load, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_viral_load2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_viral_target2, val_viral_load2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (vl_target, vl_rejected, vl_sent, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(vl_sent['numeric_sum'], vl_target['numeric_sum']) and vl_target['numeric_sum']:
+            coverage_percent = (vl_sent['numeric_sum'] * 100) / vl_target['numeric_sum']
+        else:
+            coverage_percent = None
+        coverage_percent_val = {
+            'period': period,
+            'de_name': '% VL testing coverage',
+            'numeric_sum': coverage_percent,
+        }
+        calculated_vals.append(coverage_percent_val)
+
+        if all_not_none(vl_rejected['numeric_sum'], vl_sent['numeric_sum']) and vl_sent['numeric_sum']:
+            reject_percent = (vl_rejected['numeric_sum'] * 100) / vl_sent['numeric_sum']
+        else:
+            reject_percent = None
+        reject_percent_val = {
+            'period': period,
+            'de_name': '% VL sample rejection',
+            'numeric_sum': reject_percent,
+        }
+        calculated_vals.append(reject_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% VL testing coverage', None),
+            ('% VL sample rejection', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
+@login_required
 def lab_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
