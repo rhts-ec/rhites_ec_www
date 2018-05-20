@@ -2415,11 +2415,19 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas = list()
 
     targets_de_names = (
-        'Target: Known HIV Status',
+        'Target: PMTCT_ART',
+        'Target: PMTCT_EID',
+        'Target: PMTCT_EID_POS',
+        'Target: PMTCT_STAT',
+        'Target: PMTCT_STAT_POS',
         'Target: new ANC clients',
     )
     targets_short_names = (
-        'Target: Known HIV Status',
+        'Target: PMTCT_ART',
+        'Target: PMTCT_EID',
+        'Target: PMTCT_EID_POS',
+        'Target: PMTCT_STAT',
+        'Target: PMTCT_STAT_POS',
         'Target: new ANC clients',
     )
     de_targets_meta = list(product(targets_de_names, (None,)))
@@ -2440,16 +2448,26 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     val_targets2 = list(gen_raster)
 
     pmtct_de_names = (
+        '105-2.1 A17:HIV+ Pregnant Women already on ART before 1st ANC (ART-K)',
+        '105-2.1 A18:Pregnant Women re-tested later in pregnancy (TR+ &TRR+)',
+        '105-2.1 A19:Pregnant Women testing HIV+ on a retest (TRR+)',
         '105-2.1 A1:ANC 1st Visit for women',
         '105-2.1 HIV+ Pregnant Women initiated on ART for EMTCT (ART)',
         '105-2.1 Pregnant Women newly tested for HIV this pregnancy(TR & TRR)',
+        '105-2.1 Pregnant Women tested HIV+ for 1st time this pregnancy (TRR) at any visit',
         '105-2.1a Pregnant Women who knew status before 1st ANC (Total (TRK + TRRK))',
+        '105-2.1b Pregnant Women who knew status before 1st ANC (HIV+(TRRK))',
     )
     pmtct_short_names = (
+        '105-2.1 A17:HIV+ Pregnant Women already on ART before 1st ANC (ART-K)',
+        '105-2.1 A18:Pregnant Women re-tested later in pregnancy (TR+ &TRR+)',
+        '105-2.1 A19:Pregnant Women testing HIV+ on a retest (TRR+)',
         '105-2.1 A1:ANC 1st Visit for women',
         '105-2.1 HIV+ Pregnant Women initiated on ART for EMTCT (ART)',
         '105-2.1 Pregnant Women newly tested for HIV this pregnancy(TR & TRR)',
+        '105-2.1 Pregnant Women tested HIV+ for 1st time this pregnancy (TRR) at any visit',
         '105-2.1a Pregnant Women who knew status before 1st ANC (Total (TRK + TRRK))',
+        '105-2.1b Pregnant Women who knew status before 1st ANC (HIV+(TRRK))',
     )
     de_pmtct_meta = list(product(pmtct_short_names, (None,)))
     data_element_metas += de_pmtct_meta
@@ -2477,7 +2495,7 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (target_known, target_new, anc_1_visit, hiv_tested, hiv_known, *other_vals)) = _group
+        (_group_ou_path, (target_art, target_eid, target_eid_pos, target_known, target_known_pos, target_new, art_already, hiv_retested, hiv_retested_pos, anc_1_visit, art_initiated, hiv_tested, hiv_tested_pos, hiv_known, hiv_known_pos, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -2487,7 +2505,7 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
         else:
             perf_anc_1_visit = None
         perf_anc_1_visit_val = {
-            'de_name': 'Perf% New Clients',
+            'de_name': 'Perf. %: New ANC1 clients',
             'cat_combo': None,
             'numeric_sum': perf_anc_1_visit,
         }
@@ -2499,7 +2517,7 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
         else:
             perf_hiv_known = None
         perf_hiv_known_val = {
-            'de_name': 'Perf% Known HIV Status',
+            'de_name': 'Perf. %: Pregnant women with known HIV status',
             'cat_combo': None,
             'numeric_sum': perf_hiv_known,
         }
@@ -2511,32 +2529,92 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
         else:
             pmtct_stat = None
         pmtct_stat_val = {
-            'de_name': 'PMTCT_STAT',
+            'de_name': 'PMTCT_STAT %',
             'cat_combo': None,
             'numeric_sum': pmtct_stat,
         }
         pmtct_stat_val.update(_group_ou_dict)
         calculated_vals.append(pmtct_stat_val)
 
+        if all_not_none(target_known_pos['numeric_sum']) and target_known_pos['numeric_sum']:
+            perf_hiv_known_pos = 100 * sum_zero(hiv_tested_pos['numeric_sum'], hiv_known_pos['numeric_sum']) / target_known_pos['numeric_sum']
+        else:
+            perf_hiv_known_pos = None
+        perf_hiv_known_pos_val = {
+            'de_name': 'Perf. %: Pregnant women with known HIV+ status',
+            'cat_combo': None,
+            'numeric_sum': perf_hiv_known_pos,
+        }
+        perf_hiv_known_pos_val.update(_group_ou_dict)
+        calculated_vals.append(perf_hiv_known_pos_val)
+
+        if all_not_none(anc_1_visit['numeric_sum']) and anc_1_visit['numeric_sum']:
+            pmtct_stat_pos = 100 * sum_zero(hiv_tested_pos['numeric_sum'], hiv_known_pos['numeric_sum']) / anc_1_visit['numeric_sum']
+        else:
+            pmtct_stat_pos = None
+        pmtct_stat_pos_val = {
+            'de_name': 'PMTCT_STAT_POS %',
+            'cat_combo': None,
+            'numeric_sum': pmtct_stat_pos,
+        }
+        pmtct_stat_pos_val.update(_group_ou_dict)
+        calculated_vals.append(pmtct_stat_pos_val)
+
+        if all_not_none(target_art['numeric_sum']) and target_art['numeric_sum']:
+            perf_art = 100 * sum_zero(art_initiated['numeric_sum']) / target_art['numeric_sum']
+        else:
+            perf_art = None
+        perf_art_val = {
+            'de_name': 'Perf. %: HIV+ pregnant women who received ART to reduce the risk of MTCT',
+            'cat_combo': None,
+            'numeric_sum': perf_art,
+        }
+        perf_art_val.update(_group_ou_dict)
+        calculated_vals.append(perf_art_val)
+
+        if all_not_none(hiv_tested_pos['numeric_sum'], hiv_known_pos['numeric_sum']) and sum_zero(hiv_tested_pos['numeric_sum'], hiv_known_pos['numeric_sum']):
+            pmtct_art = 100 * sum_zero(art_already['numeric_sum'], art_initiated['numeric_sum']) / sum_zero(hiv_tested_pos['numeric_sum'], hiv_known_pos['numeric_sum'])
+        else:
+            pmtct_art = None
+        pmtct_art_val = {
+            'de_name': 'PMTCT_ART %',
+            'cat_combo': None,
+            'numeric_sum': pmtct_art,
+        }
+        pmtct_art_val.update(_group_ou_dict)
+        calculated_vals.append(pmtct_art_val)
+
         _group[1].extend(calculated_vals)
 
-    data_element_metas += list(product(['Perf% New Clients'], (None,)))
-    data_element_metas += list(product(['Perf% Known HIV Status'], (None,)))
-    data_element_metas += list(product(['PMTCT_STAT'], (None,)))
+    data_element_metas += list(product(['Perf. %: New ANC1 clients'], (None,)))
+    data_element_metas += list(product(['Perf. %: Pregnant women with known HIV status'], (None,)))
+    data_element_metas += list(product(['PMTCT_STAT %'], (None,)))
+    data_element_metas += list(product(['Perf. %: Pregnant women with known HIV+ status'], (None,)))
+    data_element_metas += list(product(['PMTCT_STAT_POS %'], (None,)))
+    data_element_metas += list(product(['Perf. %: HIV+ pregnant women who received ART to reduce the risk of MTCT'], (None,)))
+    data_element_metas += list(product(['PMTCT_ART %'], (None,)))
 
 
     num_path_elements = len(ou_headers)
     legend_sets = list()
     pmtct_ls = LegendSet()
-    pmtct_ls.name = 'PMTCT'
+    pmtct_ls.name = 'PMTCT (Target Performance)'
     pmtct_ls.add_interval('red', 0, 70)
     pmtct_ls.add_interval('yellow', 70, 90)
     pmtct_ls.add_interval('green', 90, None)
-    pmtct_ls.mappings[num_path_elements+11] = True
-    pmtct_ls.mappings[num_path_elements+12] = True
-    pmtct_ls.mappings[num_path_elements+13] = True
-    pmtct_ls.mappings[num_path_elements+14] = True
     pmtct_ls.mappings[num_path_elements+15] = True
+    pmtct_ls.mappings[num_path_elements+16] = True
+    pmtct_ls.mappings[num_path_elements+18] = True
+    pmtct_ls.mappings[num_path_elements+20] = True
+    legend_sets.append(pmtct_ls)
+    pmtct_ls = LegendSet()
+    pmtct_ls.name = 'PMTCT (PEPFAR)'
+    pmtct_ls.add_interval('red', 0, 80)
+    pmtct_ls.add_interval('yellow', 80, 90)
+    pmtct_ls.add_interval('green', 90, 100)
+    pmtct_ls.mappings[num_path_elements+17] = True
+    pmtct_ls.mappings[num_path_elements+19] = True
+    pmtct_ls.mappings[num_path_elements+21] = True
     legend_sets.append(pmtct_ls)
 
 
