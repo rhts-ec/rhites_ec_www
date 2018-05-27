@@ -572,6 +572,7 @@ def load_excel_to_validations(source_doc):
             op = op.replace(' ', '')
             if op not in ('>', '>=', '=', '<', '<='):
                 continue # ignore rows with an invalid operator
+            l_exp, op, r_exp = str(l_exp), str(op), str(r_exp) # ensure expressions and operator are strings
             print(validation_name, l_exp, op, r_exp)
             l_element_names = validation_expr_elements(l_exp)
             r_element_names = validation_expr_elements(r_exp)
