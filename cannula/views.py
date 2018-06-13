@@ -1890,6 +1890,137 @@ def hts_by_district(request, output_format='HTML'):
     return render(request, 'cannula/hts_districts.html', context)
 
 @login_required
+def vmmc_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+
+    vmmc_target_de_names = (
+        'VMMC_CIRC_TARGET',
+    )
+    vmmc_target_short_names = (
+        'VMMC_CIRC_TARGET',
+    )
+    de_vmmc_target_meta = list(product(vmmc_target_short_names, (None,)))
+
+    qs_vmmc_target = DataValue.objects.what(*vmmc_target_de_names)
+    qs_vmmc_target = qs_vmmc_target.annotate(cat_combo=Value(None, output_field=CharField()))
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    year_list = sorted(list(set(qstr[:4] for qstr in period_list)))
+    qs_vmmc_target = qs_vmmc_target.when(*year_list)
+    qs_vmmc_target = qs_vmmc_target.order_by('period', 'de_name')
+    val_vmmc_target = qs_vmmc_target.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_vmmc_target = list(val_vmmc_target)
+    q_list = sorted(['%s-Q%d' % (y, qnum,) for qnum in range(1, 5) for y in year_list])
+    q_list = [x for x in q_list if x in period_list]
+
+    def duplicate_values_over_periods(val_list, p_list):
+        def assign_period(v, p):
+            new_val = dict(v)
+            new_val['period'] = p
+            return new_val
+
+        return [assign_period(val, period) for val in val_list for period in p_list]
+
+    val_vmmc_target = duplicate_values_over_periods(val_vmmc_target, q_list)
+
+    gen_raster = grabbag.rasterize(period_list, vmmc_target_de_names, val_vmmc_target, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_vmmc_target2 = list(gen_raster)
+
+    vmmc_de_names = (
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Moderate',
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Severe',
+        '105-5 Clients circumcised by circumcision Technique Device Based (DC)',
+        '105-5 Clients circumcised by circumcision Technique Other VMMC techniques',
+        '105-5 Clients circumcised by circumcision Technique Surgical(SC)',
+        '105-5a Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Within 48 Hours)',
+    )
+    vmmc_short_names = (
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Moderate',
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Severe',
+        '105-5 Clients circumcised by circumcision Technique Device Based (DC)',
+        '105-5 Clients circumcised by circumcision Technique Other VMMC techniques',
+        '105-5 Clients circumcised by circumcision Technique Surgical(SC)',
+        '105-5a Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Within 48 Hours)',
+    )
+    de_vmmc_meta = list(product(vmmc_short_names, (None,)))
+
+    qs_vmmc = DataValue.objects.what(*vmmc_de_names)
+    qs_vmmc = qs_vmmc.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_vmmc = qs_vmmc.when(*period_list)
+    qs_vmmc = qs_vmmc.order_by('period', 'de_name')
+    val_vmmc = qs_vmmc.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_vmmc = list(val_vmmc)
+
+    gen_raster = grabbag.rasterize(period_list, vmmc_de_names, val_vmmc, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_vmmc2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_vmmc_target2, val_vmmc2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (vmmc_target, adverse_moderate, adverse_severe, vmmc_device, vmmc_other, vmmc_surgical, followup_48hrs, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(vmmc_target['numeric_sum']) and vmmc_target['numeric_sum']:
+            vmmc_total = sum_zero(vmmc_device['numeric_sum'], vmmc_other['numeric_sum'], vmmc_surgical['numeric_sum'])
+            coverage_percent = (vmmc_total * 100) / vmmc_target['numeric_sum']
+        else:
+            coverage_percent = None
+        coverage_percent_val = {
+            'period': period,
+            'de_name': '% PEPFAR targeted Males circumcised',
+            'numeric_sum': coverage_percent,
+        }
+        calculated_vals.append(coverage_percent_val)
+
+        if all_not_none(vmmc_total) and vmmc_total:
+            vmmc_adverse = sum_zero(adverse_moderate['numeric_sum'], adverse_severe['numeric_sum'])
+            adverse_percent = (vmmc_adverse * 100) / vmmc_total
+        else:
+            adverse_percent = None
+        adverse_percent_val = {
+            'period': period,
+            'de_name': '% Experienced Adverse Events',
+            'numeric_sum': adverse_percent,
+        }
+        calculated_vals.append(adverse_percent_val)
+
+        if all_not_none(followup_48hrs['numeric_sum'], vmmc_total) and vmmc_total:
+            followup_percent = (followup_48hrs['numeric_sum'] * 100) / vmmc_total
+        else:
+            followup_percent = None
+        followup_percent_val = {
+            'period': period,
+            'de_name': '% Followed up at 48 hours',
+            'numeric_sum': followup_percent,
+        }
+        calculated_vals.append(followup_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% PEPFAR targeted Males circumcised', None),
+            ('% Experienced Adverse Events', None),
+            ('% Followed up at 48 hours', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
+@login_required
 def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
