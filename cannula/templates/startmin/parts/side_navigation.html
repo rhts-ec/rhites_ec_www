@@ -2,6 +2,7 @@
 <div class="navbar-default sidebar" role="navigation" id="sidebar">
     <div class="sidebar-nav navbar-collapse">
         <ul class="nav" id="side-menu">
+            {% comment %}
             <li class="sidebar-search">
                 <div class="input-group custom-search-form">
                     <input type="text" class="form-control" placeholder="Search...">
@@ -13,6 +14,7 @@
                 </div>
                 <!-- /input-group -->
             </li>
+            {% endcomment %}
             <!--<li>
                 <a href="#"><i class="fa fa-bar-chart-o fa-fw"></i> Overview <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
@@ -147,6 +149,7 @@
                     </li>
                 </ul>
             </li>
+            {% if user.is_staff %}
             <li>
                 <a href="#"><i class="fa fa-wrench fa-fw"></i> Upload Datasets <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
@@ -185,6 +188,7 @@
                     </li>
                 </ul>
             </li>
+            {% endif %}
             <li>
                 <img src="{% static 'cannula/lockup_rhites-ec_vert.png' %}" height="100%" width="100%"/>
             </li>

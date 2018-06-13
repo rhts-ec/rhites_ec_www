@@ -77,12 +77,25 @@
                         <button type="submit" class="btn btn-primary">
                             <span class="fa fa-search"></span> Filter
                         </button>                               
-                    </div> <!-- form group [order by] --> 
+                    </div> <!-- form group [order by] -->
                     <div class="form-group pull-right">
                         <button type="button" onclick="goBack()" class="btn btn-success">
                             <span class="fa fa-backward"></span> Go Back
                         </button>                               
                     </div> <!-- form group [back button] --> 
+                    <div class="form-group pull-right"><span>&nbsp;</span></div>
+                    <div class="form-group pull-right">
+                    {% if excel_url %}
+                    <span class="w3-small no-print">
+                    <a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+                    </span>
+                    {% endif %}
+                    {% if csv_url %}
+                    <span class="w3-small no-print">
+                    <a class="btn btn-primary w3-margin-bottom" href="{{ csv_url }}?{{ request.META.QUERY_STRING }}">Download as CSV</a>
+                    </span>
+                    {% endif %}
+                    </div>
                 </form>
             </div>
         </div>
@@ -113,16 +126,6 @@
     </span>
 </div>
 <div class="row">
-	{% if excel_url %}
-<span class="w3-small no-print">
-<a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
-</span>
-	{% endif %}
-    {% if csv_url %}
-<span class="w3-small no-print">
-<a class="btn btn-primary w3-margin-bottom" href="{{ csv_url }}?{{ request.META.QUERY_STRING }}">Download as CSV</a>
-</span>
-    {% endif %}
 	<table class="w3-table w3-border w3-bordered" border="1">
 	<thead class="w3-gray">
 	<tr>
