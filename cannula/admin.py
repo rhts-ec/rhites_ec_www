@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib import auth
 
 from mptt.admin import MPTTModelAdmin
 
@@ -43,6 +44,9 @@ class ValidationRuleAdmin(admin.ModelAdmin):
     list_display = ['name', 'expression']
     filter_horizontal = ['data_elements']
 
+class MyUserAdmin(auth.admin.UserAdmin):
+    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser']
+
 admin.site.register(SourceDocument, SourceDocumentAdmin)
 admin.site.register(OrgUnit, OrgUnitAdmin)
 admin.site.register(DataElement, DataElementAdmin)
@@ -50,6 +54,8 @@ admin.site.register(DataValue, DataValueAdmin)
 admin.site.register(Category)
 admin.site.register(CategoryCombo, CategoryComboAdmin)
 admin.site.register(ValidationRule, ValidationRuleAdmin)
+admin.site.unregister(auth.models.User) # unregister first, User model already registered
+admin.site.register(auth.models.User, MyUserAdmin)
 
 admin.site.site_title = 'RHITES-EC Performance Monitoring Tool Administrative Interface'
 admin.site.site_header = 'RHITES-EC Performance Monitoring Tool Admin'
