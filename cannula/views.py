@@ -692,6 +692,98 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     return render(request, 'cannula/malaria_cases_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
+def malaria_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    malaria_de_names = (
+        '105-1.3 OPD Malaria (Total)',
+        '105-1.3 OPD Malaria Confirmed (Microscopic & RDT)',
+        '105-2.1 A7:Second dose IPT (IPT2)',
+    )
+    de_malaria_meta = list(product(malaria_de_names, (None,)))
+    qs_malaria = DataValue.objects.what(*malaria_de_names)
+    qs_malaria = qs_malaria.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_malaria = qs_malaria.when(*period_list)
+    qs_malaria = qs_malaria.order_by('period', 'de_name')
+    val_malaria = qs_malaria.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_malaria = list(val_malaria)
+    val_malaria = list(grabbag.rasterize(period_list, malaria_de_names, val_malaria, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun))
+
+    preg_de_names =(
+        'Expected Pregnancies',
+    )
+    de_preg_meta = list(product(preg_de_names, (None,)))
+    qs_preg = DataValue.objects.what(*preg_de_names)
+    qs_preg = qs_preg.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_preg = qs_preg.when('2016', '2017')
+    qs_preg = qs_preg.order_by('period', 'de_name')
+    val_preg = qs_preg.values('period', 'de_name').annotate(numeric_sum=(Sum('numeric_value')))
+    val_preg = list(val_preg)
+    # convert annual expected pregnancies to quarterly
+    for v in val_preg[::-1]: # in reverse, since we'll be adding to the end
+        v['numeric_sum'] = v['numeric_sum']/4
+        year = v['period']
+        v['period'] = '{0}-Q{1}'.format(year, 1)
+        for q in ['{0}-Q{1}'.format(year, i) for i in range(2, 5)]:
+            v_quarter = dict(v)
+            v_quarter['period'] = q
+            v_quarter['numeric_sum'] = v_quarter['numeric_sum']
+            val_preg.append(v_quarter)
+    val_preg.sort(key=lambda x: (x['period'], x['de_name']))
+    val_preg = list(grabbag.rasterize(period_list, preg_de_names, val_preg, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun))
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_preg, val_malaria), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (expected_pregnancies, malaria_total, malaria_confirmed, ipt2, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(ipt2['numeric_sum'], expected_pregnancies['numeric_sum']) and expected_pregnancies['numeric_sum']:
+            ipt2_rate = (ipt2['numeric_sum'] * 100) / expected_pregnancies['numeric_sum']
+        else:
+            ipt2_rate = None
+        ipt2_rate_val = {
+            'period': period,
+            'de_name': 'IPT2 Rate (%)',
+            'numeric_sum': ipt2_rate,
+        }
+        calculated_vals.append(ipt2_rate_val)
+
+        if all_not_none(malaria_confirmed['numeric_sum'], malaria_total['numeric_sum']) and malaria_total['numeric_sum']:
+            presumptive_rate = 100 - (malaria_confirmed['numeric_sum'] * 100) / malaria_total['numeric_sum']
+        else:
+            presumptive_rate = None
+        presumptive_rate_val = {
+            'period': period,
+            'de_name': 'Presumptive Treatment Rate (%)',
+            'numeric_sum': presumptive_rate,
+        }
+        calculated_vals.append(presumptive_rate_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('IPT Rate (%)', None),
+            ('Presumptive Treatment Rate (%)', None),
+        ],
+        'grouped_data': grouped_vals,
+        'calculated_vals': calculated_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
 @login_required
 def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
@@ -1122,7 +1214,6 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
 @login_required
 def data_workflow_new(request, menu_name):
     if request.method == 'POST':
-        # import pdb;pdb.set_trace()
         form = SourceDocumentForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
@@ -1162,8 +1253,6 @@ def data_workflow_detail(request):
             elif 'load_validations' in request.POST:
                 load_excel_to_validations(src_doc)
 
-            #TODO: redirect with to detail page?
-
         qs_vals = DataValue.objects.filter(source_doc__id=src_doc_id).values('id')
         doc_elements = DataElement.objects.filter(data_values__id__in=qs_vals).order_by('name').distinct('name')
         doc_rules = ValidationRule.objects.filter(data_elements__data_values__id__in=qs_vals).order_by('name').distinct('name')
@@ -1190,7 +1279,6 @@ def data_workflow_detail(request):
         'editable_names': editable_names,
     }
     return render_to_response('cannula/data_workflow_new.html', context, context_instance=RequestContext(request))
-    # return render(request, 'cannula/data_workflow_detail.html', context)
 
 @login_required
 def data_workflow_listing(request):
@@ -1319,7 +1407,6 @@ def validation_rule(request, output_format='HTML'):
 
 @login_required
 def data_element_alias(request):
-    # import pdb;pdb.set_trace();
     if 'de_id' in request.GET:
         de_id = int(request.GET['de_id'])
         de = get_object_or_404(DataElement, id=de_id)
@@ -1327,7 +1414,6 @@ def data_element_alias(request):
         if request.method == 'POST':
             form = DataElementAliasForm(request.POST, instance=de)
             if form.is_valid():
-                # form.save()
                 obj = form.save(commit=False)
                 obj.name = request.POST['value[name]']
                 obj.alias = request.POST['value[alias]']
@@ -1384,7 +1470,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     data_element_metas = list()
 
-    hts_de_names = ( #TODO: collation problem
+    hts_de_names = (
         '105-4 Number of Individuals who received HIV test results',
         '105-4 Number of Individuals who tested HIV positive',
         '105-4 Number of clients who have been linked to care',
@@ -2289,16 +2375,9 @@ def hts_by_district(request, output_format='HTML'):
         }
         calculated_vals.append(linked_over15_m_percent_val)
 
-        # _group[1].extend(calculated_vals)
         _group[1] = calculated_vals
     
     data_element_names = list()
-    
-    # data_element_names += list(product(hts_short_names, subcategory_names))
-    # data_element_names += de_pmtct_mother_meta
-    # data_element_names += de_pmtct_mother_pos_meta
-    # data_element_names += list(product(pmtct_child_short_names, (None,)))
-    # data_element_names += de_target_meta
 
     data_element_names += list(product(['Tested',], subcategory_names))
     data_element_names += list(product(['HIV+',], subcategory_names))
@@ -2691,6 +2770,136 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     return render(request, 'cannula/pmtct_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
+def vmmc_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+
+    vmmc_target_de_names = (
+        'VMMC_CIRC_TARGET',
+    )
+    vmmc_target_short_names = (
+        'VMMC_CIRC_TARGET',
+    )
+    de_vmmc_target_meta = list(product(vmmc_target_short_names, (None,)))
+
+    qs_vmmc_target = DataValue.objects.what(*vmmc_target_de_names)
+    qs_vmmc_target = qs_vmmc_target.annotate(cat_combo=Value(None, output_field=CharField()))
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    year_list = sorted(list(set(qstr[:4] for qstr in period_list)))
+    qs_vmmc_target = qs_vmmc_target.when(*year_list)
+    qs_vmmc_target = qs_vmmc_target.order_by('period', 'de_name')
+    val_vmmc_target = qs_vmmc_target.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_vmmc_target = list(val_vmmc_target)
+    q_list = sorted(['%s-Q%d' % (y, qnum,) for qnum in range(1, 5) for y in year_list])
+    q_list = [x for x in q_list if x in period_list]
+
+    def duplicate_values_over_periods(val_list, p_list):
+        def assign_period(v, p):
+            new_val = dict(v)
+            new_val['period'] = p
+            return new_val
+
+        return [assign_period(val, period) for val in val_list for period in p_list]
+
+    val_vmmc_target = duplicate_values_over_periods(val_vmmc_target, q_list)
+
+    gen_raster = grabbag.rasterize(period_list, vmmc_target_de_names, val_vmmc_target, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_vmmc_target2 = list(gen_raster)
+
+    vmmc_de_names = (
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Moderate',
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Severe',
+        '105-5 Clients circumcised by circumcision Technique Device Based (DC)',
+        '105-5 Clients circumcised by circumcision Technique Other VMMC techniques',
+        '105-5 Clients circumcised by circumcision Technique Surgical(SC)',
+        '105-5a Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Within 48 Hours)',
+    )
+    vmmc_short_names = (
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Moderate',
+        '105-5 Clients Circumcised who Experienced one or more Adverse Events Severe',
+        '105-5 Clients circumcised by circumcision Technique Device Based (DC)',
+        '105-5 Clients circumcised by circumcision Technique Other VMMC techniques',
+        '105-5 Clients circumcised by circumcision Technique Surgical(SC)',
+        '105-5a Number of Clients Circumcised who Returned for Follow Up Visit within 6 weeks of SMC Procedure(Within 48 Hours)',
+    )
+    de_vmmc_meta = list(product(vmmc_short_names, (None,)))
+
+    qs_vmmc = DataValue.objects.what(*vmmc_de_names)
+    qs_vmmc = qs_vmmc.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_vmmc = qs_vmmc.when(*period_list)
+    qs_vmmc = qs_vmmc.order_by('period', 'de_name')
+    val_vmmc = qs_vmmc.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_vmmc = list(val_vmmc)
+
+    gen_raster = grabbag.rasterize(period_list, vmmc_de_names, val_vmmc, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_vmmc2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_vmmc_target2, val_vmmc2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (vmmc_target, adverse_moderate, adverse_severe, vmmc_device, vmmc_other, vmmc_surgical, followup_48hrs, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(vmmc_target['numeric_sum']) and vmmc_target['numeric_sum']:
+            vmmc_total = sum_zero(vmmc_device['numeric_sum'], vmmc_other['numeric_sum'], vmmc_surgical['numeric_sum'])
+            coverage_percent = (vmmc_total * 100) / vmmc_target['numeric_sum']
+        else:
+            coverage_percent = None
+        coverage_percent_val = {
+            'period': period,
+            'de_name': '% PEPFAR targeted Males circumcised',
+            'numeric_sum': coverage_percent,
+        }
+        calculated_vals.append(coverage_percent_val)
+
+        if all_not_none(vmmc_total) and vmmc_total:
+            vmmc_adverse = sum_zero(adverse_moderate['numeric_sum'], adverse_severe['numeric_sum'])
+            adverse_percent = (vmmc_adverse * 100) / vmmc_total
+        else:
+            adverse_percent = None
+        adverse_percent_val = {
+            'period': period,
+            'de_name': '% Experienced Adverse Events',
+            'numeric_sum': adverse_percent,
+        }
+        calculated_vals.append(adverse_percent_val)
+
+        if all_not_none(followup_48hrs['numeric_sum'], vmmc_total) and vmmc_total:
+            followup_percent = (followup_48hrs['numeric_sum'] * 100) / vmmc_total
+        else:
+            followup_percent = None
+        followup_percent_val = {
+            'period': period,
+            'de_name': '% Followed up at 48 hours',
+            'numeric_sum': followup_percent,
+        }
+        calculated_vals.append(followup_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% PEPFAR targeted Males circumcised', None),
+            ('% Experienced Adverse Events', None),
+            ('% Followed up at 48 hours', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
 @login_required
 def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
@@ -3057,6 +3266,115 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/vmmc_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
+def lab_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+
+    viral_target_de_names = (
+        'VL_TARGET',
+    )
+    viral_target_short_names = (
+        'Samples target',
+    )
+    de_viral_target_meta = list(product(viral_target_short_names, (None,)))
+
+    qs_viral_target = DataValue.objects.what(*viral_target_de_names)
+    qs_viral_target = qs_viral_target.annotate(cat_combo=Value(None, output_field=CharField()))
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    year_list = sorted(list(set(qstr[:4] for qstr in period_list)))
+    qs_viral_target = qs_viral_target.when(*year_list)
+    qs_viral_target = qs_viral_target.order_by('period', 'de_name')
+    val_viral_target = qs_viral_target.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_viral_target = list(val_viral_target)
+    q_list = sorted(['%s-Q%d' % (y, qnum,) for qnum in range(1, 5) for y in year_list])
+    q_list = [x for x in q_list if x in period_list]
+
+    def duplicate_values_over_periods(val_list, p_list):
+        def assign_period(v, p):
+            new_val = dict(v)
+            new_val['period'] = p
+            return new_val
+
+        return [assign_period(val, period) for val in val_list for period in p_list]
+
+    val_viral_target = duplicate_values_over_periods(val_viral_target, q_list)
+
+    gen_raster = grabbag.rasterize(period_list, viral_target_de_names, val_viral_target, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_viral_target2 = list(gen_raster)
+
+    viral_load_de_names = (
+        'VL samples rejected',
+        'VL samples sent',
+    )
+    viral_load_short_names = (
+        'VL samples rejected',
+        'VL samples sent',
+    )
+    de_viral_load_meta = list(product(viral_load_short_names, (None,)))
+
+    qs_viral_load = DataValue.objects.what(*viral_load_de_names)
+    qs_viral_load = qs_viral_load.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_viral_load = qs_viral_load.when(*period_list)
+    qs_viral_load = qs_viral_load.order_by('period', 'de_name')
+    val_viral_load = qs_viral_load.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_viral_load = list(val_viral_load)
+
+    gen_raster = grabbag.rasterize(period_list, viral_load_de_names, val_viral_load, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_viral_load2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_viral_target2, val_viral_load2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (vl_target, vl_rejected, vl_sent, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(vl_sent['numeric_sum'], vl_target['numeric_sum']) and vl_target['numeric_sum']:
+            coverage_percent = (vl_sent['numeric_sum'] * 100) / vl_target['numeric_sum']
+        else:
+            coverage_percent = None
+        coverage_percent_val = {
+            'period': period,
+            'de_name': '% VL testing coverage',
+            'numeric_sum': coverage_percent,
+        }
+        calculated_vals.append(coverage_percent_val)
+
+        if all_not_none(vl_rejected['numeric_sum'], vl_sent['numeric_sum']) and vl_sent['numeric_sum']:
+            reject_percent = (vl_rejected['numeric_sum'] * 100) / vl_sent['numeric_sum']
+        else:
+            reject_percent = None
+        reject_percent_val = {
+            'period': period,
+            'de_name': '% VL sample rejection',
+            'numeric_sum': reject_percent,
+        }
+        calculated_vals.append(reject_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% VL testing coverage', None),
+            ('% VL sample rejection', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
 
 @login_required
 def lab_scorecard(request, org_unit_level=3, output_format='HTML'):
@@ -5316,6 +5634,161 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     return render(request, 'cannula/tb_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 @login_required
+def nutrition_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+   
+    opd_attend_de_names = (
+        '105-1.1 OPD New Attendance',
+        '105-1.1 OPD Re-Attendance',
+    )
+    opd_attend_short_names = (
+        'Total OPD attendence',
+    )
+    de_opd_attend_meta = list(product(opd_attend_short_names, (None,)))
+    data_element_metas += de_opd_attend_meta
+
+    qs_opd_attend = DataValue.objects.what(*opd_attend_de_names)
+    qs_opd_attend = qs_opd_attend.annotate(de_name=Value(opd_attend_short_names[0], output_field=CharField()))
+    qs_opd_attend = qs_opd_attend.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_opd_attend = qs_opd_attend.when(*period_list)
+    qs_opd_attend = qs_opd_attend.order_by('period', 'de_name')
+    val_opd_attend = qs_opd_attend.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, opd_attend_short_names, val_opd_attend, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_opd_attend2 = list(gen_raster)
+   
+    muac_de_names = (
+        '106a Nutri No. 1 of clients who received nutrition assessment in this quarter using color coded MUAC tapes/Z score chart',
+    )
+    muac_short_names = (
+        'Clients assessed using MUAC/Z score in OPD',
+    )
+    de_muac_meta = list(product(muac_short_names, (None,)))
+    data_element_metas += de_muac_meta
+
+    qs_muac = DataValue.objects.what(*muac_de_names)
+    qs_muac = qs_muac.annotate(de_name=Value(muac_short_names[0], output_field=CharField()))
+    qs_muac = qs_muac.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_muac = qs_muac.when(*period_list)
+    qs_muac = qs_muac.order_by('period', 'de_name')
+    val_muac = qs_muac.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, muac_short_names, val_muac, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_muac2 = list(gen_raster)
+   
+    active_art_de_names = (
+        '106a ART No. active on ART on 1st line ARV regimen',
+        '106a ART No. active on ART on 2nd line ARV regimen',
+        '106a ART No. active on ART on 3rd line or higher ARV regimen',
+    )
+    active_art_short_names = (
+        'Total No. active on ART in the quarter',
+    )
+    de_active_art_meta = list(product(active_art_short_names, (None,)))
+    data_element_metas += de_active_art_meta
+
+    qs_active_art = DataValue.objects.what(*active_art_de_names)
+    qs_active_art = qs_active_art.annotate(de_name=Value(active_art_short_names[0], output_field=CharField()))
+    qs_active_art = qs_active_art.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_active_art = qs_active_art.when(*period_list)
+    qs_active_art = qs_active_art.order_by('period', 'de_name')
+    val_active_art = qs_active_art.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, active_art_short_names, val_active_art, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_active_art2 = list(gen_raster)
+   
+    active_art_malnourish_de_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+    )
+    active_art_malnourish_short_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+    )
+    de_active_art_malnourish_meta = list(product(active_art_malnourish_short_names, (None,)))
+    data_element_metas += de_active_art_malnourish_meta
+
+    qs_active_art_malnourish = DataValue.objects.what(*active_art_malnourish_de_names)
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(de_name=Value(active_art_malnourish_short_names[0], output_field=CharField()))
+    qs_active_art_malnourish = qs_active_art_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_active_art_malnourish = qs_active_art_malnourish.when(*period_list)
+    qs_active_art_malnourish = qs_active_art_malnourish.order_by('period', 'de_name')
+    val_active_art_malnourish = qs_active_art_malnourish.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, active_art_malnourish_short_names, val_active_art_malnourish, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_active_art_malnourish2 = list(gen_raster)
+   
+    new_malnourish_de_names = (
+        '106a Nutri N4-No. of newly identified malnourished cases in this quarter - Total',
+    )
+    new_malnourish_short_names = (
+        'No of newly identified malnourished cases in this quarter',
+    )
+    de_new_malnourish_meta = list(product(new_malnourish_short_names, (None,)))
+    data_element_metas += de_new_malnourish_meta
+
+    qs_new_malnourish = DataValue.objects.what(*new_malnourish_de_names)
+    qs_new_malnourish = qs_new_malnourish.annotate(de_name=Value(new_malnourish_short_names[0], output_field=CharField()))
+    qs_new_malnourish = qs_new_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_new_malnourish = qs_new_malnourish.when(*period_list)
+    qs_new_malnourish = qs_new_malnourish.order_by('period', 'de_name')
+    val_new_malnourish = qs_new_malnourish.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(period_list, new_malnourish_short_names, val_new_malnourish, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_new_malnourish2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_opd_attend2, val_muac2, val_active_art2, val_active_art_malnourish2, val_new_malnourish2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (opd_attend, muac, active_art, active_art_malnourish, new_malnourish, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(muac['numeric_sum'], opd_attend['numeric_sum']) and opd_attend['numeric_sum']:
+            assessment_percent = (muac['numeric_sum'] * 100) / opd_attend['numeric_sum']
+        else:
+            assessment_percent = None
+        assessment_percent_val = {
+            'period': period,
+            'de_name': '% of clients who received nutrition asssessment  in OPD',
+            'numeric_sum': assessment_percent,
+        }
+        calculated_vals.append(assessment_percent_val)
+
+        if all_not_none(active_art['numeric_sum'], active_art_malnourish['numeric_sum']) and active_art['numeric_sum']:
+            active_art_malnourish_percent = (active_art_malnourish['numeric_sum'] * 100) / active_art['numeric_sum']
+        else:
+            active_art_malnourish_percent = None
+        active_art_malnourish_percent_val = {
+            'period': period,
+            'de_name': '% of active on ART assessed for Malnutrition at their visit in quarter',
+            'numeric_sum': active_art_malnourish_percent,
+        }
+        calculated_vals.append(active_art_malnourish_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% of clients who received nutrition asssessment  in OPD', None),
+            ('% of active on ART assessed for Malnutrition at their visit in quarter', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
+@login_required
 def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
@@ -6767,8 +7240,6 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
     )
     de_targets_meta = list(product(targets_de_names, subcategory_names))
     data_element_metas += list(product(targets_short_names, subcategory_names))
-    # de_targets_meta = list(product(targets_de_names, subcategory_names2))
-    # data_element_metas += list(product(targets_short_names, subcategory_names2))
 
     qs_targets = DataValue.objects.what(*targets_de_names)
     qs_targets = qs_targets.annotate(cat_combo=F('category_combo__name'))
@@ -7120,8 +7591,6 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     )
     de_targets_meta = list(product(targets_de_names, subcategory_names))
     data_element_metas += list(product(targets_short_names, subcategory_names))
-    # de_targets_meta = list(product(targets_de_names, subcategory_names2))
-    # data_element_metas += list(product(targets_short_names, subcategory_names2))
 
     qs_targets = DataValue.objects.what(*targets_de_names)
     qs_targets = qs_targets.annotate(cat_combo=F('category_combo__name'))
@@ -7483,7 +7952,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         '108-3 MSP Caesarian Sections',
     )
     anc_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_anc_meta = list(product(anc_de_names, (None,)))
     data_element_metas += de_anc_meta
@@ -7683,10 +8152,9 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         caesarean_percent_val.update(_group_ou_dict)
         calculated_vals.append(caesarean_percent_val)
 
-        # _group[1].extend(calculated_vals)
-        _group[1] = calculated_vals # hide source values
+        _group[1] = calculated_vals # override source values
 
-    data_element_metas = list() # hide source values
+    data_element_metas = list() # override source values
     data_element_metas += list(product(['Expected Pregnancies (5 % of population)'], (None,)))
     data_element_metas += list(product(['Adolescent Population (12.8 % of population)'], (None,)))
     data_element_metas += list(product(['All expected pregnancies in a catchment population multiplied by HIV prevalence'], (None,)))
@@ -7902,7 +8370,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.3 Postnatal Attendances 6 Hours',
     )
     maternity_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_maternity_meta = list(product(maternity_de_names, (None,)))
     data_element_metas += de_maternity_meta
@@ -7926,7 +8394,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.11 Polio 3',
     )
     vaccine_under_1_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_vaccine_under_1_meta = list(product(vaccine_under_1_de_names, (None,)))
     data_element_metas += de_vaccine_under_1_meta
@@ -7955,7 +8423,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-1.3 OPD Pneumonia',
     )
     under_5_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_under_5_meta = list(product(under_5_de_names, (None,)))
     data_element_metas += de_under_5_meta
@@ -7980,7 +8448,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.8 Vit A Suplement 2nd Dose in theYear',
     )
     other_short_names = (
-        # 'Catchment Population',
+        # empty, no shortnames needed
     )
     de_other_meta = list(product(other_de_names, (None,)))
     data_element_metas += de_other_meta
@@ -8218,9 +8686,9 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         calculated_vals.append(pcv_percent_val)
 
         # _group[1].extend(calculated_vals)
-        _group[1] = calculated_vals # hide source values
+        _group[1] = calculated_vals # override source values
 
-    data_element_metas = list() # hide source values
+    data_element_metas = list() # override source values
     data_element_metas += list(product(['Expected Deliveries (4.8 % of population)'], (None,)))
     data_element_metas += list(product(['Number of children below one year in a given population (4.3 % of population)'], (None,)))
     data_element_metas += list(product(['Expected under-five with positive test for malaria (17.7 % of population)'], (None,)))
