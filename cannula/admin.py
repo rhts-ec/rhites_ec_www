@@ -22,7 +22,7 @@ load_document_validations.short_description = 'Load validation rules from docume
 class SourceDocumentAdmin(admin.ModelAdmin):
     readonly_fields = ('orig_filename',)
     list_display = ['uploaded_at', 'orig_filename']
-    ordering = ['uploaded_at']
+    ordering = ['-uploaded_at']
     actions = [load_document_values, load_document_validations]
 
 class OrgUnitAdmin(MPTTModelAdmin):

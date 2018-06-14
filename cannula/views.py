@@ -1284,7 +1284,7 @@ def data_workflow_detail(request):
 def data_workflow_listing(request):
     # TODO: filter based on user who uploaded file?
     docs = SourceDocument.objects.all().annotate(num_values=Count('data_values'))
-    docs = docs.order_by('uploaded_at')
+    docs = docs.order_by('-uploaded_at')
 
     context = {
         'workflows': docs,
