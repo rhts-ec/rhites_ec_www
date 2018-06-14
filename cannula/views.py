@@ -1218,7 +1218,7 @@ def data_workflow_new(request, menu_name):
         if form.is_valid():
             form.save()
             docs = SourceDocument.objects.all().annotate(num_values=Count('data_values'))
-            docs = docs.order_by('uploaded_at')
+            docs = docs.order_by('-uploaded_at')
 
             context = {
                 'workflows': docs,
