@@ -37,7 +37,8 @@ def validation_rule_listing(request, thematic_area):
     from cannula.models import get_validation_view_names
 
     RULE_PREFIX_MAP = {
-        'hiv': ('PMT_', 'HCT_', 'HTS_'),
+        'hiv': ('HCT_', 'HTS_'),
+        'pmtct': ('PMT_',),
         'malaria': ('MAL_',),
         'mnch': ('MNCH_',),
         'nutrition': ('NUT_',),
