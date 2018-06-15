@@ -19,8 +19,8 @@
 						<input type="hidden" name="id" value="{{ rule.id }}">
 							{% if 'exclude_true' in request.GET %}<input type="hidden" name="exclude_true"/>{% endif %}
 						<div class="form-group">
-						<label>Period:</label>
-						<select class="w3-input w3-border" name="period">
+                        <label class="filter-col" style="margin-right:0;" for="pref-perpage">Period:</label>
+                        <select class="form-control" name="period">
 							{% for p in period_list %}
 							{% if p == request.GET.period %}
 							<option selected="selected">{{ p }}</option>
@@ -31,8 +31,8 @@
 						</select>
 						</div>
 							<div class="form-group">
-							<label class="filter-col" style="margin-right:0;" for="pref-perpage">Coverage:</label>
-							<select class="w3-input w3-border" name="district" onchange="this.form.submit();">
+							<label class="filter-col" style="margin-right:0;" for="pref-search">Coverage:</label>
+							<select class="form-control" name="district" onchange="this.form.submit();">
 								<option value="">All districts</option>
 								{% for district in district_list %}
 								{% if district == request.GET.district %}
@@ -66,7 +66,15 @@
 								<span class="fa fa-backward"></span> Go Back
 							</button>                               
 						</div> <!-- form group [back button] --> 
-					</form>
+	                    <div class="form-group pull-right"><span>&nbsp;</span></div>
+	                    <div class="form-group pull-right">
+	                    {% if excel_url %}
+	                    <span class="w3-small no-print">
+	                    <a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
+	                    </span>
+	                    {% endif %}
+	                    </div>
+						</form>
 				</div>
 			</div>
 		</div>
@@ -74,12 +82,6 @@
 {% endblock %}
 
 {% block content %}
-
-	{% if excel_url %}<br/>
-	<a class="btn btn-primary w3-margin-bottom" href="{{ excel_url }}?{{ request.META.QUERY_STRING }}">Download as MS Excel</a>
-	{% endif %}
-	</span>
-
 	<table class="w3-table w3-border w3-bordered w3-small" border="1">
 	<thead class="w3-gray">
 	<tr>
