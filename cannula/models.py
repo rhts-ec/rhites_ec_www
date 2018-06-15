@@ -793,31 +793,37 @@ class ValidationRule(models.Model):
         from django.db import connection
 
         # parse and collect data element names
-        l_element_names = validation_expr_elements(self.left_expr.replace('\n', ''))
-        r_element_names = validation_expr_elements(self.right_expr.replace('\n', ''))
+        l_exp = self.left_expr.replace('\n', '')
+        r_exp = self.right_expr.replace('\n', '')
+        l_element_names = validation_expr_elements(l_exp)
+        r_element_names = validation_expr_elements(r_exp)
         element_names = l_element_names + r_element_names
 
-        if len(l_element_names) == 0 or len(r_element_names) == 0:
-            return # short-circuit, rule can be instanciated later
-        remainder = self.left_expr
+        remainder = l_exp
         for name in element_names:
             remainder = remainder.replace(name, '')
-        remainder = remainder.replace('+', '')
+        remainder, l_number_count = re.subn(r'\d+[\.\d+]?', '', remainder) # remove numbers
+        remainder = remainder.replace('+', '') # remove operators
         remainder = remainder.replace('-', '')
-        remainder = remainder.replace('\n', '')
-        remainder = remainder.replace(' ', '')
+        remainder = remainder.replace('*', '')
+        remainder = remainder.replace('/', '')
+        remainder = re.sub(r'\s', '', remainder) # remove whitespace
         if len(remainder):
             print('REMAINDER: ', remainder)
             return # short-circuit, rule can be instanciated later
-        remainder = self.right_expr
+        remainder = r_exp
         for name in element_names:
             remainder = remainder.replace(name, '')
-        remainder = remainder.replace('+', '')
+        remainder, r_number_count = re.subn(r'\d+[\.\d+]?', '', remainder) # remove numbers
+        remainder = remainder.replace('+', '') # remove operators
         remainder = remainder.replace('-', '')
-        remainder = remainder.replace('\n', '')
-        remainder = remainder.replace(' ', '')
+        remainder = remainder.replace('*', '')
+        remainder = remainder.replace('/', '')
+        remainder = re.sub(r'\s', '', remainder) # remove whitespace
         if len(remainder):
             print('REMAINDER: ', remainder)
+            return # short-circuit, rule can be instanciated later
+        if not(len(l_element_names) or l_number_count) and not (len(r_element_names) or r_number_count):
             return # short-circuit, rule can be instanciated later
         
         # modify list of data elements
