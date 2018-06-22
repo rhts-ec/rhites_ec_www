@@ -808,6 +808,10 @@ class ValidationRule(models.Model):
         remainder = remainder.replace('*', '')
         remainder = remainder.replace('/', '')
         remainder = re.sub(r'\s', '', remainder) # remove whitespace
+        while True:
+            remainder, substitution_count = re.subn(r'\(([^\)]*)\)', r'\1', remainder) # remove matching parentheses pairs
+            if not substitution_count:
+                break # no more parentheses pairs
         if len(remainder):
             print('REMAINDER: ', remainder)
             return # short-circuit, rule can be instanciated later
@@ -820,6 +824,10 @@ class ValidationRule(models.Model):
         remainder = remainder.replace('*', '')
         remainder = remainder.replace('/', '')
         remainder = re.sub(r'\s', '', remainder) # remove whitespace
+        while True:
+            remainder, substitution_count = re.subn(r'\(([^\)]*)\)', r'\1', remainder) # remove matching parentheses pairs
+            if not substitution_count:
+                break # no more parentheses pairs
         if len(remainder):
             print('REMAINDER: ', remainder)
             return # short-circuit, rule can be instanciated later
