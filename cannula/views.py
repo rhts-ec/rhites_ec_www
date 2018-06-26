@@ -8835,3 +8835,255 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     }
 
     return render(request, 'cannula/mnch_pnc_child_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
+def lqas_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YRS = ['%d' % (y,) for y in range(this_year, this_year-6, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at district level
+    DISTRICT_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(1, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d' % (this_year,)
+
+    period_desc = filter_period
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    lqas_de_names = (
+        '%  of children 0-59 months who slept under a ITN the night preceding the survey',
+        '%  of individuals who know at least two signs and symptoms of TB',
+        '%  of individuals who know how HIV transmission occur from an infected mother to child',
+        '%  of individuals who know two key actions that reduce HIV transmission from an infected mother to her child',
+        '%  of mothers of children 0-11 months who attended ANC at least 4 times during last pregnancy',
+        '%  of mothers of children 0-23 months who received two or more doses of IPT2 during their last pregnancy ',
+        '%  of the male youth 15-24yrs who are circumcised',
+        '%  of youth 15-24 years who perceive low or no risk of getting HIV/AIDS infection',
+        '%  of youth who have had sexual intercourse before the age of 15 years',
+        '% of Households with at least one ITN',
+        '% of children age 36-59 months who are developmentally on track in literacy-numeracy, physical, social-emotional, and learning domains, and the early child deve',
+        '% of children aged 0-59 months who had a fever in the last two weeks and were tested for malaria ',
+        '% of individuals who had sex with a non-marital or non-cohabiting sexual partner in the last 12 months',
+        '% of individuals who had sex with more than one sexual partner in the last 12 months',
+        '% of individuals who know how TB is transmitted',
+        '% of individuals who know that TB is curable disease',
+        '% of individuals who know the risk of not completing TB treatment',
+        '% of individuals who were counselled and received an HIV test in last 12 months and know their results',
+        '% of mothers of children 0-11 months who were assisted by a trained health worker during delivery',
+        '% of mothers of children 0-59 months who know two or more ways to prevent malaria',
+        '% of mothers of children under five years who know two or more signs and  symptoms of malaria ',
+        '% of women and men age 15 years and above with comprehensive knowledge of HIV',
+        '% of women and men aged 15-49 who experienced sexual violence in the last 12 months',
+        '% of women in the reproductive age group 15-49 who known at least 3 methods of family planning and have used the method ',
+    )
+    de_lqas_meta = list(product(lqas_de_names, (None,)))
+    data_element_metas += list(product(lqas_de_names, (None,)))
+
+    qs_lqas = DataValue.objects.what(*lqas_de_names)
+    qs_lqas = qs_lqas.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_lqas = qs_lqas.where(filter_district)
+    qs_lqas = qs_lqas.annotate(**DISTRICT_LEVEL_ANNOTATIONS)
+    qs_lqas = qs_lqas.when(filter_period)
+    qs_lqas = qs_lqas.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_lqas = qs_lqas.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_lqas_meta, val_lqas, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_lqas2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_lqas2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    bfk_ls = LegendSet()
+    bfk_ls.name = 'LQAS - BFK'
+    bfk_ls.add_interval('red', 0, 40)
+    bfk_ls.add_interval('yellow', 40, 60)
+    bfk_ls.add_interval('green', 60, None)
+    bfk_ls.mappings[num_path_elements+1] = True
+    bfk_ls.mappings[num_path_elements+12] = True
+    bfk_ls.mappings[num_path_elements+17] = True
+    legend_sets.append(bfk_ls)
+    cdi_ls = LegendSet()
+    cdi_ls.name = 'LQAS - CDI'
+    cdi_ls.add_interval('red', 0, 45)
+    cdi_ls.add_interval('yellow', 45, 65)
+    cdi_ls.add_interval('green', 65, None)
+    cdi_ls.mappings[num_path_elements+2] = True
+    cdi_ls.mappings[num_path_elements+3] = True
+    cdi_ls.mappings[num_path_elements+6] = True
+    legend_sets.append(cdi_ls)
+    e_ls = LegendSet()
+    e_ls.name = 'LQAS - E'
+    e_ls.add_interval('red', 0, 5.9)
+    e_ls.add_interval('yellow', 5.9, 17.7)
+    e_ls.add_interval('green', 17.7, None)
+    e_ls.mappings[num_path_elements+13] = True
+    legend_sets.append(e_ls)
+    gs_ls = LegendSet()
+    gs_ls.name = 'LQAS - GS'
+    gs_ls.add_interval('red', 0, 18.3)
+    gs_ls.add_interval('yellow', 18.3, 55)
+    gs_ls.add_interval('green', 55, None)
+    gs_ls.mappings[num_path_elements+4] = True
+    gs_ls.mappings[num_path_elements+7] = True
+    legend_sets.append(gs_ls)
+    h_ls = LegendSet()
+    h_ls.name = 'LQAS - H'
+    h_ls.add_interval('red', 0, 3.3)
+    h_ls.add_interval('yellow', 3.3, 10)
+    h_ls.add_interval('green', 10, None)
+    h_ls.mappings[num_path_elements+8] = True
+    legend_sets.append(h_ls)
+    jrt_ls = LegendSet()
+    jrt_ls.name = 'LQAS - JRT'
+    jrt_ls.add_interval('red', 0, 26.7)
+    jrt_ls.add_interval('yellow', 26.7, 80)
+    jrt_ls.add_interval('green', 80, None)
+    jrt_ls.mappings[num_path_elements+9] = True
+    jrt_ls.mappings[num_path_elements+15] = True
+    jrt_ls.mappings[num_path_elements+18] = True
+    legend_sets.append(jrt_ls)
+    l_ls = LegendSet()
+    l_ls.name = 'LQAS - L'
+    l_ls.add_interval('red', 0, 27.3)
+    l_ls.add_interval('yellow', 27.3, 82)
+    l_ls.add_interval('green', 82, None)
+    l_ls.mappings[num_path_elements+14] = True
+    legend_sets.append(l_ls)
+    m_ls = LegendSet()
+    m_ls.name = 'LQAS - M'
+    m_ls.add_interval('red', 0, 31)
+    m_ls.add_interval('yellow', 31, 93)
+    m_ls.add_interval('green', 93, None)
+    m_ls.mappings[num_path_elements+16] = True
+    legend_sets.append(m_ls)
+    n_ls = LegendSet()
+    n_ls.name = 'LQAS - N'
+    n_ls.add_interval('red', 0, 10)
+    n_ls.add_interval('yellow', 10, 30)
+    n_ls.add_interval('green', 30, None)
+    n_ls.mappings[num_path_elements+5] = True
+    legend_sets.append(n_ls)
+    o_ls = LegendSet()
+    o_ls.name = 'LQAS - O'
+    o_ls.add_interval('red', 0, 30)
+    o_ls.add_interval('yellow', 30, 90)
+    o_ls.add_interval('green', 90, None)
+    o_ls.mappings[num_path_elements+0] = True
+    legend_sets.append(o_ls)
+    p_ls = LegendSet()
+    p_ls.name = 'LQAS - P'
+    p_ls.add_interval('red', 0, 8.3)
+    p_ls.add_interval('yellow', 8.3, 25)
+    p_ls.add_interval('green', 25, None)
+    p_ls.mappings[num_path_elements+19] = True
+    legend_sets.append(p_ls)
+    q_ls = LegendSet()
+    q_ls.name = 'LQAS - Q'
+    q_ls.add_interval('red', 0, 50)
+    q_ls.add_interval('yellow', 50, 75)
+    q_ls.add_interval('green', 75, None)
+    q_ls.mappings[num_path_elements+20] = True
+    legend_sets.append(q_ls)
+
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="lqas_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="lqas_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/lqas_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)

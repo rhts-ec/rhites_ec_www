@@ -130,4 +130,11 @@ urlpatterns = [
     url(r'scorecards/mnch/pnc_child_districts\.php', views.mnch_pnc_child_scorecard, {'org_unit_level': 1}, name='mnch_pnc_child_districts'),
     url(r'scorecards/mnch/pnc_child_districts\.xls', views.mnch_pnc_child_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='mnch_pnc_child_districts_excel'),
     url(r'scorecards/mnch/pnc_child_districts\.csv', views.mnch_pnc_child_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='mnch_pnc_child_districts_csv'),
+    url(r'dashboards/lqas/$', views.index, name='thematic_lqas'),
+    url(r'scorecards/lqas/sites\.php', views.lqas_scorecard, {'org_unit_level': 3}, name='lqas_sites'),
+    url(r'scorecards/lqas/sites\.xls', views.lqas_scorecard, {'org_unit_level': 3, 'output_format': 'EXCEL'}, name='lqas_sites_excel'),
+    url(r'scorecards/lqas/sites\.csv', views.lqas_scorecard, {'org_unit_level': 3, 'output_format': 'CSV'}, name='lqas_sites_csv'),
+    url(r'scorecards/lqas/districts\.php', views.lqas_scorecard, {'org_unit_level': 1}, name='lqas_districts'),
+    url(r'scorecards/lqas/districts\.xls', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='lqas_districts_excel'),
+    url(r'scorecards/lqas/districts\.csv', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='lqas_districts_csv'),
 ]

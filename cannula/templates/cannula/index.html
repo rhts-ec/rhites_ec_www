@@ -175,4 +175,10 @@ $(document).ready(function() {
 	<li><a href="{% url 'mnch_pnc_child_districts' %}">MNCH: PNC, Neonatal and Child Health - Districts</a></li>
 </ul>
 {% endif %}
+
+{% if 'lqas' in request.path %}
+<ul>
+	<li><a href="{% url 'lqas_districts' %}">LQAS - Districts</a></li>
+</ul>
+{% endif %}
 {% endblock %}
