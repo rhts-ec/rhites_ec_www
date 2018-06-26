@@ -326,7 +326,10 @@ def unpack_data_element(de_long):
             cat_str = ''
             category_list = () # empty tuple
 
-    de_instance, created = DataElement.objects.get_or_create(name__iexact=de_name, value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM', defaults={'name':de_name})
+    field_info = DataElement._meta.fields[2].deconstruct()
+    if field_info[0] == 'name':
+        MAX_NAME_LEN = field_info[3]['max_length']
+    de_instance, created = DataElement.objects.get_or_create(name__iexact=de_name[:MAX_NAME_LEN], value_type='NUMBER', value_min=None, value_max=None, aggregation_method='SUM', defaults={'name':de_name[:MAX_NAME_LEN]})
     if len(category_list):
         return (de_instance, CategoryCombo.from_cat_names(category_list))
     else:
