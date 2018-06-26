@@ -22,7 +22,6 @@ from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
 
 from .dashboards import LegendSet
 
-@login_required
 def index(request):
     context = {
         'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
@@ -3268,7 +3267,6 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     return render(request, 'cannula/vmmc_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
-@login_required
 def lab_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -5634,7 +5632,6 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     return render(request, 'cannula/tb_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
-@login_required
 def nutrition_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))

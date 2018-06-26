@@ -114,6 +114,7 @@
                     </li>
                 </ul>
             </li>
+            {% if user.is_authenticated %}
             <li>
                 <a href="{% url 'index' %}"><i class="fa fa-table fa-fw"></i> Validation Reports <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
@@ -155,6 +156,7 @@
                     </li>
                 </ul>
             </li>
+            {% endif %}
             {% if user.is_staff %}
             <li>
                 <a href="#"><i class="fa fa-wrench fa-fw"></i> Upload Datasets <span class="fa arrow"></span></a>
