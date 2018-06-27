@@ -2455,6 +2455,304 @@ def hts_by_district(request, output_format='HTML'):
     return render(request, 'cannula/hts_districts.html', context)
 
 @login_required
+def care_tx_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at facility level
+    FACILITY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(3, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = dateutil.DateSpan.fromquarter(filter_period).format()
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    nut_assessed_de_names = (
+        '106a ART No. active on ART assessed for Malnutrition at their visit in quarter',
+        '106a Pre-ART No. Active on pre-ART Care  assessed for Malnutrition at their visit in quarter',
+    )
+    nut_assessed_short_names = (
+        'PLHIV in care and treatment who had a nutrition assessment',
+    )
+    de_nut_assessed_meta = list(product(('PLHIV in care and treatment who had a nutrition assessment',), (None,)))
+    data_element_metas += list(product(nut_assessed_short_names, (None,)))
+
+    qs_nut_assessed = DataValue.objects.what(*nut_assessed_de_names)
+    qs_nut_assessed = qs_nut_assessed.annotate(de_name=Value('PLHIV in care and treatment who had a nutrition assessment', output_field=CharField()))
+    qs_nut_assessed = qs_nut_assessed.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_nut_assessed = qs_nut_assessed.where(filter_district)
+    qs_nut_assessed = qs_nut_assessed.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_nut_assessed = qs_nut_assessed.when(filter_period)
+    qs_nut_assessed = qs_nut_assessed.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_nut_assessed = qs_nut_assessed.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_nut_assessed_meta, val_nut_assessed, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_nut_assessed2 = list(gen_raster)
+    
+    care_tx_total_de_names = (
+        '106a ART No. active on ART on 1st line ARV regimen',
+        '106a ART No. active on ART on 2nd line ARV regimen',
+        '106a ART No. active on ART on 3rd line or higher ARV regimen',
+        '106a Pre-ART No. of active clients  on pre-ART Care in the  quarter',
+    )
+    care_tx_total_short_names = (
+        'PLHIV in care and treatment',
+    )
+    de_care_tx_total_meta = list(product(('PLHIV in care and treatment',), (None,)))
+    data_element_metas += list(product(care_tx_total_short_names, (None,)))
+
+    qs_care_tx_total = DataValue.objects.what(*care_tx_total_de_names)
+    qs_care_tx_total = qs_care_tx_total.annotate(de_name=Value('PLHIV in care and treatment', output_field=CharField()))
+    qs_care_tx_total = qs_care_tx_total.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_care_tx_total = qs_care_tx_total.where(filter_district)
+    qs_care_tx_total = qs_care_tx_total.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_care_tx_total = qs_care_tx_total.when(filter_period)
+    qs_care_tx_total = qs_care_tx_total.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_care_tx_total = qs_care_tx_total.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_care_tx_total_meta, val_care_tx_total, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_care_tx_total2 = list(gen_raster)
+
+    tb_screened_de_names = (
+        '106a ART No. active on ART assessed for TB at last visit in the  quarter',
+    )
+    tb_screened_short_names = (
+        'Active on Pre-ART/ART patients screened for TB',
+    )
+    de_tb_screened_meta = list(product(('Active on Pre-ART/ART patients screened for TB',), (None,)))
+    data_element_metas += list(product(tb_screened_short_names, (None,)))
+
+    qs_tb_screened = DataValue.objects.what(*tb_screened_de_names)
+    qs_tb_screened = qs_tb_screened.annotate(de_name=Value('Active on Pre-ART/ART patients screened for TB', output_field=CharField()))
+    qs_tb_screened = qs_tb_screened.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_tb_screened = qs_tb_screened.where(filter_district)
+    qs_tb_screened = qs_tb_screened.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_tb_screened = qs_tb_screened.when(filter_period)
+    qs_tb_screened = qs_tb_screened.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_tb_screened = qs_tb_screened.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_tb_screened_meta, val_tb_screened, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_tb_screened2 = list(gen_raster)
+
+    art_total_de_names = (
+        '106a ART No. active on ART on 1st line ARV regimen',
+        '106a ART No. active on ART on 2nd line ARV regimen',
+        '106a ART No. active on ART on 3rd line or higher ARV regimen',
+    )
+    art_total_short_names = (
+        'Active on Pre-ART/ART patients',
+    )
+    de_art_total_meta = list(product(('Active on Pre-ART/ART patients',), (None,)))
+    data_element_metas += list(product(art_total_short_names, (None,)))
+
+    qs_art_total = DataValue.objects.what(*art_total_de_names)
+    qs_art_total = qs_art_total.annotate(de_name=Value('Active on Pre-ART/ART patients', output_field=CharField()))
+    qs_art_total = qs_art_total.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_art_total = qs_art_total.where(filter_district)
+    qs_art_total = qs_art_total.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_art_total = qs_art_total.when(filter_period)
+    qs_art_total = qs_art_total.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_art_total = qs_art_total.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_art_total_meta, val_art_total, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_art_total2 = list(gen_raster)
+
+    cohort_12_months_de_names = (
+        '106a Cohort  All patients 12 months Alive on ART in Cohort',
+        '106a Cohort  All patients 12 months Started on ART-Cohort',
+        '106a Cohort  All patients 12 months Transfered In',
+        '106a Cohort  All patients 12 months Transferred Out',
+    )
+    cohort_12_months_short_names = (
+        '12 months cohort - Alive',
+        '12 months cohort - Started',
+        '12 months cohort - Transfered In',
+        '12 months cohort - Transferred Out',
+    )
+    de_cohort_12_months_meta = list(product(cohort_12_months_de_names, (None,)))
+    data_element_metas += list(product(cohort_12_months_short_names, (None,)))
+
+    qs_cohort_12_months = DataValue.objects.what(*cohort_12_months_de_names)
+    qs_cohort_12_months = qs_cohort_12_months.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_cohort_12_months = qs_cohort_12_months.where(filter_district)
+    qs_cohort_12_months = qs_cohort_12_months.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_cohort_12_months = qs_cohort_12_months.when(filter_period)
+    qs_cohort_12_months = qs_cohort_12_months.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_cohort_12_months = qs_cohort_12_months.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_cohort_12_months_meta, val_cohort_12_months, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_cohort_12_months2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_nut_assessed2, val_care_tx_total2, val_tb_screened2, val_art_total2, val_cohort_12_months2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (_group_ou_path, (care_tx_nut_assessed, care_tx_total, tb_screened, art_total, cohort_alive, cohort_started, cohort_in, cohort_out, *other_vals)) = _group
+        _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
+        
+        calculated_vals = list()
+
+        if all_not_none(care_tx_total['numeric_sum'], care_tx_nut_assessed['numeric_sum']) and care_tx_total['numeric_sum']:
+            nut_assessed_percent = (care_tx_nut_assessed['numeric_sum'] * 100) / care_tx_total['numeric_sum']
+        else:
+            nut_assessed_percent = None
+        nut_assessed_percent_val = {
+            'de_name': '% of PLHIV in care and treatment who had a nutrition assessment conducted',
+            'cat_combo': None,
+            'numeric_sum': nut_assessed_percent,
+        }
+        nut_assessed_percent_val.update(_group_ou_dict)
+        calculated_vals.append(nut_assessed_percent_val)
+
+        if all_not_none(art_total['numeric_sum'], tb_screened['numeric_sum']) and art_total['numeric_sum']:
+            tb_screened_percent = (tb_screened['numeric_sum'] * 100) / art_total['numeric_sum']
+        else:
+            tb_screened_percent = None
+        tb_screened_percent_val = {
+            'de_name': '% of ART patients who were screened for TB',
+            'cat_combo': None,
+            'numeric_sum': tb_screened_percent,
+        }
+        tb_screened_percent_val.update(_group_ou_dict)
+        calculated_vals.append(tb_screened_percent_val)
+
+        cohort_net = sum_zero(cohort_started['numeric_sum'], cohort_in['numeric_sum'])-default_zero(cohort_out['numeric_sum'])
+        if all_not_none(cohort_alive['numeric_sum'], cohort_net) and cohort_net:
+            cohort_survival_percent = (cohort_alive['numeric_sum'] * 100) / cohort_net
+        else:
+            cohort_survival_percent = None
+        cohort_survival_percent_val = {
+            'de_name': '% of adults and children known to be on Tx 12 months after initiatio of ART',
+            'cat_combo': None,
+            'numeric_sum': cohort_survival_percent,
+        }
+        cohort_survival_percent_val.update(_group_ou_dict)
+        calculated_vals.append(cohort_survival_percent_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_metas += list(product(['% of PLHIV in care and treatment who had a nutrition assessment conducted'], (None,)))
+    data_element_metas += list(product(['% of ART patients who were screened for TB'], (None,)))
+    data_element_metas += list(product(['% of adults and children known to be on Tx 12 months after initiatio of ART'], (None,)))
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    retention_ls = LegendSet()
+    retention_ls.name = '12 month Retention'
+    retention_ls.add_interval('red', 0, 80)
+    retention_ls.add_interval('yellow', 80, 85)
+    retention_ls.add_interval('green', 85, None)
+    retention_ls.mappings[num_path_elements+10] = True
+    legend_sets.append(retention_ls)
+
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="vmmc_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="care_tx_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/care_tx_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
 def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
     this_year = this_day.year
