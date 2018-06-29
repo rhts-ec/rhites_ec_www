@@ -8266,16 +8266,39 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_anc_meta, val_anc, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_anc2 = list(gen_raster)
 
+    anc_adolescent_de_names = (
+        '105-2.1 A1:ANC 1st Visit for women',
+    )
+    anc_adolescent_short_names = (
+        # empty, no shortnames needed
+    )
+    de_anc_adolescent_meta = list(product(anc_adolescent_de_names, (None,)))
+    data_element_metas += de_anc_adolescent_meta
+
+    qs_anc_adolescent = DataValue.objects.what(*anc_adolescent_de_names)
+    qs_anc_adolescent = qs_anc_adolescent.filter(category_combo__categories__name='10-19 Years')
+    qs_anc_adolescent = qs_anc_adolescent.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_anc_adolescent = qs_anc_adolescent.where(filter_district)
+    qs_anc_adolescent = qs_anc_adolescent.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_anc_adolescent = qs_anc_adolescent.when(filter_period)
+    qs_anc_adolescent = qs_anc_adolescent.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_anc_adolescent = qs_anc_adolescent.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_anc_adolescent = list(val_anc_adolescent)
+
+    gen_raster = grabbag.rasterize(ou_list, de_anc_adolescent_meta, val_anc_adolescent, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_anc_adolescent2 = list(gen_raster)
+
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_targets2, val_anc2), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_anc2, val_anc_adolescent2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (catchment_pop, anc_already_art, anc1, anc1_1st_trimester, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, caesarian, *other_vals)) = _group
+        (_group_ou_path, (catchment_pop, anc_already_art, anc1, anc1_1st_trimester, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, caesarian, anc1_adolescent, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -8351,6 +8374,18 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         }
         anc1_1st_trimester_percent_val.update(_group_ou_dict)
         calculated_vals.append(anc1_1st_trimester_percent_val)
+
+        if all_not_none(anc1_adolescent['numeric_sum'], adolescent_pop) and adolescent_pop:
+            anc1_adolescent_percent = 100 * anc1_adolescent['numeric_sum'] / adolescent_pop
+        else:
+            anc1_adolescent_percent = None
+        anc1_adolescent_percent_val = {
+            'de_name': 'Adolescent  pregnancy rate (10 -19 years of age)  Target--<5%',
+            'cat_combo': None,
+            'numeric_sum': anc1_adolescent_percent,
+        }
+        anc1_adolescent_percent_val.update(_group_ou_dict)
+        calculated_vals.append(anc1_adolescent_percent_val)
 
         if all_not_none(anc4['numeric_sum'], expected_pregnant) and expected_pregnant:
             anc4_percent = 100 * anc4['numeric_sum'] / expected_pregnant
@@ -8457,6 +8492,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     data_element_metas += list(product(['Expected Deliveries (4.8 % of population)'], (None,)))
     data_element_metas += list(product(['% ANC1 Attendance coverage---Target=90%'], (None,)))
     data_element_metas += list(product(['% of pregnant women attending 1st ANC visit within the 1st trimester---Target=45%'], (None,)))
+    data_element_metas += list(product(['Adolescent  pregnancy rate (10 -19 years of age)  Target--<5%'], (None,)))
     data_element_metas += list(product(['% ANC4 Attendance coverage---Target=60%'], (None,)))
     data_element_metas += list(product(['IPT1 Coverage--Target=90%'], (None,)))
     data_element_metas += list(product(['IPT2 Coverage--Target=90%'], (None,)))
@@ -8475,7 +8511,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     anc1_emtct_ls.add_interval('yellow', 80, 95)
     anc1_emtct_ls.add_interval('green', 95, None)
     anc1_emtct_ls.mappings[num_path_elements+4] = True
-    anc1_emtct_ls.mappings[num_path_elements+11] = True
+    anc1_emtct_ls.mappings[num_path_elements+12] = True
     legend_sets.append(anc1_emtct_ls)
     anc1_1st_tri_ls = LegendSet()
     anc1_1st_tri_ls.name = 'ANC1 (1st Trimester)'
@@ -8484,36 +8520,43 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     anc1_1st_tri_ls.add_interval('green', 45, None)
     anc1_1st_tri_ls.mappings[num_path_elements+5] = True
     legend_sets.append(anc1_1st_tri_ls)
+    anc1_adolescent_ls = LegendSet()
+    anc1_adolescent_ls.name = 'Adolescent Pregnancies'
+    anc1_adolescent_ls.add_interval('green', 0, 2)
+    anc1_adolescent_ls.add_interval('yellow', 2, 5)
+    anc1_adolescent_ls.add_interval('red', 5, None)
+    anc1_adolescent_ls.mappings[num_path_elements+6] = True
+    legend_sets.append(anc1_adolescent_ls)
     anc4_in_unit_ls = LegendSet()
     anc4_in_unit_ls.name = 'ANC4 & Deliveries in Unit'
     anc4_in_unit_ls.add_interval('red', 0, 45)
     anc4_in_unit_ls.add_interval('yellow', 45, 60)
     anc4_in_unit_ls.add_interval('green', 60, None)
-    anc4_in_unit_ls.mappings[num_path_elements+6] = True
-    anc4_in_unit_ls.mappings[num_path_elements+12] = True
+    anc4_in_unit_ls.mappings[num_path_elements+7] = True
+    anc4_in_unit_ls.mappings[num_path_elements+13] = True
     legend_sets.append(anc4_in_unit_ls)
     ipt1_ipt2_vita_ls = LegendSet()
     ipt1_ipt2_vita_ls.name = 'IPT1, IPT2 & Vit. A Supplementation'
     ipt1_ipt2_vita_ls.add_interval('red', 0, 80)
     ipt1_ipt2_vita_ls.add_interval('yellow', 80, 90)
     ipt1_ipt2_vita_ls.add_interval('green', 90, None)
-    ipt1_ipt2_vita_ls.mappings[num_path_elements+7] = True
     ipt1_ipt2_vita_ls.mappings[num_path_elements+8] = True
     ipt1_ipt2_vita_ls.mappings[num_path_elements+9] = True
+    ipt1_ipt2_vita_ls.mappings[num_path_elements+10] = True
     legend_sets.append(ipt1_ipt2_vita_ls)
     maternal_mortality_ls = LegendSet()
     maternal_mortality_ls.name = 'Maternal Mortality'
     maternal_mortality_ls.add_interval('green', 0, 2)
     maternal_mortality_ls.add_interval('yellow', 2, 5)
     maternal_mortality_ls.add_interval('red', 5, None)
-    maternal_mortality_ls.mappings[num_path_elements+10] = True
+    maternal_mortality_ls.mappings[num_path_elements+11] = True
     legend_sets.append(maternal_mortality_ls)
     caesarian_ls = LegendSet()
     caesarian_ls.name = 'Caesarean section rate'
     caesarian_ls.add_interval('red', 0, 6)
     caesarian_ls.add_interval('yellow', 6, 10)
     caesarian_ls.add_interval('red', 15, None)
-    caesarian_ls.mappings[num_path_elements+13] = True
+    caesarian_ls.mappings[num_path_elements+14] = True
     legend_sets.append(caesarian_ls)
 
 
