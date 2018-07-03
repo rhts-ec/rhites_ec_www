@@ -2863,16 +2863,47 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_pmtct_meta, val_pmtct, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_pmtct2 = list(gen_raster)
 
+    cohort_de_names = (
+        '012 1.Total number of HEI in birth cohort (born 24 months previously)',
+        '012 7. Outcomes for HIV exposed infants: Total Number of HEI being discharged at 18 months',
+        '012 7.A. Outcomes for HIV exposed infants: Number of HEI being discharged at 18 months as',
+        '012 7.D. Outcomes for HIV exposed infants: Transferred out (Number of HEI who were transferred out before 18 months)',
+        '012 7.F. Outcomes for HIV exposed infants: Died (Number of HEI who died before 18 months)',
+    )
+    cohort_short_names = (
+        'Number of HEI in birth cohort (born 24 months previously)',
+        'Number of HEI being discharged at 18 months',
+        'Number of HEI being discharged at 18 months as Negative',
+        'Transferred out (Number of HEI who were transferred out before 18 months)',
+        'Died (Number of HEI who died before 18 months)',
+    )
+    de_cohort_meta = list(product(cohort_de_names, (None,)))
+    data_element_metas += list(product(cohort_short_names, (None,)))
+
+    qs_cohort = DataValue.objects.what(*cohort_de_names)
+    # qs_cohort = qs_cohort.annotate(de_name=Value(cohort_short_names[0], output_field=CharField()))
+    qs_cohort = qs_cohort.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_cohort = qs_cohort.where(filter_district)
+    qs_cohort = qs_cohort.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_cohort = qs_cohort.when(filter_period)
+    qs_cohort = qs_cohort.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_cohort = qs_cohort.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_cohort = list(val_cohort)
+
+    gen_raster = grabbag.rasterize(ou_list, de_cohort_meta, val_cohort, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_cohort2 = list(gen_raster)
+
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_targets2, val_pmtct2), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_pmtct2, val_cohort2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (target_art, target_eid, target_eid_pos, target_known, target_known_pos, target_new, art_already, hiv_retested, hiv_retested_pos, anc_1_visit, art_initiated, hiv_tested, hiv_tested_pos, hiv_known, hiv_known_pos, *other_vals)) = _group
+        (_group_ou_path, (target_art, target_eid, target_eid_pos, target_known, target_known_pos, target_new, art_already, hiv_retested, hiv_retested_pos, anc_1_visit, art_initiated, hiv_tested, hiv_tested_pos, hiv_known, hiv_known_pos, cohort_started, cohort_discharged, cohort_discharged_negative, cohort_transferred_out, cohort_died, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -2961,6 +2992,18 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
         pmtct_art_val.update(_group_ou_dict)
         calculated_vals.append(pmtct_art_val)
 
+        if all_not_none(cohort_started['numeric_sum']) and cohort_started['numeric_sum']:
+            perf_cohort_documented = 100 * sum_zero(cohort_discharged['numeric_sum'], cohort_transferred_out['numeric_sum'], cohort_died['numeric_sum']) / cohort_started['numeric_sum']
+        else:
+            perf_cohort_documented = None
+        perf_cohort_documented_val = {
+            'de_name': '(PMTCT_FO) % HIV Exposed Infants  with a documented Final outcome',
+            'cat_combo': None,
+            'numeric_sum': perf_cohort_documented,
+        }
+        perf_cohort_documented_val.update(_group_ou_dict)
+        calculated_vals.append(perf_cohort_documented_val)
+
         _group[1].extend(calculated_vals)
 
     data_element_metas += list(product(['Perf. %: New ANC1 clients'], (None,)))
@@ -2970,6 +3013,7 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += list(product(['PMTCT_STAT_POS %'], (None,)))
     data_element_metas += list(product(['Perf. %: HIV+ pregnant women who received ART to reduce the risk of MTCT'], (None,)))
     data_element_metas += list(product(['PMTCT_ART %'], (None,)))
+    data_element_metas += list(product(['(PMTCT_FO) % HIV Exposed Infants  with a documented Final outcome'], (None,)))
 
 
     num_path_elements = len(ou_headers)
@@ -2979,20 +3023,27 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     pmtct_ls.add_interval('red', 0, 70)
     pmtct_ls.add_interval('yellow', 70, 90)
     pmtct_ls.add_interval('green', 90, None)
-    pmtct_ls.mappings[num_path_elements+15] = True
-    pmtct_ls.mappings[num_path_elements+16] = True
-    pmtct_ls.mappings[num_path_elements+18] = True
     pmtct_ls.mappings[num_path_elements+20] = True
+    pmtct_ls.mappings[num_path_elements+21] = True
+    pmtct_ls.mappings[num_path_elements+23] = True
+    pmtct_ls.mappings[num_path_elements+25] = True
     legend_sets.append(pmtct_ls)
     pmtct_ls = LegendSet()
     pmtct_ls.name = 'PMTCT (PEPFAR)'
     pmtct_ls.add_interval('red', 0, 80)
     pmtct_ls.add_interval('yellow', 80, 90)
     pmtct_ls.add_interval('green', 90, 100)
-    pmtct_ls.mappings[num_path_elements+17] = True
-    pmtct_ls.mappings[num_path_elements+19] = True
-    pmtct_ls.mappings[num_path_elements+21] = True
+    pmtct_ls.mappings[num_path_elements+22] = True
+    pmtct_ls.mappings[num_path_elements+24] = True
+    pmtct_ls.mappings[num_path_elements+26] = True
     legend_sets.append(pmtct_ls)
+    cohort_ls = LegendSet()
+    cohort_ls.name = 'PMTCT_FO (PEPFAR)'
+    cohort_ls.add_interval('red', 0, 90)
+    cohort_ls.add_interval('yellow', 90, 95)
+    cohort_ls.add_interval('green', 95, None)
+    cohort_ls.mappings[num_path_elements+27] = True
+    legend_sets.append(cohort_ls)
 
 
     def grouped_data_generator(grouped_data):

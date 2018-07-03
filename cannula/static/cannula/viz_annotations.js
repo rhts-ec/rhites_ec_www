@@ -269,6 +269,18 @@ addEvent( window, "load", function() {
   //      alert( a[i].className + ": " + percent_categ );
       }
     } else
+    if ( has( a[i].className, "0_90_95_none_red_yellow_green" ) ) {
+      var percent_val = extractNumber(a[i]);
+
+      if ( percent_val != null && percent_val >= 0) {
+        if ( percent_val >= 95 ) percent_categ = "w3-green";
+        else if ( percent_val >= 90 ) percent_categ = "w3-yellow";
+        else percent_categ = "w3-red";
+        a[i].className += (" " + percent_categ);
+        a[i].style.fontWeight = "bolder";
+  //      alert( a[i].className + ": " + percent_categ );
+      }
+    } else
     if ( has( a[i].className, "0_2_5_none_green_yellow_red" ) ) {
       var percent_val = extractNumber(a[i]);
 
