@@ -5843,6 +5843,18 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
         hiv_tested_percent_val.update(g_ou_dict)
         calculated_vals.append(hiv_tested_percent_val)
 
+        if all_not_none(hiv_pos['numeric_sum'], notif_all['numeric_sum']) and notif_all['numeric_sum']:
+            hiv_pos_percent = 100 * hiv_pos['numeric_sum'] / notif_all['numeric_sum']
+        else:
+            hiv_pos_percent = None
+        hiv_pos_percent_val = {
+            'de_name': '% HIV Positive',
+            'cat_combo': None,
+            'numeric_sum': hiv_pos_percent,
+        }
+        hiv_pos_percent_val.update(g_ou_dict)
+        calculated_vals.append(hiv_pos_percent_val)
+
         if all_not_none(hiv_art['numeric_sum'], hiv_pos['numeric_sum']) and hiv_pos['numeric_sum']:
             hiv_art_percent = 100 * hiv_art['numeric_sum'] / hiv_pos['numeric_sum']
         else:
@@ -5873,6 +5885,7 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += list(product(['% LTFU'], (None,)))
     data_element_metas += list(product(['% of cases notified (NEW & Relapse)'], (None,)))
     data_element_metas += list(product(['% Tested for HIV'], (None,)))
+    data_element_metas += list(product(['% HIV Positive'], (None,)))
     data_element_metas += list(product(['% HIV+ on ART'], (None,)))
     data_element_metas += list(product(['% Cure Rate'], (None,)))
 
@@ -5885,14 +5898,14 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     notif_ls.add_interval('green', 95, None)
     notif_ls.mappings[num_path_elements+16] = True
     notif_ls.mappings[num_path_elements+17] = True
-    notif_ls.mappings[num_path_elements+18] = True
+    notif_ls.mappings[num_path_elements+19] = True
     legend_sets.append(notif_ls)
     cure_ls = LegendSet()
     cure_ls.name = 'Cure Rate'
     cure_ls.add_interval('red', 0, 50)
     cure_ls.add_interval('yellow', 50, 60)
     cure_ls.add_interval('green', 60, None)
-    cure_ls.mappings[num_path_elements+19] = True
+    cure_ls.mappings[num_path_elements+20] = True
     legend_sets.append(cure_ls)
     tsr_ls = LegendSet()
     tsr_ls.name = 'TSR'
@@ -6354,6 +6367,30 @@ def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_active_art_malnourish_meta, val_active_art_malnourish, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_active_art_malnourish2 = list(gen_raster)
    
+    assess_malnourish_de_names = (
+        '106a Nutri N3-No. of clients who received nutritional assessment and had malnutrition - MAM',
+        '106a Nutri N3-No. of clients who received nutritional assessment and had malnutrition - SAM with oedema',
+        '106a Nutri N3-No. of clients who received nutritional assessment and had malnutrition - SAM without oedema',
+    )
+    assess_malnourish_short_names = (
+        'Clients who received nutritional assessment and had malnutrition',
+    )
+    de_assess_malnourish_meta = list(product(assess_malnourish_short_names, (None,)))
+    data_element_metas += de_assess_malnourish_meta
+
+    qs_assess_malnourish = DataValue.objects.what(*assess_malnourish_de_names)
+    qs_assess_malnourish = qs_assess_malnourish.annotate(de_name=Value(assess_malnourish_short_names[0], output_field=CharField()))
+    qs_assess_malnourish = qs_assess_malnourish.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_assess_malnourish = qs_assess_malnourish.where(filter_district)
+    qs_assess_malnourish = qs_assess_malnourish.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_assess_malnourish = qs_assess_malnourish.when(filter_period)
+    qs_assess_malnourish = qs_assess_malnourish.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_assess_malnourish = qs_assess_malnourish.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_assess_malnourish_meta, val_assess_malnourish, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_assess_malnourish2 = list(gen_raster)
+   
     new_malnourish_de_names = (
         '106a Nutri N4-No. of newly identified malnourished cases in this quarter - Total',
     )
@@ -6399,13 +6436,13 @@ def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
     val_supp_feeding2 = list(gen_raster)
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_opd_attend2, val_muac2, val_muac_mothers2, val_mothers_total2, val_i_f_counsel2, val_m_n_counsel2, val_active_art2, val_active_art_malnourish2, val_new_malnourish2, val_supp_feeding2), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_opd_attend2, val_muac2, val_muac_mothers2, val_mothers_total2, val_i_f_counsel2, val_m_n_counsel2, val_active_art2, val_active_art_malnourish2, val_assess_malnourish2, val_new_malnourish2, val_supp_feeding2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (opd_attend, muac, muac_mothers, mothers, infant_feeding, maternal_nutrition, active_art, active_art_malnourish, new_malnourish, supp_feeding, *other_vals)) = _group
+        (_group_ou_path, (opd_attend, muac, muac_mothers, mothers, infant_feeding, maternal_nutrition, active_art, active_art_malnourish, assess_malnourish, new_malnourish, supp_feeding, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -6482,6 +6519,18 @@ def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
         supp_feeding_percent_val.update(_group_ou_dict)
         calculated_vals.append(supp_feeding_percent_val)
 
+        if all_not_none(muac['numeric_sum'], assess_malnourish['numeric_sum']) and muac['numeric_sum']:
+            assess_malnourish_percent = (assess_malnourish['numeric_sum'] * 100) / muac['numeric_sum']
+        else:
+            assess_malnourish_percent = None
+        assess_malnourish_percent_val = {
+            'de_name': 'Proportion of clients who received nutritional assessment and had malnutrition',
+            'cat_combo': None,
+            'numeric_sum': assess_malnourish_percent,
+        }
+        assess_malnourish_percent_val.update(_group_ou_dict)
+        calculated_vals.append(assess_malnourish_percent_val)
+
         _group[1].extend(calculated_vals)
 
     data_element_metas += list(product(['% of clients who received nutrition asssessment  in OPD'], (None,)))
@@ -6490,6 +6539,7 @@ def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += list(product(['% of pregnant and lactating women who received infant feeding counseling '], (None,)))
     data_element_metas += list(product(['% of pregnant and lactating women who received maternal nutrition counseling '], (None,)))
     data_element_metas += list(product(['% of newly identified malnorished cases who received nutrition suplementary/ therapeutic feeds'], (None,)))
+    data_element_metas += list(product(['Proportion of clients who received nutritional assessment and had malnutrition'], (None,)))
 
     num_path_elements = len(ou_headers)
     legend_sets = list()
@@ -6498,14 +6548,14 @@ def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
     muac_ls.add_interval('red', 0, 25)
     muac_ls.add_interval('yellow', 25, 50)
     muac_ls.add_interval('green', 50, None)
-    muac_ls.mappings[num_path_elements+10] = True
+    muac_ls.mappings[num_path_elements+11] = True
     legend_sets.append(muac_ls)
     malnourished_ls = LegendSet()
     malnourished_ls.name = 'Assessed for Malnutrition'
     malnourished_ls.add_interval('red', 0, 50)
     malnourished_ls.add_interval('yellow', 50, 80)
     malnourished_ls.add_interval('green', 80, None)
-    for i in range(num_path_elements+10+1, num_path_elements+10+1+5):
+    for i in range(num_path_elements+11+1, num_path_elements+10+1+5):
         malnourished_ls.mappings[i] = True
     legend_sets.append(malnourished_ls)
 
@@ -8292,10 +8342,13 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.1 A7:Second dose IPT (IPT2)',
         '105-2.1 HIV+ Pregnant Women initiated on ART for EMTCT (ART)',
         '105-2.2 HIV+ women initiating ART in maternity',
+        '105-2.2 Newborn deaths (0-7days)',
         '105-2.2 OPD Maternal deaths',
         '105-2.2a Deliveries in unit',
         '105-2.3 HIV+ women initiating ART in PNC',
         '105-2.3 Vitamin A supplementation given to mothers',
+        '105-3 OA5 Maternal Deaths Audited',
+        '105-3 OA6-Perinatal Deaths Audited',
         '108-3 MSP Caesarian Sections',
     )
     anc_short_names = (
@@ -8340,16 +8393,40 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     gen_raster = grabbag.rasterize(ou_list, de_anc_adolescent_meta, val_anc_adolescent, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
     val_anc_adolescent2 = list(gen_raster)
 
+    stillbirth_de_names = (
+        '105-2.2b Deliveries in unit(Fresh Still births)',
+        '105-2.2c Deliveries in unit(Macerated still births)',
+    )
+    stillbirth_short_names = (
+        'Deliveries in unit (Still births)',
+    )
+    de_stillbirth_meta = list(product(stillbirth_de_names, (None,)))
+    data_element_metas += list(product(stillbirth_short_names, (None,)))
+
+    qs_stillbirth = DataValue.objects.what(*stillbirth_de_names)
+    qs_stillbirth = qs_stillbirth.annotate(de_name=Value(stillbirth_short_names[0], output_field=CharField()))
+    qs_stillbirth = qs_stillbirth.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_stillbirth = qs_stillbirth.where(filter_district)
+    qs_stillbirth = qs_stillbirth.annotate(**FACILITY_LEVEL_ANNOTATIONS)
+    qs_stillbirth = qs_stillbirth.when(filter_period)
+    qs_stillbirth = qs_stillbirth.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_stillbirth = qs_stillbirth.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_stillbirth = list(val_stillbirth)
+
+    gen_raster = grabbag.rasterize(ou_list, list(product(stillbirth_short_names, (None,))), val_stillbirth, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_stillbirth2 = list(gen_raster)
+
 
     # combine the data and group by district, subcounty and facility
-    grouped_vals = groupbylist(sorted(chain(val_targets2, val_anc2, val_anc_adolescent2), key=ou_path_from_dict), key=ou_path_from_dict)
+    grouped_vals = groupbylist(sorted(chain(val_targets2, val_anc2, val_anc_adolescent2, val_stillbirth2), key=ou_path_from_dict), key=ou_path_from_dict)
     if True:
         grouped_vals = list(filter_empty_rows(grouped_vals))
 
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (catchment_pop, anc_already_art, anc1, anc1_1st_trimester, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, caesarian, anc1_adolescent, *other_vals)) = _group
+        (_group_ou_path, (catchment_pop, anc_already_art, anc1, anc1_1st_trimester, anc4, ipt1, ipt2, anc_started_art, maternity_started_art, perinatal_deaths, maternal_deaths, deliveries, pnc_started_art, vit_a_maternity, maternal_audits, perinatal_audits, caesarian, anc1_adolescent, stillbirths, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -8486,6 +8563,18 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         vit_a_maternity_percent_val.update(_group_ou_dict)
         calculated_vals.append(vit_a_maternity_percent_val)
 
+        if all_not_none(perinatal_deaths['numeric_sum'], deliveries['numeric_sum']) and deliveries['numeric_sum']:
+            perinatal_deaths_percent = 1000 * perinatal_deaths['numeric_sum'] / deliveries['numeric_sum']
+        else:
+            perinatal_deaths_percent = None
+        perinatal_deaths_percent_val = {
+            'de_name': 'Perinatal mortality rate',
+            'cat_combo': None,
+            'numeric_sum': perinatal_deaths_percent,
+        }
+        perinatal_deaths_percent_val.update(_group_ou_dict)
+        calculated_vals.append(perinatal_deaths_percent_val)
+
         if all_not_none(maternal_deaths['numeric_sum'], deliveries['numeric_sum']) and deliveries['numeric_sum']:
             maternal_deaths_percent = 100 * maternal_deaths['numeric_sum'] / deliveries['numeric_sum']
         else:
@@ -8534,6 +8623,43 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
         caesarean_percent_val.update(_group_ou_dict)
         calculated_vals.append(caesarean_percent_val)
 
+        if all_not_none(stillbirths['numeric_sum'], deliveries['numeric_sum']) and deliveries['numeric_sum']:
+            stillbirths_percent = 100 * stillbirths['numeric_sum'] / deliveries['numeric_sum']
+        else:
+            stillbirths_percent = None
+        stillbirths_percent_val = {
+            'de_name': 'Institutional still births rate',
+            'cat_combo': None,
+            'numeric_sum': stillbirths_percent,
+        }
+        stillbirths_percent_val.update(_group_ou_dict)
+        calculated_vals.append(stillbirths_percent_val)
+
+        perinatal_suspected = sum_zero(perinatal_deaths['numeric_sum'], stillbirths['numeric_sum'])
+        if all_not_none(perinatal_audits['numeric_sum'], perinatal_suspected) and perinatal_suspected:
+            perinatal_audits_percent = 100 * perinatal_audits['numeric_sum'] / perinatal_suspected
+        else:
+            perinatal_audits_percent = None
+        perinatal_audits_percent_val = {
+            'de_name': 'Proportion of perinatal deaths reported that are audited',
+            'cat_combo': None,
+            'numeric_sum': perinatal_audits_percent,
+        }
+        perinatal_audits_percent_val.update(_group_ou_dict)
+        calculated_vals.append(perinatal_audits_percent_val)
+
+        if all_not_none(maternal_audits['numeric_sum'], maternal_deaths['numeric_sum']) and maternal_deaths['numeric_sum']:
+            maternal_audits_percent = 100 * maternal_audits['numeric_sum'] / maternal_deaths['numeric_sum']
+        else:
+            maternal_audits_percent = None
+        maternal_audits_percent_val = {
+            'de_name': 'Proportion of maternal deaths reported which are audited',
+            'cat_combo': None,
+            'numeric_sum': maternal_audits_percent,
+        }
+        maternal_audits_percent_val.update(_group_ou_dict)
+        calculated_vals.append(maternal_audits_percent_val)
+
         _group[1] = calculated_vals # override source values
 
     data_element_metas = list() # override source values
@@ -8548,10 +8674,14 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     data_element_metas += list(product(['IPT1 Coverage--Target=90%'], (None,)))
     data_element_metas += list(product(['IPT2 Coverage--Target=90%'], (None,)))
     data_element_metas += list(product(['VITA Supplementation for mothers--Target =90%'], (None,)))
+    data_element_metas += list(product(['Perinatal mortality rate'], (None,)))
     data_element_metas += list(product(['Maternal mortality'], (None,)))
     data_element_metas += list(product(['% of eMTCT eligible women on ART----95%'], (None,)))
     data_element_metas += list(product(['% of institutional deliveries  Target=60%'], (None,)))
     data_element_metas += list(product(['Caesarean section rate (10%-15%)'], (None,)))
+    data_element_metas += list(product(['Institutional still births rate'], (None,)))
+    data_element_metas += list(product(['Proportion of perinatal deaths reported that are audited'], (None,)))
+    data_element_metas += list(product(['Proportion of maternal deaths reported which are audited'], (None,)))
 
 
     num_path_elements = len(ou_headers)
@@ -8562,7 +8692,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     anc1_emtct_ls.add_interval('yellow', 80, 95)
     anc1_emtct_ls.add_interval('green', 95, None)
     anc1_emtct_ls.mappings[num_path_elements+4] = True
-    anc1_emtct_ls.mappings[num_path_elements+12] = True
+    anc1_emtct_ls.mappings[num_path_elements+13] = True
     legend_sets.append(anc1_emtct_ls)
     anc1_1st_tri_ls = LegendSet()
     anc1_1st_tri_ls.name = 'ANC1 (1st Trimester)'
@@ -8584,7 +8714,7 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     anc4_in_unit_ls.add_interval('yellow', 45, 60)
     anc4_in_unit_ls.add_interval('green', 60, None)
     anc4_in_unit_ls.mappings[num_path_elements+7] = True
-    anc4_in_unit_ls.mappings[num_path_elements+13] = True
+    anc4_in_unit_ls.mappings[num_path_elements+14] = True
     legend_sets.append(anc4_in_unit_ls)
     ipt1_ipt2_vita_ls = LegendSet()
     ipt1_ipt2_vita_ls.name = 'IPT1, IPT2 & Vit. A Supplementation'
@@ -8600,14 +8730,14 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     maternal_mortality_ls.add_interval('green', 0, 2)
     maternal_mortality_ls.add_interval('yellow', 2, 5)
     maternal_mortality_ls.add_interval('red', 5, None)
-    maternal_mortality_ls.mappings[num_path_elements+11] = True
+    maternal_mortality_ls.mappings[num_path_elements+12] = True
     legend_sets.append(maternal_mortality_ls)
     caesarian_ls = LegendSet()
     caesarian_ls.name = 'Caesarean section rate'
     caesarian_ls.add_interval('red', 0, 6)
     caesarian_ls.add_interval('yellow', 6, 10)
     caesarian_ls.add_interval('red', 15, None)
-    caesarian_ls.mappings[num_path_elements+14] = True
+    caesarian_ls.mappings[num_path_elements+15] = True
     legend_sets.append(caesarian_ls)
 
 
@@ -8758,6 +8888,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         '105-2.2d Deliveries in unit(Live Births)',
         '105-2.3 Postnatal Attendances 6 Days',
         '105-2.3 Postnatal Attendances 6 Hours',
+        '105-2.3 Postnatal Attendances 6 Weeks',
     )
     maternity_short_names = (
         # empty, no shortnames needed
@@ -8865,7 +8996,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, breastfeeding, deliveries, still_fresh, still_macerated, live_births, pnc_6_days, pnc_6_hours, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
+        (_group_ou_path, (catchment_pop, neonatal_sepsis, asyphyxia, breastfeeding, deliveries, still_fresh, still_macerated, live_births, pnc_6_days, pnc_6_hours, pnc_6_weeks, bcg_under1, dpt3_under1, polio3_under1, new_attend_under5, acute_diarr_under5, malaria_under5, malaria_conf_under5, pneum_under5, pcv, deworm, vitamin_a, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -8906,8 +9037,8 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         expected_under_5_malaria_val.update(_group_ou_dict)
         calculated_vals.append(expected_under_5_malaria_val)
 
-        if all_not_none(pnc_6_days['numeric_sum'], pnc_6_hours['numeric_sum'], expected_deliver) and expected_deliver:
-            pnc_6_days_percent = 100 * (pnc_6_days['numeric_sum']+pnc_6_hours['numeric_sum']) / expected_deliver
+        if all_not_none(expected_deliver) and expected_deliver:
+            pnc_6_days_percent = 100 * sum_zero(pnc_6_days['numeric_sum'], pnc_6_hours['numeric_sum']) / expected_deliver
         else:
             pnc_6_days_percent = None
         pnc_6_days_percent_val = {
@@ -8917,6 +9048,18 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
         }
         pnc_6_days_percent_val.update(_group_ou_dict)
         calculated_vals.append(pnc_6_days_percent_val)
+
+        if all_not_none(expected_deliver) and expected_deliver:
+            pnc_6_weeks_percent = 100 * sum_zero(pnc_6_weeks['numeric_sum'], pnc_6_days['numeric_sum'], pnc_6_hours['numeric_sum']) / expected_deliver
+        else:
+            pnc_6_weeks_percent = None
+        pnc_6_weeks_percent_val = {
+            'de_name': '% of Mothers receiving PNC checks within 6 weeks----Target=60%',
+            'cat_combo': None,
+            'numeric_sum': pnc_6_weeks_percent,
+        }
+        pnc_6_weeks_percent_val.update(_group_ou_dict)
+        calculated_vals.append(pnc_6_weeks_percent_val)
 
         if all_not_none(breastfeeding['numeric_sum'], deliveries['numeric_sum']) and deliveries:
             breastfeeding_percent = 100 * breastfeeding['numeric_sum'] / deliveries['numeric_sum']
@@ -9083,6 +9226,7 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     data_element_metas += list(product(['Number of children below one year in a given population (4.3 % of population)'], (None,)))
     data_element_metas += list(product(['Expected under-five with positive test for malaria (17.7 % of population)'], (None,)))
     data_element_metas += list(product(['% of Mothers receiving PNC checks within 6 days----Target=60%'], (None,)))
+    data_element_metas += list(product(['% of Mothers receiving PNC checks within 6 weeks----Target=60%'], (None,)))
     data_element_metas += list(product(['% of  mothers initiating breastfeeding within 1 hour after birth--Target=90%'], (None,)))
     data_element_metas += list(product(['% of babies with Birth Asphyxia ---<1.1'], (None,)))
     data_element_metas += list(product(['% of neonates (aged 0 -28 days) presenting to health facilities with sepsis/infections <1.1'], (None,)))
@@ -9106,49 +9250,50 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
     pnc_6days_ls.add_interval('yellow', 45, 60)
     pnc_6days_ls.add_interval('green', 60, None)
     pnc_6days_ls.mappings[num_path_elements+3] = True
+    pnc_6days_ls.mappings[num_path_elements+4] = True
     legend_sets.append(pnc_6days_ls)
     breast_vaccination_ls = LegendSet()
     breast_vaccination_ls.name = 'Breastfeeding, DPT3, BCG and  Polio3'
     breast_vaccination_ls.add_interval('red', 0, 80)
     breast_vaccination_ls.add_interval('yellow', 80, 95)
     breast_vaccination_ls.add_interval('green', 95, None)
-    breast_vaccination_ls.mappings[num_path_elements+4] = True
-    breast_vaccination_ls.mappings[num_path_elements+7] = True
+    breast_vaccination_ls.mappings[num_path_elements+5] = True
     breast_vaccination_ls.mappings[num_path_elements+8] = True
     breast_vaccination_ls.mappings[num_path_elements+9] = True
+    breast_vaccination_ls.mappings[num_path_elements+10] = True
     legend_sets.append(breast_vaccination_ls)
     asphyxia_sepsis_ls = LegendSet()
     asphyxia_sepsis_ls.name = 'Birth Asphyxia and Neonatal Sepsis'
     asphyxia_sepsis_ls.add_interval('green', 0, 1.1)
     asphyxia_sepsis_ls.add_interval('yellow', 1.1, 1.4)
     asphyxia_sepsis_ls.add_interval('red', 1.4, None)
-    asphyxia_sepsis_ls.mappings[num_path_elements+5] = True
     asphyxia_sepsis_ls.mappings[num_path_elements+6] = True
+    asphyxia_sepsis_ls.mappings[num_path_elements+7] = True
     legend_sets.append(asphyxia_sepsis_ls)
     mal_conf_treat_ls = LegendSet()
     mal_conf_treat_ls.name = 'Malaria Treatment with Lab Confirmation'
     mal_conf_treat_ls.add_interval('red', 0, 70)
     mal_conf_treat_ls.add_interval('yellow', 70, 90)
     mal_conf_treat_ls.add_interval('green', 90, None)
-    mal_conf_treat_ls.mappings[num_path_elements+10] = True
+    mal_conf_treat_ls.mappings[num_path_elements+11] = True
     legend_sets.append(mal_conf_treat_ls)
     mal_conf_diarr_pneum_ls = LegendSet()
     mal_conf_diarr_pneum_ls.name = 'Under 5: Confirmed Malaria, Diarrhorea and Pneumonia'
     mal_conf_diarr_pneum_ls.add_interval('green', 0, 20)
     mal_conf_diarr_pneum_ls.add_interval('yellow', 20, 30)
     mal_conf_diarr_pneum_ls.add_interval('red', 30, None)
-    mal_conf_diarr_pneum_ls.mappings[num_path_elements+11] = True
     mal_conf_diarr_pneum_ls.mappings[num_path_elements+12] = True
     mal_conf_diarr_pneum_ls.mappings[num_path_elements+13] = True
+    mal_conf_diarr_pneum_ls.mappings[num_path_elements+14] = True
     legend_sets.append(mal_conf_diarr_pneum_ls)
     vita_deworm_pcv_ls = LegendSet()
     vita_deworm_pcv_ls.name = 'Vit. A, Deworming and PCV3'
     vita_deworm_pcv_ls.add_interval('red', 0, 80)
     vita_deworm_pcv_ls.add_interval('yellow', 80, 97)
     vita_deworm_pcv_ls.add_interval('green', 97, None)
-    vita_deworm_pcv_ls.mappings[num_path_elements+14] = True
     vita_deworm_pcv_ls.mappings[num_path_elements+15] = True
     vita_deworm_pcv_ls.mappings[num_path_elements+16] = True
+    vita_deworm_pcv_ls.mappings[num_path_elements+17] = True
     legend_sets.append(vita_deworm_pcv_ls)
 
 
