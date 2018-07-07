@@ -201,6 +201,7 @@ CATEGORIES = [
     'Male',
     'Female',
     'Outreach',
+    'Death',
     '18 Mths-<5 Years',
     '5-<10 Years',
     '10-<15 Years',
@@ -267,7 +268,6 @@ CATEGORIES = [
 
     # HMIS 108
     'Case',
-    'Death',
 
     '<15',
     '15+',
@@ -295,7 +295,7 @@ CATEGORIES = [
 SEP_REGEX_STR = '[\s,]+' # one or more of these characters in sequence
 CATEGORY_REGEX_STR = '|'.join('%s?(%s)(?:[^\w]|$)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES, key=lambda x: (len(x), x), reverse=True))
 CATEGORY_REGEX = re.compile(CATEGORY_REGEX_STR)
-SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)(?:[^\w]|$)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES[3:], key=lambda x: (len(x), x), reverse=True)) #TODO: even more horrible a hack
+SEXLESS_CATEGORY_REGEX_STR = '|'.join('%s?(%s)(?:[^\w]|$)' % (SEP_REGEX_STR, re.escape(categ)) for categ in sorted(CATEGORIES[4:], key=lambda x: (len(x), x), reverse=True)) #TODO: even more horrible a hack
 SEXLESS_CATEGORY_REGEX = re.compile(SEXLESS_CATEGORY_REGEX_STR)
 
 ICKY_CATEGS = (
@@ -305,6 +305,7 @@ ICKY_CATEGS = (
     'Male Condom',
     'Device Based (DC)',
     'Surgical(SC)',
+    'OPD Death',
 )
 
 def unpack_data_element(de_long):
@@ -314,6 +315,7 @@ def unpack_data_element(de_long):
         m = CATEGORY_REGEX.split(de_long)
     # squash list of matches by removing blank and None entries (and False and numeric zeroes)
     de_name, *category_list = tuple(filter(None, m))
+    category_list = [c.strip() for c in category_list]
     cat_str = ', '.join(category_list)
 
     # deals with cases where the data element name includes a subcategory ('105-2.1a Male partners received HIV test results in eMTCT')
