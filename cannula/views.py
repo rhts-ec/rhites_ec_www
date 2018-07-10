@@ -8335,6 +8335,121 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     return render(request, 'cannula/art_active_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
+def mnch_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+
+    target_de_names = (
+        'Catchment Population',
+    )
+    target_short_names = (
+        'Catchment Population',
+    )
+    de_target_meta = list(product(target_short_names, (None,)))
+
+    qs_target = DataValue.objects.what(*target_de_names)
+    qs_target = qs_target.annotate(cat_combo=Value(None, output_field=CharField()))
+    # targets are annual, so filter by year component of period and divide result by 4 to get quarter
+    year_list = sorted(list(set(qstr[:4] for qstr in period_list)))
+    qs_target = qs_target.when(*year_list)
+    qs_target = qs_target.order_by('period', 'de_name')
+    val_target = qs_target.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value')/4)
+    val_target = list(val_target)
+    q_list = sorted(['%s-Q%d' % (y, qnum,) for qnum in range(1, 5) for y in year_list])
+    q_list = [x for x in q_list if x in period_list]
+
+    def duplicate_values_over_periods(val_list, p_list):
+        def assign_period(v, p):
+            new_val = dict(v)
+            new_val['period'] = p
+            return new_val
+
+        return [assign_period(val, period) for val in val_list for period in p_list]
+
+    val_target = duplicate_values_over_periods(val_target, q_list)
+
+    gen_raster = grabbag.rasterize(period_list, target_de_names, val_target, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_target2 = list(gen_raster)
+
+    anc_visit_de_names = (
+        '105-2.1 A1:ANC 1st Visit for women',
+        '105-2.1 A1:ANC 1st Visit for women (No. in 1st Trimester)',
+        '105-2.1 A2:ANC 4th Visit for women',
+    )
+    anc_visit_short_names = (
+        '105-2.1 A1:ANC 1st Visit for women',
+        '105-2.1 A1:ANC 1st Visit for women (No. in 1st Trimester)',
+        '105-2.1 A2:ANC 4th Visit for women',
+    )
+    de_anc_visit_meta = list(product(anc_visit_short_names, (None,)))
+
+    qs_anc_visit = DataValue.objects.what(*anc_visit_de_names)
+    qs_anc_visit = qs_anc_visit.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_anc_visit = qs_anc_visit.when(*period_list)
+    qs_anc_visit = qs_anc_visit.order_by('period', 'de_name')
+    val_anc_visit = qs_anc_visit.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_anc_visit = list(val_anc_visit)
+
+    gen_raster = grabbag.rasterize(period_list, anc_visit_de_names, val_anc_visit, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_anc_visit2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_target2, val_anc_visit2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (catchment_pop, anc1, anc1_1st_trimester, anc4, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(catchment_pop['numeric_sum']):
+            expected_pregnant = (catchment_pop['numeric_sum'] * Decimal(0.05))
+        else:
+            expected_pregnant = None
+
+        if all_not_none(anc1_1st_trimester['numeric_sum'], expected_pregnant) and expected_pregnant:
+            anc1_early_percent = (anc1_1st_trimester['numeric_sum'] * 100) / expected_pregnant
+        else:
+            anc1_early_percent = None
+        anc1_early_percent_val = {
+            'period': period,
+            'de_name': '% attended early ANC1',
+            'numeric_sum': anc1_early_percent,
+        }
+        calculated_vals.append(anc1_early_percent_val)
+
+        if all_not_none(anc4['numeric_sum'], expected_pregnant) and expected_pregnant:
+            anc4_percent = (anc4['numeric_sum'] * 100) / expected_pregnant
+        else:
+            anc4_percent = None
+        anc4_percent_val = {
+            'period': period,
+            'de_name': '% attended 4 ANC visits',
+            'numeric_sum': anc4_percent,
+        }
+        calculated_vals.append(anc4_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% attended early ANC1', None),
+            ('% attended 4 ANC visits', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
 @login_required
 def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
     this_day = date.today()
