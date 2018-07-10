@@ -1431,6 +1431,72 @@ def data_element_alias(request):
 
     return render_to_response('cannula/data_element_edit_alias.html', context, context_instance=RequestContext(request))
 
+def hiv_dashboard(request):
+    this_day = date.today()
+    this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_day.year, this_day.year-6, -1) for q in range(4, 0, -1)]
+    period_list = list(filter(lambda qtr: qtr < this_quarter, reversed(PREV_5YR_QTRS)))[-6:]
+    def val_with_period_de_fun(row, col):
+        period = row
+        de_name = col
+        return { 'de_name': de_name, 'period': period, 'numeric_sum': None }
+
+    data_element_metas = list()
+
+    hiv_de_names = (
+        '105-4 Number of Individuals who received HIV test results',
+        '105-4 Number of Individuals who tested HIV positive',
+        '105-4 Number of clients who have been linked to care',
+    )
+    hiv_short_names = (
+        'Individuals who received HIV test results',
+        'Individuals who tested HIV positive',
+        'Clients who have been linked to care',
+    )
+    de_hiv_meta = list(product(hiv_short_names, (None,)))
+
+    qs_hiv = DataValue.objects.what(*hiv_de_names)
+    qs_hiv = qs_hiv.annotate(cat_combo=Value(None, output_field=CharField()))
+    qs_hiv = qs_hiv.when(*period_list)
+    qs_hiv = qs_hiv.order_by('period', 'de_name')
+    val_hiv = qs_hiv.values('period', 'de_name').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+    val_hiv = list(val_hiv)
+
+    gen_raster = grabbag.rasterize(period_list, hiv_de_names, val_hiv, lambda x: x['period'], lambda x: x['de_name'], val_with_period_de_fun)
+    val_hiv2 = list(gen_raster)
+
+    # combine the data and group by district and subcounty
+    grouped_vals = groupbylist(sorted(chain(val_hiv2), key=lambda x: (x['period'])), key=lambda x: (x['period']))
+    # if True:
+    #     grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (period, (results_received, hiv_positive, linked_to_care, *other_vals)) = _group
+        
+        calculated_vals = list()
+
+        if all_not_none(linked_to_care['numeric_sum'], hiv_positive['numeric_sum']) and hiv_positive['numeric_sum']:
+            linked_percent = (linked_to_care['numeric_sum'] * 100) / hiv_positive['numeric_sum']
+        else:
+            linked_percent = None
+        linked_percent_val = {
+            'period': period,
+            'de_name': '% HIV positive linked to care',
+            'numeric_sum': linked_percent,
+        }
+        calculated_vals.append(linked_percent_val)
+
+        _group[1] = calculated_vals
+    
+    context = {
+        'data_element_names': [
+            ('% HIV positive linked to care', None),
+        ],
+        'grouped_data': grouped_vals,
+    }
+    return render(request, 'cannula/index.html', context)
+
 @login_required
 def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
     this_day = date.today()
