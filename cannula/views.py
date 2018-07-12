@@ -9854,3 +9854,249 @@ def lqas_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/lqas_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
+def kp_scorecard(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YR_QTRS = ['%d-Q%d' % (y, q) for y in range(this_year, this_year-6, -1) for q in range(4, 0, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at district level
+    SUBCOUNTY_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(2, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YR_QTRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d-Q%d' % (this_year, month2quarter(this_day.month))
+
+    period_desc = filter_period
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    target_de_names = (
+        'KP_TARGET: Reached with HIV Interventions, Female Sex Workers',
+        'PP_TARGET: Reached with HIV Interventions, All',
+    )
+    de_target_meta = list(product(target_de_names, (None,)))
+    data_element_metas += list(product(target_de_names, (None,)))
+
+    qs_target = DataValue.objects.what(*target_de_names)
+    qs_target = qs_target.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_target = qs_target.where(filter_district)
+    qs_target = qs_target.annotate(**SUBCOUNTY_LEVEL_ANNOTATIONS)
+    qs_target = qs_target.when(filter_period)
+    qs_target = qs_target.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_target = qs_target.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_target_meta, val_target, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_target2 = list(gen_raster)
+
+    kp_de_names = (
+        '# of Boda Boda riders reached with HIV prevention interventions',
+        '# of Clients of Female Sex Workers  reached with HIV prevention interventions',
+        '# of Discordant couples reached with HIV prevention interventions',
+        '# of FSW reached with HIV prevention interventions',
+        '# of Fisherfolks reached with HIV prevention interventions',
+        '# of Incarcerated Population reached with HIV prevention interventions',
+        '# of MSM/TG reached with HIV prevention interventions',
+        '# of Migrant workers reached with HIV prevention interventions',
+        '# of PWID reached with HIV prevention interventions',
+        '# of Sugarcane Plantation workers reached with HIV prevention interventions',
+        '# of Truck Drivers reached with HIV prevention interventions',
+        '# of Uniformed Service Personnel  reached with HIV prevention interventions',
+        '# of Young Women reached with HIV prevention interventions',
+    )
+    de_kp_meta = list(product(kp_de_names, (None,)))
+    data_element_metas += list(product(kp_de_names, (None,)))
+
+    qs_kp = DataValue.objects.what(*kp_de_names)
+    qs_kp = qs_kp.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_kp = qs_kp.where(filter_district)
+    qs_kp = qs_kp.annotate(**SUBCOUNTY_LEVEL_ANNOTATIONS)
+    qs_kp = qs_kp.when(filter_period)
+    qs_kp = qs_kp.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_kp = qs_kp.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_kp_meta, val_kp, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_kp2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_target2, val_kp2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    # perform calculations
+    for _group in grouped_vals:
+        (g_ou_path, (target_fsw, target_all, *other_vals)) = _group
+        boda_boda, fsw_clients, discordant, fsw, *some_vals, young_women = other_vals
+        
+        calculated_vals = list()
+        g_ou_dict = ou_dict_from_path(g_ou_path)
+
+        if all_not_none(fsw['numeric_sum'], target_fsw['numeric_sum']) and target_fsw['numeric_sum']:
+            fsw_percent = 100 * fsw['numeric_sum'] / (target_fsw['numeric_sum'] * 3/4)
+        else:
+            fsw_percent = None
+        fsw_percent_val = {
+            'de_name': '% Female Sex Workers, 3/4 Achievement',
+            'cat_combo': None,
+            'numeric_sum': fsw_percent,
+        }
+        fsw_percent_val.update(g_ou_dict)
+        calculated_vals.append(fsw_percent_val)
+
+        if all_not_none(fsw['numeric_sum'], target_fsw['numeric_sum']) and target_fsw['numeric_sum']:
+            fsw_percent = 100 * fsw['numeric_sum'] / target_fsw['numeric_sum']
+        else:
+            fsw_percent = None
+        fsw_percent_val = {
+            'de_name': '% Female Sex Workers, Achievement',
+            'cat_combo': None,
+            'numeric_sum': fsw_percent,
+        }
+        fsw_percent_val.update(g_ou_dict)
+        calculated_vals.append(fsw_percent_val)
+
+        priority_vals = (boda_boda, fsw_clients, discordant, *some_vals)
+        all_vals = [v['numeric_sum'] for v in priority_vals]
+        sum_all = sum_zero(*all_vals)
+
+        if all_not_none(sum_all, target_all['numeric_sum']) and target_all['numeric_sum']:
+            fsw_percent = 100 * sum_all / (target_all['numeric_sum'] * 3/4)
+        else:
+            fsw_percent = None
+        fsw_percent_val = {
+            'de_name': '% All Priority Population, 3/4 Achievement',
+            'cat_combo': None,
+            'numeric_sum': fsw_percent,
+        }
+        fsw_percent_val.update(g_ou_dict)
+        calculated_vals.append(fsw_percent_val)
+
+        if all_not_none(sum_all, target_all['numeric_sum']) and target_all['numeric_sum']:
+            fsw_percent = 100 * sum_all / target_all['numeric_sum']
+        else:
+            fsw_percent = None
+        fsw_percent_val = {
+            'de_name': '% All Priority Population, Achievement',
+            'cat_combo': None,
+            'numeric_sum': fsw_percent,
+        }
+        fsw_percent_val.update(g_ou_dict)
+        calculated_vals.append(fsw_percent_val)
+
+        _group[1].extend(calculated_vals)
+
+    data_element_metas += list(product(['% Female Sex Workers, 3/4 Achievement'], (None,)))
+    data_element_metas += list(product(['% Female Sex Workers, Achievement'], (None,)))
+    data_element_metas += list(product(['% All Priority Population, 3/4 Achievement'], (None,)))
+    data_element_metas += list(product(['% All Priority Population, Achievement'], (None,)))
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    q_ls = LegendSet()
+    q_ls.name = 'KP & PP: Performance'
+    q_ls.add_interval('red', 0, 50)
+    q_ls.add_interval('yellow', 50, 75)
+    q_ls.add_interval('green', 75, None)
+    q_ls.mappings[num_path_elements+15] = True
+    q_ls.mappings[num_path_elements+16] = True
+    q_ls.mappings[num_path_elements+17] = True
+    q_ls.mappings[num_path_elements+18] = True
+    legend_sets.append(q_ls)
+
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="lqas_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        for ls in legend_sets:
+            # apply conditional formatting from LegendSets
+            for rule in ls.openpyxl_rules():
+                for cell_range in ls.excel_ranges():
+                    ws.conditional_formatting.add(cell_range, rule)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="kp_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YR_QTRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/kp_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)

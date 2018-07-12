@@ -185,4 +185,11 @@ $(document).ready(function() {
 	<li><a href="{% url 'lqas_districts' %}">LQAS - Districts</a></li>
 </ul>
 {% endif %}
+
+{% if 'kp' in request.path %}
+<ul>
+	<li><a href="{% url 'kp_subcounties' %}">Key &amp; Priority Populations - Subcounties</a></li>
+	<li><a href="{% url 'kp_districts' %}">Key &amp; Priority Populations - Districts</a></li>
+</ul>
+{% endif %}
 {% endblock %}

@@ -143,4 +143,11 @@ urlpatterns = [
     url(r'scorecards/lqas/districts\.php', views.lqas_scorecard, {'org_unit_level': 1}, name='lqas_districts'),
     url(r'scorecards/lqas/districts\.xls', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='lqas_districts_excel'),
     url(r'scorecards/lqas/districts\.csv', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='lqas_districts_csv'),
+    url(r'dashboards/kp/$', views.index, name='thematic_kp'),
+    url(r'scorecards/kp/subcounties\.php', views.kp_scorecard, {'org_unit_level': 2}, name='kp_subcounties'),
+    url(r'scorecards/kp/subcounties\.xls', views.kp_scorecard, {'org_unit_level': 2, 'output_format': 'EXCEL'}, name='kp_subcounties_excel'),
+    url(r'scorecards/kp/subcounties\.csv', views.kp_scorecard, {'org_unit_level': 2, 'output_format': 'CSV'}, name='kp_subcounties_csv'),
+    url(r'scorecards/kp/districts\.php', views.kp_scorecard, {'org_unit_level': 1}, name='kp_districts'),
+    url(r'scorecards/kp/districts\.xls', views.kp_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='kp_districts_excel'),
+    url(r'scorecards/kp/districts\.csv', views.kp_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='kp_districts_csv'),
 ]

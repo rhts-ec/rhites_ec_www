@@ -112,6 +112,9 @@
                     <li>
                         <a href="{% url 'thematic_lqas' %}">LQAS</a>
                     </li>
+                    <li>
+                        <a href="{% url 'thematic_kp' %}">Key &amp; Priority Populations</a>
+                    </li>
                 </ul>
             </li>
             {% if user.is_authenticated %}
@@ -153,6 +156,9 @@
                     </li>
                     <li>
                         <a href="{% url 'validation_rule_listing' 'qi' %}">LQAS</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'validation_rule_listing' 'kp' %}">Key &amp; Priority Populations</a>
                     </li>
                 </ul>
             </li>
@@ -196,6 +202,9 @@
                     </li>
                     <li>
                         <a href="{% url 'data_workflow_new' "LQAS" %}">LQAS</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'data_workflow_new' "Key &amp; Priority Populations" %}">Key &amp; Priority Populations</a>
                     </li>
                 </ul>
             </li>
