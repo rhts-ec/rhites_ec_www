@@ -143,4 +143,17 @@ urlpatterns = [
     url(r'scorecards/lqas/districts\.php', views.lqas_scorecard, {'org_unit_level': 1}, name='lqas_districts'),
     url(r'scorecards/lqas/districts\.xls', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='lqas_districts_excel'),
     url(r'scorecards/lqas/districts\.csv', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='lqas_districts_csv'),
+
+    #reports
+    url(r'dashboards/reports/$', views.indexreport, name='thematic_sc_reports'),
+    url(r'scorecards/reports/reports_sites_reports_sites_2016_to_2018\.php', views.reports_sites_2016_to_2018, name='reports_sites_2016_to_2018'),
+    url(r'scorecards/reports/reports_sites_2017_to_2018\.php', views.reports_sites_2017_to_2018, name='reports_sites_2017_to_2018'),
+    
+    #logic for downloading
+    url(r'^download/(?P<path>.*)$', views.downloadreport, name='samp'),
+
+     url(r'dashboards/lqas/$', views.index, name='thematic_sc_lqas'),
+     url(r'scorecards/lqas/lqas_sites\.php', views.lqas_by_site, name='lqas_sites'),
+     url(r'scorecards/lqas/lqas_sites\.xls', views.lqas_by_site, {'output_format': 'EXCEL'}, name='lqas_by_site_excel'),
+     url(r'scorecards/lqas/lqas_sites\.csv', views.lqas_by_site, {'output_format': 'CSV'}, name='lqas_by_site_csv'),
 ]

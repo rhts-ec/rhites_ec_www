@@ -3,7 +3,7 @@ from django.contrib import auth
 
 from mptt.admin import MPTTModelAdmin
 
-from .models import SourceDocument, OrgUnit, DataElement, DataValue, Category, CategoryCombo, ValidationRule, load_excel_to_datavalues, load_excel_to_validations
+from .models import SourceDocument, OrgUnit, DataElement, DataValue, Category, CategoryCombo, ValidationRule, load_excel_to_datavalues, load_excel_to_validations,quarterly_reprots,lqas_target,lqas_dataset
 
 def load_document_values(modeladmin, request, queryset):
     for doc in queryset:
@@ -56,6 +56,10 @@ admin.site.register(CategoryCombo, CategoryComboAdmin)
 admin.site.register(ValidationRule, ValidationRuleAdmin)
 admin.site.unregister(auth.models.User) # unregister first, User model already registered
 admin.site.register(auth.models.User, MyUserAdmin)
+
+admin.site.register(quarterly_reprots)
+admin.site.register(lqas_target)
+admin.site.register(lqas_dataset)
 
 admin.site.site_title = 'RHITES-EC Performance Monitoring Tool Administrative Interface'
 admin.site.site_header = 'RHITES-EC Performance Monitoring Tool Admin'

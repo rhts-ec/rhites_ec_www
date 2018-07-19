@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'w5&z#+w&ur=+e_fhjs#xy7ksc5a*y-&g^4gjc8#5via=c5d%&t'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False 
+DEBUG = True 
 
 ALLOWED_HOSTS = ['localhost',]
 
@@ -87,9 +87,9 @@ WSGI_APPLICATION = 'rhites_ec_www.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'somedb',
-        'USER': 'dbuser',
-        'PASSWORD': 'dbpass',
+        'NAME': 'ec',
+        'USER': 'postgres',
+        'PASSWORD': 'mynameis1*',
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'ATOMIC_REQUESTS': True,
@@ -120,6 +120,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
 SOURCE_DOC_DIR = os.path.join(BASE_DIR, 'source_doc_storage')
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static/media/')
 
 LOGIN_REDIRECT_URL = '/'
 

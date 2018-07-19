@@ -1,0 +1,1395 @@
+{% extends "cannula/thematic_base.html" %}
+
+{% block title %} LQAS {% endblock %}
+{% block heading %}Performance DashBoard-Community LQAS {% endblock %}
+{% block datacell %}
+		<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %}
+
+
+{% block content %}
+
+<script type="text/javascript">
+	function ExportToExcel(lqas_table_001){
+		   var htmltable= document.getElementById('lqas_table_001');
+		   var html = htmltable.outerHTML;
+		   window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+		}
+</script>
+
+<style>
+td 
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+</style>
+
+<style id=mystyle>
+	.btn1 {
+		background-color: DodgerBlue;
+		border: none;
+		color: white;
+		padding: 10px 25px;
+		cursor: pointer;
+		font-size: 20;
+	}
+	
+	/* Darker background on mouse-over */
+	.btn1:hover {
+		background-color: RoyalBlue;
+	}
+	</style>
+
+<h1 class="center-align red lighten-3">{{title}}</h1>
+<button id="btnExport" onclick="ExportToExcel();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download Score Card </button>
+
+<p>Legend</p>
+<table width="400" border="1" border-spacing: 5px>
+		<tr>
+				<th bgcolor="#00FF00" >Verry Good</th>
+				<th bgcolor="#FFFF00" >Modorate</th>
+				<th bgcolor="#FF0000">Poor</th>
+		</tr>
+</table>
+ <p></p>
+<table id=lqas_table_001  border="1">
+    <tr>
+		
+		<th>District</th>
+		<th>Period</th>
+		<th>% of individuals who were counselled and received an HIV test in last 12 months and know their results</th>
+		<th>% of individuals who know how HIV transmission occur from an infected mother to child</th>
+		<th>% of individuals who know two key actions that reduce HIV transmission from an infected mother to her child</th>
+		<th>% of individuals who had sex with more than one sexual partner in the last 12 months</th>
+		<th>% of individuals who had sex with a non-marital or non-cohabiting sexual partner in the last 12 months</th>
+		<th>% of youth 15-24 years who perceive low or no risk of getting HIV/AIDS infection</th>
+		<th>% of youth who have had sexual intercourse before the age of 15 years</th>
+		<th>% of the male youth 15-24yrs who are circumcised</th>
+		<th>% of individuals who know that TB is curable disease</th>
+		<th>% of individuals who know at least two signs and symptoms of TB</th>
+		<th>% of individuals who know how TB is transmitted</th>
+		<th>% of individuals who know the risk of not completing TB treatment</th>
+		<th>% of mothers of children 0-23 months who received two or more doses of IPT2 during their last pregnancy </th>
+		<th>% of children 0-59 months who slept under a ITN the night preceding the survey</th>
+		<th>% of mothers of children 0-59 months who know two or more ways to prevent malaria</th>
+		<th>% of mothers of children under five years who know two or more signs and  symptoms of malaria </th>
+		<th>% of Households with at least one ITN</th>
+		<th>% of mothers of children 0-11 months who attended ANC at least 4 times during last pregnancy</th>
+		<th>% of mothers of children 0-11 months who were assisted by a trained health worker during delivery</th>
+		<th>% of women and men age 15 years and above with comprehensive knowledge of HIV</th>
+		<th>% of women in the reproductive age group 15-49 who known at least 3 methods of family planning and have used the method</th> 
+		<th>% of children aged 0-59 months who had a fever in the last two weeks and were tested for malaria </th>
+		<th>% of children age 36-59 months who are developmentally on track in literacy-numeracy, physical, social-emotional, and learning domains, and the early child development index score (developmentally on track in at least three of these four domains)</th>
+		<th>% of women and men aged 15-49 who experienced sexual violence in the last 12 months</th>
+		
+	</tr>
+
+	<tr>
+			<td colspan="26"  style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Performance Thress Hold</td>
+	</tr>
+	<th>
+			<table>
+			
+					<tr>
+							<th></th>
+							<th></th>
+							<th></th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th></th>
+							<th></th>
+							<th></th>
+					</tr>
+			</table>
+	</th>
+
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=45</th>
+							<th bgcolor="#FFFF00" >30 to 44</th>
+							<th bgcolor="#FF0000">0 to 29</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=48</th>
+							<th bgcolor="#FFFF00" >32 to 48</th>
+							<th bgcolor="#FF0000">0 to 32</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=48</th>
+							<th bgcolor="#FFFF00" >32 to 48</th>
+							<th bgcolor="#FF0000">0 to 32</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=13</th>
+							<th bgcolor="#FFFF00" >8 to 13</th>
+							<th bgcolor="#FF0000">0 to 8</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=45</th>
+							<th bgcolor="#FFFF00" >30 to 45</th>
+							<th bgcolor="#FF0000">0 to 30</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=41</th>
+							<th bgcolor="#FFFF00" >27 to 41</th>
+							<th bgcolor="#FF0000">0 to 27</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=7</th>
+							<th bgcolor="#FFFF00" >5 to 7</th>
+							<th bgcolor="#FF0000">0 to 5</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=48</th>
+							<th bgcolor="#FFFF00" >32 to 48</th>
+							<th bgcolor="#FF0000">0 to 32</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=60</th>
+							<th bgcolor="#FFFF00" >40 to 60</th>
+							<th bgcolor="#FF0000">0 to 40</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=45</th>
+							<th bgcolor="#FFFF00" >30 to 45</th>
+							<th bgcolor="#FF0000">0 to 30</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=61</th>
+							<th bgcolor="#FFFF00" >41 to 61</th>
+							<th bgcolor="#FF0000">0 to 41</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=69</th>
+							<th bgcolor="#FFFF00" >46 to 69</th>
+							<th bgcolor="#FF0000">0 to 46</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=22</th>
+							<th bgcolor="#FFFF00" >15 to 22</th>
+							<th bgcolor="#FF0000">0 to 15</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=67</th>
+							<th bgcolor="#FFFF00" >45 to 67</th>
+							<th bgcolor="#FF0000">0 to 45</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=18</th>
+							<th bgcolor="#FFFF00" >12 to 18</th>
+							<th bgcolor="#FF0000">0 to 12</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=56</th>
+							<th bgcolor="#FFFF00" >37 to 56</th>
+							<th bgcolor="#FF0000">0 to 37</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=60</th>
+							<th bgcolor="#FFFF00" >40 to 60</th>
+							<th bgcolor="#FF0000">0 to 40</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=41</th>
+							<th bgcolor="#FFFF00" >27 to 41</th>
+							<th bgcolor="#FF0000">0 to 27</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=60</th>
+							<th bgcolor="#FFFF00" >40 to 60</th>
+							<th bgcolor="#FF0000">0 to 40</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+					<tr>
+					<th bgcolor="#00FF00" >>=71</th>
+					<th bgcolor="#FFFF00" >47 to 71</th>
+					<th bgcolor="#FF0000">0 to 47</th>
+				</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=48</th>
+							<th bgcolor="#FFFF00" >32 to 48</th>
+							<th bgcolor="#FF0000">0 to 32</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<tr>
+									<th bgcolor="#00FF00" >>=48</th>
+									<th bgcolor="#FFFF00" >32 to 48</th>
+									<th bgcolor="#FF0000">0 to 32</th>
+							</tr>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >0</th>
+							<th bgcolor="#FFFF00" >0 to 0</th>
+							<th bgcolor="#FF0000">0 to 0</th>
+					</tr>
+			</table>
+	</th>
+
+	<th>
+			<table>
+			
+					<tr>
+							<th bgcolor="#00FF00" >>=6</th>
+							<th bgcolor="#FFFF00" >4 to 6</th>
+							<th bgcolor="#FF0000">0 to 4</th>
+					</tr>
+			</table>
+	</th>
+
+	<tr>
+			<td colspan="26"  style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Results</td>
+	</tr>
+
+    {% for item in lqasdatasets %}
+    <tr>  
+			<!--targets-->
+		<td align="center">{{ item.district }}</td>
+		<td align="center" >{{ item.period }}</td>
+		
+		{% if item.ca0 >= 45 %}
+			<td bgcolor="#00FF00" align="center">{{ item.ca0 }}</td>
+		{% elif item.ca0 >= 30 and item.ca0 <= 44  %}
+			<td bgcolor="#FFFF00" align="center">{{ item.ca0 }}</td>
+		{% else %}
+			<td bgcolor="#FF0000" align="center">{{ item.ca0 }}</td>
+		{% endif %}
+		
+		{% if item.ca1 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca1 }}</td>
+		{% elif item.ca1 >= 32 and item.ca1 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca1 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca1 }}</td>
+		{% endif %}
+
+		{% if item.ca2 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca2 }}</td>
+		{% elif item.ca2 >= 32 and item.ca2 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca2 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca2 }}</td>
+		{% endif %}
+
+		{% if item.ca3 >= 13 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca3 }}</td>
+		{% elif item.ca3 >= 8 and item.ca2 < 13  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca3 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca3 }}</td>
+		{% endif %}
+		
+		{% if item.ca4 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca4 }}</td>
+		{% elif item.ca4 >= 30 and item.ca4 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca4 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca4 }}</td>
+		{% endif %}
+		
+		{% if item.ca5 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca5 }}</td>
+		{% elif item.ca5 >= 27 and item.ca5 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca5 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca5 }}</td>
+		{% endif %}
+
+		{% if item.ca6 >= 7 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca6 }}</td>
+		{% elif item.ca6 >= 5 and item.ca6 < 7  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca6 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca6 }}</td>
+		{% endif %}
+
+		{% if item.ca7 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca7 }}</td>
+		{% elif item.ca7 >= 32 and item.ca7 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca7 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca7 }}</td>
+		{% endif %}
+
+		{% if item.ca9 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca9 }}</td>
+		{% elif item.ca9 >= 40 and item.ca9 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca9 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca9 }}</td>
+		{% endif %}
+
+		{% if item.ca10 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca10 }}</td>
+		{% elif item.ca10 >= 30 and item.ca10 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca10 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca10 }}</td>
+		{% endif %}
+
+		{% if item.ca11 >= 61 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca11 }}</td>
+		{% elif item.ca11 >= 41 and item.ca11 < 61  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca11 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca11 }}</td>
+		{% endif %}
+
+		{% if item.ca12 >= 69 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca12 }}</td>
+		{% elif item.ca12 >= 46 and item.ca12 < 69  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca12 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca12 }}</td>
+		{% endif %}
+
+		{% if item.ca13 >= 22 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca13 }}</td>
+		{% elif item.ca13 >= 15 and item.ca13 < 22  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca13 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca13 }}</td>
+		{% endif %}
+
+		{% if item.ca14 >= 67 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca14 }}</td>
+		{% elif item.ca14 >= 45 and item.ca14 < 67  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca14 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca14 }}</td>
+		{% endif %}
+
+		{% if item.ca15 >= 18 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca15 }}</td>
+		{% elif item.ca15 >= 12 and item.ca15 < 18  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca15 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca15 }}</td>
+		{% endif %}
+
+		{% if item.ca16 >= 56 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca16 }}</td>
+		{% elif item.ca16 >= 37 and item.ca16 < 56  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca16 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca16 }}</td>
+		{% endif %}
+
+		{% if item.ca17 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca17 }}</td>
+		{% elif item.ca17 >= 40 and item.ca17 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca17 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca17 }}</td>
+		{% endif %}
+
+		{% if item.ca18 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca18 }}</td>
+		{% elif item.ca18 >= 27 and item.ca18 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca18 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca18 }}</td>
+		{% endif %}
+
+		{% if item.ca19 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca19 }}</td>
+		{% elif item.ca19 >= 40 and item.ca19 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca19 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca19 }}</td>
+		{% endif %}
+
+		{% if item.ca20 >= 71 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca20 }}</td>
+		{% elif item.ca20 >= 47 and item.ca20 < 71  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca20 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca20 }}</td>
+		{% endif %}
+
+		{% if item.ca21 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca21 }}</td>
+		{% elif item.ca21 >= 32 and item.ca21 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca21 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca21 }}</td>
+		{% endif %}
+
+		{% if item.ca22 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca22 }}</td>
+		{% elif item.ca22 >= 32 and item.ca22 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca22 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca22 }}</td>
+		{% endif %}
+
+		{% if item.ca23 >= 0.1 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca23 }}</td>
+		{% elif item.ca23 >= 0.01 and item.ca23 < 0.1  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca23 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca23 }}</td>
+		{% endif %}
+
+		{% if item.ca24 >= 6 %}
+		<td bgcolor="#00FF00" align="center">{{ item.ca24 }}</td>
+		{% elif item.ca24 >= 4 and item.ca24 < 6  %}
+		<td bgcolor="#FFFF00" align="center">{{ item.ca24 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ item.ca24 }}</td>
+		{% endif %}
+
+    </tr>
+	{% endfor %}
+
+	{% if districtavg %}
+
+	<tr>
+			<td colspan="26"  style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">EC Region</td>
+	</tr>
+
+		<tr>
+			<td  align="center">EC Region</td>
+			<td  align="center">2015</td>
+			
+		{% if year2015.0 >= 45 %}
+			<td bgcolor="#00FF00" align="center">{{ year2015.0 }}</td>
+		{% elif year2015.0 >= 30 and year2016.0 <= 44  %}
+			<td bgcolor="#FFFF00" align="center">{{ year2015.0 }}</td>
+		{% else %}
+			<td bgcolor="#FF0000" align="center">{{ year2015.0 }}</td>
+		{% endif %}
+		
+		{% if year2015.1 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.1 }}</td>
+		{% elif year2015.1 >= 32 and year2015.1 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.1 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.1 }}</td>
+		{% endif %}
+
+		{% if year2015.2 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.2 }}</td>
+		{% elif year2015.2 >= 32 and year2015.2 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.2 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.2 }}</td>
+		{% endif %}
+
+		{% if year2015.3 >= 13 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.3 }}</td>
+		{% elif year2015.3 >= 8 and year2015.3 < 13  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.3 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.3 }}</td>
+		{% endif %}
+		
+		{% if year2015.4 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.4 }}</td>
+		{% elif year2015.4 >= 30 and year2015.4 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.4 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.4 }}</td>
+		{% endif %}
+		
+		{% if year2015.5 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.5 }}</td>
+		{% elif year2015.5 >= 27 and year2015.5 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.5 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.5 }}</td>
+		{% endif %}
+
+		{% if year2015.6 >= 7 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.6 }}</td>
+		{% elif year2015.6 >= 5 and year2015.6 < 7  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.6 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.6 }}</td>
+		{% endif %}
+
+		{% if year2015.7 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.7 }}</td>
+		{% elif year2015.7 >= 32 and year2015.7 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.7 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.7 }}</td>
+		{% endif %}
+
+		{% if year2015.8 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.8 }}</td>
+		{% elif year2015.8 >= 40 and year2015.8 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.8 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.8 }}</td>
+		{% endif %}
+
+		{% if year2015.9 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.9 }}</td>
+		{% elif year2015.9 >= 30 and year2015.9 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.9 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.9 }}</td>
+		{% endif %}
+
+		{% if year2015.10 >= 61 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.10 }}</td>
+		{% elif year2015.10 >= 41 and year2015.10 < 61  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.10 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.10 }}</td>
+		{% endif %}
+
+		{% if year2015.11 >= 69 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.11 }}</td>
+		{% elif year2015.11 >= 46 and year2015.11 < 69  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.11 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.11 }}</td>
+		{% endif %}
+
+		{% if year2015.12 >= 22 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.12 }}</td>
+		{% elif year2015.12 >= 15 and year2015.12 < 22  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.12 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.12 }}</td>
+		{% endif %}
+
+		{% if year2015.13 >= 67 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.13 }}</td>
+		{% elif year2015.13 >= 45 and year2015.13 < 67  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.13 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.13}}</td>
+		{% endif %}
+
+		{% if year2015.14 >= 18 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.14 }}</td>
+		{% elif year2015.14 >= 12 and year2015.14 < 18  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.14 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.14 }}</td>
+		{% endif %}
+
+		{% if year2015.15 >= 56 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.15 }}</td>
+		{% elif year2015.15 >= 37 and year2015.15 < 56  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.15 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.15 }}</td>
+		{% endif %}
+
+		{% if year2015.16 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.16 }}</td>
+		{% elif year2015.16 >= 40 and year2015.16 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.16 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.16 }}</td>
+		{% endif %}
+
+		{% if year2015.17 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.17 }}</td>
+		{% elif year2015.17 >= 27 and year2015.17 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.17 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.17 }}</td>
+		{% endif %}
+
+		{% if year2015.18 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.18 }}</td>
+		{% elif year2015.18 >= 40 and year2015.18 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.18 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.18 }}</td>
+		{% endif %}
+
+		{% if year2015.19 >= 71 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.19 }}</td>
+		{% elif year2015.19 >= 47 and year2015.19 < 71  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.19 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.19 }}</td>
+		{% endif %}
+
+		{% if year2015.20 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.20 }}</td>
+		{% elif year2015.20 >= 32 and year2015.20 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.20 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.20 }}</td>
+		{% endif %}
+
+		{% if year2015.21 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.21 }}</td>
+		{% elif year2015.21 >= 32 and year2015.21 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.21 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.21 }}</td>
+		{% endif %}
+
+		{% if year2015.22 >= 0.1 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.22 }}</td>
+		{% elif year2015.22 >= 0.01 and year2015.22 < 0.1  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.22 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.22 }}</td>
+		{% endif %}
+
+		{% if year2015.23 >= 6 %}
+		<td bgcolor="#00FF00" align="center">{{ year2015.23 }}</td>
+		{% elif year2015.23 >= 4 and year2015.23 < 6  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2015.23 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2015.23 }}</td>
+		{% endif %}
+		
+		</tr>
+
+		<tr>
+				<td  align="center">EC Region</td>
+				<td  align="center">2016</td>
+				
+		{% if year2016.0 >= 45 %}
+			<td bgcolor="#00FF00" align="center">{{ year2016.0 }}</td>
+		{% elif year2016.0 >= 30 and year2016.0 <= 44  %}
+			<td bgcolor="#FFFF00" align="center">{{ year2016.0 }}</td>
+		{% else %}
+			<td bgcolor="#FF0000" align="center">{{ year2016.0 }}</td>
+		{% endif %}
+		
+		{% if year2016.1 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.1 }}</td>
+		{% elif year2016.1 >= 32 and year2016.1 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.1 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.1 }}</td>
+		{% endif %}
+
+		{% if year2016.2 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.2 }}</td>
+		{% elif year2016.2 >= 32 and year2016.2 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.2 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.2 }}</td>
+		{% endif %}
+
+		{% if year2016.3 >= 13 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.3 }}</td>
+		{% elif year2016.3 >= 8 and year2016.3 < 13  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.3 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.3 }}</td>
+		{% endif %}
+		
+		{% if year2016.4 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.4 }}</td>
+		{% elif year2016.4 >= 30 and year2016.4 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.4 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.4 }}</td>
+		{% endif %}
+		
+		{% if year2016.5 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.5 }}</td>
+		{% elif year2016.5 >= 27 and year2016.5 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.5 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.5 }}</td>
+		{% endif %}
+
+		{% if year2016.6 >= 7 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.6 }}</td>
+		{% elif year2016.6 >= 5 and year2016.6 < 7  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.6 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.6 }}</td>
+		{% endif %}
+
+		{% if year2016.7 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.7 }}</td>
+		{% elif year2016.7 >= 32 and year2016.7 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.7 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.7 }}</td>
+		{% endif %}
+
+		{% if year2016.8 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.8 }}</td>
+		{% elif year2016.8 >= 40 and year2016.8 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.8 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.8 }}</td>
+		{% endif %}
+
+		{% if year2016.9 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.9 }}</td>
+		{% elif year2016.9 >= 30 and year2016.9 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.9 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.9 }}</td>
+		{% endif %}
+
+		{% if year2016.10 >= 61 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.10 }}</td>
+		{% elif year2016.10 >= 41 and year2016.10 < 61  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.10 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.10 }}</td>
+		{% endif %}
+
+		{% if year2016.11 >= 69 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.11 }}</td>
+		{% elif year2016.11 >= 46 and year2016.11 < 69  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.11 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.11 }}</td>
+		{% endif %}
+
+		{% if year2016.12 >= 22 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.12 }}</td>
+		{% elif year2016.12 >= 15 and year2016.12 < 22  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.12 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.12 }}</td>
+		{% endif %}
+
+		{% if year2016.13 >= 67 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.13 }}</td>
+		{% elif year2016.13 >= 45 and year2016.13 < 67  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.13 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.13}}</td>
+		{% endif %}
+
+		{% if year2016.14 >= 18 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.14 }}</td>
+		{% elif year2016.14 >= 12 and year2016.14 < 18  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.14 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.14 }}</td>
+		{% endif %}
+
+		{% if year2016.15 >= 56 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.15 }}</td>
+		{% elif year2016.15 >= 37 and year2016.15 < 56  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.15 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.15 }}</td>
+		{% endif %}
+
+		{% if year2016.16 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.16 }}</td>
+		{% elif year2016.16 >= 40 and year2016.16 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.16 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.16 }}</td>
+		{% endif %}
+
+		{% if year2016.17 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.17 }}</td>
+		{% elif year2016.17 >= 27 and year2016.17 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.17 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.17 }}</td>
+		{% endif %}
+
+		{% if year2016.18 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.18 }}</td>
+		{% elif year2016.18 >= 40 and year2016.18 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.18 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.18 }}</td>
+		{% endif %}
+
+		{% if year2016.19 >= 71 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.19 }}</td>
+		{% elif year2016.19 >= 47 and year2016.19 < 71  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.19 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.19 }}</td>
+		{% endif %}
+
+		{% if year2016.20 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.20 }}</td>
+		{% elif year2016.20 >= 32 and year2016.20 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.20 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.20 }}</td>
+		{% endif %}
+
+		{% if year2016.21 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.21 }}</td>
+		{% elif year2016.21 >= 32 and year2016.21 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.21 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.21 }}</td>
+		{% endif %}
+
+		{% if year2016.22 >= 0.1 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.22 }}</td>
+		{% elif year2016.22 >= 0.01 and year2016.22 < 0.1  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.22 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.22 }}</td>
+		{% endif %}
+
+		{% if year2016.23 >= 6 %}
+		<td bgcolor="#00FF00" align="center">{{ year2016.23 }}</td>
+		{% elif year2016.23 >= 4 and year2016.23 < 6  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2016.23 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2016.23 }}</td>
+		{% endif %}
+		</tr>
+
+		<tr>
+				<td  align="center">EC Region</td>
+				<td  align="center">2017</td>
+		{% if year2017.0 >= 45 %}
+			<td bgcolor="#00FF00" align="center">{{ year2017.0 }}</td>
+		{% elif year2017.0 >= 30 and year2017.0 <= 44  %}
+			<td bgcolor="#FFFF00" align="center">{{ year2017.0 }}</td>
+		{% else %}
+			<td bgcolor="#FF0000" align="center">{{ year2017.0 }}</td>
+		{% endif %}
+		
+		{% if year2017.1 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.1 }}</td>
+		{% elif year2017.1 >= 32 and year2017.1 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.1 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.1 }}</td>
+		{% endif %}
+
+		{% if year2017.2 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.2 }}</td>
+		{% elif year2017.2 >= 32 and year2017.2 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.2 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.2 }}</td>
+		{% endif %}
+
+		{% if year2017.3 >= 13 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.3 }}</td>
+		{% elif year2017.3 >= 8 and year2017.3 < 13  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.3 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.3 }}</td>
+		{% endif %}
+		
+		{% if year2017.4 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.4 }}</td>
+		{% elif year2017.4 >= 30 and year2017.4 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.4 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.4 }}</td>
+		{% endif %}
+		
+		{% if year2017.5 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.5 }}</td>
+		{% elif year2017.5 >= 27 and year2017.5 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.5 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.5 }}</td>
+		{% endif %}
+
+		{% if year2017.6 >= 7 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.6 }}</td>
+		{% elif year2017.6 >= 5 and year2017.6 < 7  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.6 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.6 }}</td>
+		{% endif %}
+
+		{% if year2017.7 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.7 }}</td>
+		{% elif year2017.7 >= 32 and year2017.7 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.7 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.7 }}</td>
+		{% endif %}
+
+		{% if year2017.8 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.8 }}</td>
+		{% elif year2017.8 >= 40 and year2017.8 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.8 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.8 }}</td>
+		{% endif %}
+
+		{% if year2017.9 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.9 }}</td>
+		{% elif year2017.9 >= 30 and year2017.9 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.9 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.9 }}</td>
+		{% endif %}
+
+		{% if year2017.10 >= 61 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.10 }}</td>
+		{% elif year2017.10 >= 41 and year2017.10 < 61  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.10 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.10 }}</td>
+		{% endif %}
+
+		{% if year2017.11 >= 69 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.11 }}</td>
+		{% elif year2017.11 >= 46 and year2017.11 < 69  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.11 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.11 }}</td>
+		{% endif %}
+
+		{% if year2017.12 >= 22 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.12 }}</td>
+		{% elif year2017.12 >= 15 and year2017.12 < 22  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.12 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.12 }}</td>
+		{% endif %}
+
+		{% if year2017.13 >= 67 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.13 }}</td>
+		{% elif year2017.13 >= 45 and year2017.13 < 67  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.13 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.13}}</td>
+		{% endif %}
+
+		{% if year2017.14 >= 18 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.14 }}</td>
+		{% elif year2017.14 >= 12 and year2017.14 < 18  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.14 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.14 }}</td>
+		{% endif %}
+
+		{% if year2017.15 >= 56 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.15 }}</td>
+		{% elif year2017.15 >= 37 and year2017.15 < 56  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.15 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.15 }}</td>
+		{% endif %}
+
+		{% if year2017.16 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.16 }}</td>
+		{% elif year2017.16 >= 40 and year2017.16 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.16 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.16 }}</td>
+		{% endif %}
+
+		{% if year2017.17 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.17 }}</td>
+		{% elif year2017.17 >= 27 and year2017.17 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.17 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.17 }}</td>
+		{% endif %}
+
+		{% if year2017.18 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.18 }}</td>
+		{% elif year2017.18 >= 40 and year2017.18 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.18 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.18 }}</td>
+		{% endif %}
+
+		{% if year2017.19 >= 71 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.19 }}</td>
+		{% elif year2017.19 >= 47 and year2017.19 < 71  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.19 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.19 }}</td>
+		{% endif %}
+
+		{% if year2017.20 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.20 }}</td>
+		{% elif year2017.20 >= 32 and year2017.20 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.20 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.20 }}</td>
+		{% endif %}
+
+		{% if year2017.21 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.21 }}</td>
+		{% elif year2017.21 >= 32 and year2017.21 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.21 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.21 }}</td>
+		{% endif %}
+
+		{% if year2017.22 >= 0.1 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.22 }}</td>
+		{% elif year2017.22 >= 0.01 and year2017.22 < 0.1  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.22 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.22 }}</td>
+		{% endif %}
+
+		{% if year2017.23 >= 6 %}
+		<td bgcolor="#00FF00" align="center">{{ year2017.23 }}</td>
+		{% elif year2017.23 >= 4 and year2017.23 < 6  %}
+		<td bgcolor="#FFFF00" align="center">{{ year2017.23 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ year2017.23 }}</td>
+		{% endif %}
+		</tr>
+
+		<tr>
+				<td colspan="26"  style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">All District</td>
+		</tr>
+		<tr>
+			<td  align="center">All District</td>
+			<td  align="center">2015 2016 2017</td>
+
+		{% if districtavg.0 >= 45 %}
+			<td bgcolor="#00FF00" align="center">{{ districtavg.0 }}</td>
+		{% elif districtavg.0 >= 30 and districtavg.0 <= 44  %}
+			<td bgcolor="#FFFF00" align="center">{{ districtavg.0 }}</td>
+		{% else %}
+			<td bgcolor="#FF0000" align="center">{{ districtavg.0 }}</td>
+		{% endif %}
+		
+		{% if districtavg.1 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.1 }}</td>
+		{% elif districtavg.1 >= 32 and districtavg.1 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.1 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.1 }}</td>
+		{% endif %}
+
+		{% if districtavg.2 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.2 }}</td>
+		{% elif districtavg.2 >= 32 and districtavg.2 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.2 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.2 }}</td>
+		{% endif %}
+
+		{% if districtavg.3 >= 13 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.3 }}</td>
+		{% elif districtavg.3 >= 8 and districtavg.3 < 13  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.3 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.3 }}</td>
+		{% endif %}
+		
+		{% if districtavg.4 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.4 }}</td>
+		{% elif districtavg.4 >= 30 and districtavg.4 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.4 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.4 }}</td>
+		{% endif %}
+		
+		{% if districtavg.5 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.5 }}</td>
+		{% elif districtavg.5 >= 27 and districtavg.5 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.5 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.5 }}</td>
+		{% endif %}
+
+		{% if districtavg.6 >= 7 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.6 }}</td>
+		{% elif districtavg.6 >= 5 and districtavg.6 < 7  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.6 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.6 }}</td>
+		{% endif %}
+
+		{% if districtavg.7 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.7 }}</td>
+		{% elif districtavg.7 >= 32 and districtavg.7 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.7 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.7 }}</td>
+		{% endif %}
+
+		{% if districtavg.8 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.8 }}</td>
+		{% elif districtavg.8 >= 40 and districtavg.8 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.8 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.8 }}</td>
+		{% endif %}
+
+		{% if districtavg.9 >= 45 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.9 }}</td>
+		{% elif districtavg.9 >= 30 and districtavg.9 < 45  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.9 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.9 }}</td>
+		{% endif %}
+
+		{% if districtavg.10 >= 61 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.10 }}</td>
+		{% elif districtavg.10 >= 41 and districtavg.10 < 61  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.10 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.10 }}</td>
+		{% endif %}
+
+		{% if districtavg.11 >= 69 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.11 }}</td>
+		{% elif districtavg.11 >= 46 and districtavg.11 < 69  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.11 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.11 }}</td>
+		{% endif %}
+
+		{% if districtavg.12 >= 22 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.12 }}</td>
+		{% elif districtavg.12 >= 15 and districtavg.12 < 22  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.12 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.12 }}</td>
+		{% endif %}
+
+		{% if districtavg.13 >= 67 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.13 }}</td>
+		{% elif districtavg.13 >= 45 and districtavg.13 < 67  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.13 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.13}}</td>
+		{% endif %}
+
+		{% if districtavg.14 >= 18 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.14 }}</td>
+		{% elif districtavg.14 >= 12 and districtavg.14 < 18  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.14 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.14 }}</td>
+		{% endif %}
+
+		{% if districtavg.15 >= 56 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.15 }}</td>
+		{% elif districtavg.15 >= 37 and districtavg.15 < 56  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.15 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.15 }}</td>
+		{% endif %}
+
+		{% if districtavg.16 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.16 }}</td>
+		{% elif districtavg.16 >= 40 and districtavg.16 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.16 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.16 }}</td>
+		{% endif %}
+
+		{% if districtavg.17 >= 41 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.17 }}</td>
+		{% elif districtavg.17 >= 27 and districtavg.17 < 41  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.17 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.17 }}</td>
+		{% endif %}
+
+		{% if districtavg.18 >= 60 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.18 }}</td>
+		{% elif districtavg.18 >= 40 and districtavg.18 < 60  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.18 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.18 }}</td>
+		{% endif %}
+
+		{% if districtavg.19 >= 71 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.19 }}</td>
+		{% elif districtavg.19 >= 47 and districtavg.19 < 71  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.19 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.19 }}</td>
+		{% endif %}
+
+		{% if districtavg.20 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.20 }}</td>
+		{% elif districtavg.20 >= 32 and districtavg.20 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.20 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.20 }}</td>
+		{% endif %}
+
+		{% if districtavg.21 >= 48 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.21 }}</td>
+		{% elif districtavg.21 >= 32 and districtavg.21 < 48  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.21 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.21 }}</td>
+		{% endif %}
+
+		{% if districtavg.22 >= 0.1 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.22 }}</td>
+		{% elif districtavg.22 >= 0.01 and districtavg.22 < 0.1  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.22 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.22 }}</td>
+		{% endif %}
+
+		{% if districtavg.23 >= 6 %}
+		<td bgcolor="#00FF00" align="center">{{ districtavg.23 }}</td>
+		{% elif districtavg.23 >= 4 and districtavg.23 < 6  %}
+		<td bgcolor="#FFFF00" align="center">{{ districtavg.23 }}</td>
+		{% else %}
+		<td bgcolor="#FF0000" align="center">{{ districtavg.23 }}</td>
+		{% endif %}
+			
+		</tr>	
+	{% endif %}
+
+	<tr >
+		<td  align="center">Targets</td>
+		<td  align="center"></td>
+		
+		{% for item in targets %}
+			<td bgcolor="#FFFFFF" align="center">{{ item.indicator_target }}</td>
+		{% endfor %}
+	</tr>
+
+</table>
+
+{% endblock %}

@@ -17,10 +17,13 @@ import openpyxl
 from . import dateutil, grabbag
 from .grabbag import default_zero, default, sum_zero, all_not_none, grouper
 
-from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
+from .models import DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict,lqas_dataset,lqas_target
 from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
 
 from .dashboards import LegendSet
+
+import os
+from django.conf import settings
 
 def index(request):
     context = {
@@ -7116,6 +7119,7 @@ def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += list(product(['Perf% Sexual violence'], ('Male',)))
     data_element_metas += list(product(['Perf% Receiving post-GBV clinical care'], (None,)))
     data_element_metas += list(product(['Perf% PEP'], (None,)))
+    
 
 
     num_path_elements = len(ou_headers)
@@ -9425,3 +9429,155 @@ def lqas_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/lqas_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+
+#reports logic
+def indexreport(request):
+    context = {
+        'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
+    }
+    return render(request, 'cannula/index_reports.html', context)
+
+def reports_sites_2016_to_2018(request):
+    context = {
+    'id' : 1,
+    } 
+    return render(request, 'cannula/performance_summary_oct_2016–sep_2017.html', context)
+
+def reports_sites_2017_to_2018(request):
+    context = {
+    'id' : 1,
+    } 
+    return render(request, 'cannula/performance_summary_oct_2017–sep_2018.html', context)
+
+def downloadreport(request, path):
+    file_path = os.path.join(settings.MEDIA_ROOT, path)
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type="application/pdf")
+            response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
+            return response
+    
+    
+    raise Http404
+
+def lqas_by_site(request, output_format='HTML'):
+ 
+    alldis  =   []
+    year2015 = []
+    year2016 = []
+    year2017 = []
+
+    PERIOD_LIST = list(lqas_dataset.objects.all().order_by('period').values_list('period', flat=True).distinct())
+    PERIOD_LIST.append("None")
+    DISTRICT_LIST = list(lqas_dataset.objects.all().order_by('district').values_list('district', flat=True).distinct())
+
+    #Jacob filter logic and load all content code
+    if 'district' in request.GET and 'period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period   = request.GET.get('period')
+
+        if request.GET.get('district') == "" and request.GET.get('period') != "None":
+            query_results = lqas_dataset.objects.filter(period='%s' %(request.GET.get('period')))
+        elif request.GET.get('district') == "" and request.GET.get('period') == "None":
+            filter_district = None
+            filter_period   = None
+            query_results = lqas_dataset.objects.all()
+            alldis=[avg('ca0'),avg('ca1'),avg('ca2'),avg('ca3'),avg('ca4'),avg('ca5'),avg('ca6'),avg('ca7'),avg('ca9'),avg('ca10'),avg('ca11'),avg('ca12'),avg('ca13'),avg('ca14'),avg('ca15'),avg('ca16'),avg('ca17'),avg('ca18'),avg('ca19'),avg('ca20'),avg('ca21'),avg('ca22'),avg('ca23'),avg('ca24')] 
+            year2015=[avgforyear('ca0','2015'),avgforyear('ca1','2015'),avgforyear('ca2','2015'),avgforyear('ca3','2015'),avgforyear('ca4','2015'),avgforyear('ca5','2015'),avgforyear('ca6','2015'),avgforyear('ca7','2015'),avgforyear('ca9','2015'),avgforyear('ca10','2015'),avgforyear('ca11','2015'),avgforyear('ca12','2015'),avgforyear('ca13','2015'),avgforyear('ca14','2015'),avgforyear('ca15','2015'),avgforyear('ca16','2015'),avgforyear('ca17','2015'),avgforyear('ca18','2015'),avgforyear('ca19','2015'),avgforyear('ca20','2015'),avgforyear('ca21','2015'),avgforyear('ca22','2015'),avgforyear('ca23','2015'),avgforyear('ca24','2015')] 
+            year2016=[avgforyear('ca0','2016'),avgforyear('ca1','2016'),avgforyear('ca2','2016'),avgforyear('ca3','2016'),avgforyear('ca4','2016'),avgforyear('ca5','2016'),avgforyear('ca6','2016'),avgforyear('ca7','2016'),avgforyear('ca9','2016'),avgforyear('ca10','2016'),avgforyear('ca11','2016'),avgforyear('ca12','2016'),avgforyear('ca13','2016'),avgforyear('ca14','2016'),avgforyear('ca15','2016'),avgforyear('ca16','2016'),avgforyear('ca17','2016'),avgforyear('ca18','2016'),avgforyear('ca19','2016'),avgforyear('ca20','2016'),avgforyear('ca21','2016'),avgforyear('ca22','2016'),avgforyear('ca23','2016'),avgforyear('ca24','2016')] 
+            year2017=[avgforyear('ca0','2017'),avgforyear('ca1','2017'),avgforyear('ca2','2017'),avgforyear('ca3','2017'),avgforyear('ca4','2017'),avgforyear('ca5','2017'),avgforyear('ca6','2017'),avgforyear('ca7','2017'),avgforyear('ca9','2017'),avgforyear('ca10','2017'),avgforyear('ca11','2017'),avgforyear('ca12','2017'),avgforyear('ca13','2017'),avgforyear('ca14','2017'),avgforyear('ca15','2017'),avgforyear('ca16','2017'),avgforyear('ca17','2017'),avgforyear('ca18','2017'),avgforyear('ca19','2017'),avgforyear('ca20','2017'),avgforyear('ca21','2017'),avgforyear('ca22','2017'),avgforyear('ca23','2017'),avgforyear('ca24','2017')] 
+
+        else:
+            query_results = lqas_dataset.objects.filter(district='%s' %(request.GET.get('district')), period='%s' %(request.GET.get('period')))        
+    else:
+        filter_district = None
+        filter_period   = None
+        query_results = lqas_dataset.objects.all()
+        alldis=[avg('ca0'),avg('ca1'),avg('ca2'),avg('ca3'),avg('ca4'),avg('ca5'),avg('ca6'),avg('ca7'),avg('ca9'),avg('ca10'),avg('ca11'),avg('ca12'),avg('ca13'),avg('ca14'),avg('ca15'),avg('ca16'),avg('ca17'),avg('ca18'),avg('ca19'),avg('ca20'),avg('ca21'),avg('ca22'),avg('ca23'),avg('ca24')] 
+        year2015=[avgforyear('ca0','2015'),avgforyear('ca1','2015'),avgforyear('ca2','2015'),avgforyear('ca3','2015'),avgforyear('ca4','2015'),avgforyear('ca5','2015'),avgforyear('ca6','2015'),avgforyear('ca7','2015'),avgforyear('ca9','2015'),avgforyear('ca10','2015'),avgforyear('ca11','2015'),avgforyear('ca12','2015'),avgforyear('ca13','2015'),avgforyear('ca14','2015'),avgforyear('ca15','2015'),avgforyear('ca16','2015'),avgforyear('ca17','2015'),avgforyear('ca18','2015'),avgforyear('ca19','2015'),avgforyear('ca20','2015'),avgforyear('ca21','2015'),avgforyear('ca22','2015'),avgforyear('ca23','2015'),avgforyear('ca24','2015')] 
+        year2016=[avgforyear('ca0','2016'),avgforyear('ca1','2016'),avgforyear('ca2','2016'),avgforyear('ca3','2016'),avgforyear('ca4','2016'),avgforyear('ca5','2016'),avgforyear('ca6','2016'),avgforyear('ca7','2016'),avgforyear('ca9','2016'),avgforyear('ca10','2016'),avgforyear('ca11','2016'),avgforyear('ca12','2016'),avgforyear('ca13','2016'),avgforyear('ca14','2016'),avgforyear('ca15','2016'),avgforyear('ca16','2016'),avgforyear('ca17','2016'),avgforyear('ca18','2016'),avgforyear('ca19','2016'),avgforyear('ca20','2016'),avgforyear('ca21','2016'),avgforyear('ca22','2016'),avgforyear('ca23','2016'),avgforyear('ca24','2016')] 
+        year2017=[avgforyear('ca0','2017'),avgforyear('ca1','2017'),avgforyear('ca2','2017'),avgforyear('ca3','2017'),avgforyear('ca4','2017'),avgforyear('ca5','2017'),avgforyear('ca6','2017'),avgforyear('ca7','2017'),avgforyear('ca9','2017'),avgforyear('ca10','2017'),avgforyear('ca11','2017'),avgforyear('ca12','2017'),avgforyear('ca13','2017'),avgforyear('ca14','2017'),avgforyear('ca15','2017'),avgforyear('ca16','2017'),avgforyear('ca17','2017'),avgforyear('ca18','2017'),avgforyear('ca19','2017'),avgforyear('ca20','2017'),avgforyear('ca21','2017'),avgforyear('ca22','2017'),avgforyear('ca23','2017'),avgforyear('ca24','2017')] 
+    query_results_targets = lqas_target.objects.all()
+    
+    #this is not needed as we can export the table direct
+    #if output_format == 'EXCEL':
+     #   wb = openpyxl.workbook.Workbook()
+     #   ws = wb.active # workbooks are created with at least one worksheet
+     #   ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+     #   ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+     #   ws.page_setup.paperSize = ws.PAPERSIZE_A4
+     #   worksheet = wb.active
+        
+        #column hearders
+     #   col_headers=['Period',
+	#	'District',
+	#	'% of individuals who were counselled and received an HIV test in last 12 months and know their results',
+	#	'% of individuals who know how HIV transmission occur from an infected mother to child',
+	#	'% of individuals who know two key actions that reduce HIV transmission from an infected mother to her child',
+	#	'% of individuals who had sex with more than one sexual partner in the last 12 months',
+	#	'% of individuals who had sex with a non-marital or non-cohabiting sexual partner in the last 12 months',
+	#	'% of youth 15-24 years who perceive low or no risk of getting HIV/AIDS infection',
+	#	'% of youth who have had sexual intercourse before the age of 15 years',
+	#	'% of the male youth 15-24yrs who are circumcised',
+	#	'% of individuals who know that TB is curable disease',
+	#	'% of individuals who know at least two signs and symptoms of TB',
+	#	'% of individuals who know how TB is transmitted',
+	#	'% of individuals who know the risk of not completing TB treatment',
+	#	'% of mothers of children 0-23 months who received two or more doses of IPT2 during their last pregnancy ',
+	#	'% of children 0-59 months who slept under a ITN the night preceding the survey',
+	#	'% of mothers of children 0-59 months who know two or more ways to prevent malaria',
+	#	'% of mothers of children under five years who know two or more signs and  symptoms of malaria ',
+	#	'% of Households with at least one ITN',
+	#	'% of mothers of children 0-11 months who attended ANC at least 4 times during last pregnancy',
+	#	'% of mothers of children 0-11 months who were assisted by a trained health worker during delivery',
+	#	'% of women and men age 15 years and above with comprehensive knowledge of HIV',
+	#	'% of women in the reproductive age group 15-49 who known at least 3 methods of family planning and have used the method', 
+	#	'% of children aged 0-59 months who had a fever in the last two weeks and were tested for malaria ',
+	#	'% of children age 36-59 months who are developmentally on track in literacy-numeracy, physical, social-emotional, and learning domains, and the early child development index score (developmentally on track in at least three of these four domains)',
+	#	'% of women and men aged 15-49 who experienced sexual violence in the last 12 months']
+
+    #    ws.append(col_headers)
+
+    #   for item in query_results:
+    #      tempArray=[item.period,item.district,item.ca0,item.ca1,item.ca2,item.ca3,item.ca4,item.ca5,item.ca6,item.ca7,item.ca9,item.ca10,item.ca11,item.ca12,item.ca13,item.ca14,item.ca15,item.ca16,item.ca17,item.ca18,item.ca19,item.ca20,item.ca21,item.ca22,item.ca23,item.ca24]
+    #     ws.append(tempArray)
+        
+    #    response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+    #    response['Content-Disposition'] = 'attachment; filename="community_lqas_scorecard.xlsx"'
+
+    #    return response
+        
+    
+    context = {
+    'lqasdatasets' : query_results,
+    'targets' : query_results_targets, 
+    'districtavg' : alldis,
+    'period_desc': filter_period,
+    'period_list': PERIOD_LIST,
+    'district_list': DISTRICT_LIST,
+    'year2015': year2015,
+    'year2016': year2016,
+    'year2017': year2017,
+    #'excel_url': make_excel_url(request.path),
+    #'csv_url': make_csv_url(request.path),
+    } 
+    return render(request, 'cannula/lqas_sites.html', context)
+
+def avg(name):
+    from django.db import connection
+    cursor = connection.cursor()
+    #cursor.execute('SELECT AVG ('+name+') FROM cannula_lqas_dataset;')
+    #cursor.execute('SELECT to_char(AVG ('+name+'),\'99999999999999999D99\') FROM cannula_lqas_dataset;')
+    cursor.execute('SELECT AVG ('+name+') FROM cannula_lqas_dataset;')
+    return int(cursor.fetchone()[0])
+
+def avgforyear(name,year):
+    from django.db import connection
+    cursor = connection.cursor()
+    #cursor.execute('SELECT AVG ('+name+') FROM cannula_lqas_dataset;')
+    #cursor.execute('SELECT to_char(AVG ('+name+'),\'99999999999999999D99\') FROM cannula_lqas_dataset where period=\''+year+'\';')
+    cursor.execute('SELECT AVG ('+name+') FROM cannula_lqas_dataset where period=\''+year+'\';')
+    return int(cursor.fetchone()[0])
+
+

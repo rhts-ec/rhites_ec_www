@@ -74,6 +74,19 @@
                 </ul>
             </li>-->
             <li class="active">
+                <a href="{% url 'index' %}">
+                    <i class="fa fa-table fa-fw"></i> Reports
+                    <span class="fa arrow"></span>
+                </a>
+                <ul class="nav nav-second-level">
+
+                    <li>
+                        <a href="{% url 'thematic_sc_reports' %}">Performance summary report</a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="active">
                 <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> Scorecards <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
                     <li>
@@ -109,8 +122,12 @@
                     <li>
                         <a href="{% url 'thematic_sc' %}">Supply Chain</a>
                     </li>
+
+                   <!-- <li>
+                        <a href="{% url 'thematic_sc_lqas' %}">Community LQAS</a>
+                    </li>-->
                     <li>
-                        <a href="{% url 'thematic_lqas' %}">LQAS</a>
+                        <a href="{% url 'thematic_lqas' %}">Community LQAS</a>
                     </li>
                 </ul>
             </li>
@@ -152,7 +169,7 @@
                         <a href="{% url 'validation_rule_listing' 'sc' %}">Supply Chain</a>
                     </li>
                     <li>
-                        <a href="{% url 'validation_rule_listing' 'qi' %}">LQAS</a>
+                        <a href="{% url 'validation_rule_listing' 'qi' %}">Community LQAS</a>
                     </li>
                 </ul>
             </li>
@@ -195,13 +212,17 @@
                         <a href="{% url 'data_workflow_new' "Supply Chain" %}">Supply Chain</a>
                     </li>
                     <li>
-                        <a href="{% url 'data_workflow_new' "LQAS" %}">LQAS</a>
+                        <a href="{% url 'data_workflow_new' " Community LQAS " %}">Community LQAS</a>
                     </li>
+
+                   <!-- <li>
+                        <a href="{% url 'data_workflow_new' "LQAS" %}">Community LQAS</a>
+                    </li>-->
                 </ul>
             </li>
             {% endif %}
             <li>
-                <img src="{% static 'cannula/lockup_rhites-ec_vert.png' %}" height="100%" width="100%"/>
+                <img src="{% static 'cannula/lockup_rhites-ec.png' %}" height="100%" width="100%"/>
             </li>
     </div>
 </div>

@@ -185,4 +185,10 @@ $(document).ready(function() {
 	<li><a href="{% url 'lqas_districts' %}">LQAS - Districts</a></li>
 </ul>
 {% endif %}
+
+{% if 'lqas-copy' in request.path %}
+<ul>
+	<li><a href="{% url 'lqas_sites' %}">Comminuty LQAS</a></li>
+</ul>
+{% endif %}
 {% endblock %}
