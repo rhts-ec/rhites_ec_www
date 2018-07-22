@@ -48,6 +48,19 @@ class SourceDocument(models.Model):
     def __str__(self):
         return '%s: %s' % (self.file1, self.orig_filename)
 
+def orgunit_cleanup_name(name_str):
+    """
+    Convert name to DHIS2 standard form and fix any whitespace issues (leading,
+    trailing or repeated)
+    """
+    if name_str:
+        name_str = name_str.strip() # remove leading/trailing whitespace
+        name_str = re.sub('\s+', ' ', name_str) # "compress" consecutive whitespace
+        name_str = name_str.replace('H/C I', 'HC I') # matches 'HC II', 'HC III' and 'HC IV'
+        name_str = name_str.replace('Health Centre I', 'HC I')
+        name_str = name_str.replace('Health Center I', 'HC I')
+    return name_str
+
 class OrgUnit(MPTTModel):
     name = models.CharField(max_length=64, db_index=True)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
@@ -67,6 +80,7 @@ class OrgUnit(MPTTModel):
     def from_path(cls, *path_parts):
         current_node = None
         for p in path_parts:
+            p = orgunit_cleanup_name(p)
             if p:
                 ou_p, created = cls.objects.get_or_create(name__iexact=str(p), parent=current_node, defaults={'name':str(p)})
                 current_node = ou_p
@@ -81,6 +95,7 @@ class OrgUnit(MPTTModel):
         if len(path_parts) == 0:
             return None
         *parent_path, node_name = path_parts
+        node_name = orgunit_cleanup_name(node_name)
         if len(parent_path) == 0:
             ou, created = cls.objects.get_or_create(name__iexact=node_name, parent=None, defaults={'name':node_name})
         else:
