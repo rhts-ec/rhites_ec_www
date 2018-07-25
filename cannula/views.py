@@ -10123,15 +10123,3 @@ def reports_sites_2017_to_2018(request):
     } 
     return render(request, 'cannula/performance_summary_oct_2017–sep_2018.html', context)
 
-def downloadreport(request, path):
-    file_path = os.path.join(settings.MEDIA_ROOT, path)
-    if os.path.exists(file_path):
-        with open(file_path, 'rb') as fh:
-            response = HttpResponse(fh.read(), content_type="application/pdf")
-            response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
-            return response
-    
-    
-    raise Http404
-
-

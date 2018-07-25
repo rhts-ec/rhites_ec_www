@@ -1,4 +1,7 @@
-{% extends "cannula/report_base.html" %} 
+{% extends "cannula/report_base.html" %}
+
+{% load staticfiles %}
+
 {% block title %}RHITES-EC Performance Summary (October 2017 – September 2018){% endblock %} 
 {% block heading %}
 <h1 align="center">RHITES-EC Performance Summary (October 2017 – September 2018)</h1> {% endblock %} {% block datacell %}
@@ -1680,5 +1683,5 @@
 	</tr>
 </table>
 
-<a href="/download/performancenew.pdf" downloadreport>Click here to Download this report in PDF</a>
+<a href="{% static 'reports_sites_2017_to_2018.pdf' %}">Click here to Download this report in PDF</a>
 {% endblock %}
