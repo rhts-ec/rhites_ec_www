@@ -150,4 +150,9 @@ urlpatterns = [
     url(r'scorecards/kp/districts\.php', views.kp_scorecard, {'org_unit_level': 1}, name='kp_districts'),
     url(r'scorecards/kp/districts\.xls', views.kp_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='kp_districts_excel'),
     url(r'scorecards/kp/districts\.csv', views.kp_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='kp_districts_csv'),
+
+    #reports
+    url(r'dashboards/reports/$', views.indexreport, name='performance_reports'),
+    url(r'scorecards/reports/reports_sites_2016_to_2017\.php', views.reports_sites_2016_to_2017, name='reports_sites_2016_to_2017'),
+    url(r'scorecards/reports/reports_sites_2017_to_2018\.php', views.reports_sites_2017_to_2018, name='reports_sites_2017_to_2018'),
 ]

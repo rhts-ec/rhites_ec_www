@@ -10100,3 +10100,13 @@ def kp_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/kp_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+#reports logic
+def indexreport(request):
+    return render(request, 'cannula/index_reports.html')
+
+def reports_sites_2016_to_2017(request):
+    return render(request, 'cannula/performance_summary_oct_2016–sep_2017.html')
+
+def reports_sites_2017_to_2018(request):
+    return render(request, 'cannula/performance_summary_oct_2017–sep_2018.html')

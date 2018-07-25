@@ -1,0 +1,41 @@
+{% extends "startmin/base.html" %} 
+{% block title %}RHITES-EC Performance Monitoring Tool-Reports{% endblock %} 
+{% block content %}
+
+<style>
+	.content {
+		padding: 0 18px;
+		display: none;
+		overflow: hidden;
+		background-color: white;
+	}
+</style>
+
+<style>
+	table,
+	th,
+	td {
+		border: 1px solid black;
+		border-collapse: collapse;
+	}
+
+	th {
+		padding: 3px;
+	}
+
+	td {
+		padding: 2px;
+	}
+</style>
+
+<h4>Performance summary report</h4>
+
+<ul>
+	<li>
+		<a href="{% url 'reports_sites_2016_to_2017' %}">FY Oct 2016 – Sept 2017</a>
+	</li>
+	<li>
+		<a href="{% url 'reports_sites_2017_to_2018' %}">FY Oct 2017 – Sept 2018</a>
+	</li>
+</ul>
+{% endblock %}
