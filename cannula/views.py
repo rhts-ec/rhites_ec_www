@@ -22,9 +22,6 @@ from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
 
 from .dashboards import LegendSet
 
-import os
-from django.conf import settings
-
 def index(request):
     context = {
         'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
@@ -10106,20 +10103,10 @@ def kp_scorecard(request, org_unit_level=3, output_format='HTML'):
 
 #reports logic
 def indexreport(request):
-    context = {
-        'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
-    }
-    return render(request, 'cannula/index_reports.html', context)
+    return render(request, 'cannula/index_reports.html')
 
-def reports_sites_2016_to_2018(request):
-    context = {
-    'id' : 1,
-    } 
-    return render(request, 'cannula/performance_summary_oct_2016–sep_2017.html', context)
+def reports_sites_2016_to_2017(request):
+    return render(request, 'cannula/performance_summary_oct_2016–sep_2017.html')
 
 def reports_sites_2017_to_2018(request):
-    context = {
-    'id' : 1,
-    } 
-    return render(request, 'cannula/performance_summary_oct_2017–sep_2018.html', context)
-
+    return render(request, 'cannula/performance_summary_oct_2017–sep_2018.html')

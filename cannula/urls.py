@@ -153,6 +153,6 @@ urlpatterns = [
 
     #reports
     url(r'dashboards/reports/$', views.indexreport, name='performance_reports'),
-    url(r'scorecards/reports/reports_sites_reports_sites_2016_to_2018\.php', views.reports_sites_2016_to_2018, name='reports_sites_2016_to_2018'),
+    url(r'scorecards/reports/reports_sites_2016_to_2017\.php', views.reports_sites_2016_to_2017, name='reports_sites_2016_to_2017'),
     url(r'scorecards/reports/reports_sites_2017_to_2018\.php', views.reports_sites_2017_to_2018, name='reports_sites_2017_to_2018'),
 ]
