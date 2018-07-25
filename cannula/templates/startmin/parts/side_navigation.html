@@ -74,6 +74,19 @@
                 </ul>
             </li>-->
             <li class="active">
+                <a href="{% url 'index' %}">
+                    <i class="fa fa-table fa-fw"></i> Reports
+                    <span class="fa arrow"></span>
+                </a>
+                <ul class="nav nav-second-level">
+
+                    <li>
+                        <a href="{% url 'performance_reports' %}">Performance summary report</a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="active">
                 <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> Scorecards <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
                     <li>

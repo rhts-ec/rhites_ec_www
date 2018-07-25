@@ -885,3 +885,11 @@ def get_validation_view_names():
     cursor = connection.cursor()
     cursor.execute('SELECT viewname FROM pg_catalog.pg_views WHERE viewowner=%s and viewname LIKE %s;', (settings.DATABASES['default']['USER'], 'vw_validation_%'))
     return [x[0] for x in cursor]
+
+class quarterly_reports(models.Model):
+    title = models.CharField(max_length=100)
+    pdf = models.FileField(upload_to='static/media')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title

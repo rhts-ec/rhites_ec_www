@@ -1,0 +1,1078 @@
+{% extends "cannula/report_base.html" %} 
+{% block title %}RHITES-EC Performance Summary (October 2016 – September 2017){% endblock %} 
+{% block heading %}
+<h1 align="center">RHITES-EC Performance Summary (October 2016 – September 2017)</h1> {% endblock %} {% block datacell %}
+<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %} 
+{% block content %}
+<style>
+	table,
+	th,
+	td {
+		border: 1px solid black;
+		border-collapse: collapse;
+	}
+
+	th {
+		padding: 3px;
+	}
+
+	td {
+		padding: 2px;
+	}
+</style>
+
+<table border="1" align="center">
+	<tr bgcolor="#808080">
+		<th>Indicator/Technical Area</th>
+		<th>Target</th>
+		<th>Oct - Dec 2016 </th>
+		<th>Jan - March 2017 </th>
+		<th>April - June 2017 </th>
+		<th>July - Sep 2017 </th>
+		<th>Achievement of Annual Target </th>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">MALARIA PREVENTION DIAGNOSIS AND TREATMENT </td>
+	</tr>
+
+	<tr>
+		<td>Number of health workers trained in case management with artemisinin-based Combination therapy (ACTs) with USG funds</td>
+		<td>430</td>
+		<td>0</td>
+		<td>74</td>
+		<td>234</td>
+		<td>90</td>
+		<td>93%(398/430)</td>
+	</tr>
+
+	<tr>
+		<td>Number of health workers trained in malaria laboratory diagnostics (rapid diagnostic tests (RDTs) or microscopy) with USG
+			funds
+		</td>
+		<td>430</td>
+		<td>0</td>
+		<td>74</td>
+		<td>234</td>
+		<td>90</td>
+		<td>93%(398/430)</td>
+	</tr>
+
+	<tr>
+		<td>Number of health workers trained in intermittent preventive treatment in pregnancy (IPTp) with USG funds</td>
+		<td>430</td>
+		<td>0</td>
+		<td>74</td>
+		<td>234</td>
+		<td>90</td>
+		<td>93%(398/430)</td>
+	</tr>
+
+	<tr>
+		<td>Percentage pregnant women received two or more doses of IPTp during pregnancy </td>
+		<td>79%</td>
+		<td>52.3%(25,585/ 48,916)</td>
+		<td>54.2%(28, 468 /52,538)</td>
+		<td>60.2%(31,666/ 52.587)</td>
+		<td>67%(33,228/49,569)</td>
+		<td>58%(119,703/205,591)</td>
+	</tr>
+	<tr>
+		<td>Percentage of pregnant women provided with Long Lasting Insecticide Treated Nets (LLIN) through during Antenatal clinic
+			(ANC)
+		</td>
+		<td>50%</td>
+		<td>56.3%(27,528 /48,961)</td>
+		<td>32.2%1(7,193/ 52,719)</td>
+		<td>18.5%(9,671 /54,342)</td>
+		<td>14%(7,062/ 49,569)</td>
+		<td>30%(61,499/ 205,591)</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of individuals suspected malaria cases who received a diagnostic test (Microscopy or RDT) for malaria</td>
+		<td>90%%</td>
+		<td>55.1%</td>
+		<td>60.5%</td>
+		<td>67.4%</td>
+		<td>56%</td>
+		<td>60%</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of patients who received a negative diagnostic test for malaria (RDT or microscopy) who received an antimalarial
+			drug
+		</td>
+		<td>0%</td>
+		<td>9%</td>
+		<td>10%</td>
+		<td>15%</td>
+		<td>13%</td>
+		<td>12%</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of patients diagnosed with malaria without laboratory confirmation who were treated for malaria</td>
+		<td>10%</td>
+		<td>19%</td>
+		<td>18%</td>
+		<td>15%</td>
+		<td>16%</td>
+		<td>17%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">MATERNAL NEONATAL AND CHILD HEALTH</td>
+	</tr>
+
+	<tr>
+		<td>Percentage pregnant women attending 1st ANC visit within the 1st trimester</td>
+		<td>30%</td>
+		<td>19%(10,069/ 52,523)</td>
+		<td>21.2%(11,135/ 52,523)</td>
+		<td>21.6%(11,373/ 52,587)</td>
+		<td>20.6% (10,825/ 52,587)</td>
+		<td>20.6%</td>
+	</tr>
+
+	<tr>
+		<td>Percentage pregnant women attending 1st ANC visit within the 1st trimester</td>
+		<td>98%</td>
+		<td>90.5%(48,961 / 54,094)</td>
+		<td>97.5%(52,719 / 54,094)</td>
+		<td>100.8%(54,542 / 54,094)</td>
+		<td>90.8%(49,049/ 54,094)</td>
+		<td>94.9%(205,316 / 216,376)</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of women who used antenatal care provided by skilled health personnel for reasons related to pregnancy at least
+			4 times during pregnancy (ANC 4th visit coverage)</td>
+		<td>78%</td>
+		<td>(35.4%) 18,641/ 52,538)</td>
+		<td>(34.4%) 18,049/ 52,538)</td>
+		<td>(33.0%) 17330/ 52,587)</td>
+		<td>(35.6%) 18,743/ 52,587)</td>
+		<td>35.6% (HMIS)LQAS value (63.1%)</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of institutional deliveries (Health unit delivery rate)</td>
+		<td>75.5%</td>
+		<td>56% (29,403 / 52,471)</td>
+		<td>53.3% (27,945 / 52,471)
+		</td>
+		<td>53.3% (27,945 / 52,471)
+
+		</td>
+		<td>57.9% (30,393 / 52,471)
+		</td>
+		<td>55.2% (115,760 / 209,884) LQAS: 81%
+		</td>
+	</tr>
+
+
+	<tr>
+		<td>Proportion of women giving birth who received uterotonics in the third stage of labor (or immediately after birth)</td>
+		<td>70%</td>
+		<td>95.3% (7,672 / 16,722)
+		</td>
+		<td>95.3% (8,121 / 8525)
+		</td>
+		<td>93.9% (7,970 / 8,485)
+		</td>
+		<td>96.1% (7,138 / 7427)
+		</td>
+		<td>95.1% (30,901 / 32,487)
+		</td>
+	</tr>
+	<tr>
+		<td>Proportion of mothers initiating breastfeeding within 1 hour after birth</td>
+		<td>75%</td>
+		<td>77.4%</td>
+		<td>84.2%</td>
+		<td>88.4%</td>
+		<td>83.9%</td>
+		<td>83.9%</td>
+	</tr>
+	<tr>
+		<td>Percentage of mothers who received postnatal care within 6 hours of childbirth</td>
+		<td>100%</td>
+		<td></td>
+		<td>41%</td>
+		<td>40%</td>
+		<td>24,392/ 30,396 (80.2%)
+		</td>
+		<td>24,392/30,396 (80.2%)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of perinatal deaths reported that are audited</td>
+		<td>10%</td>
+		<td>1.9% (9 / 470)
+		</td>
+		<td>3.4% (21 / 624)
+		</td>
+		<td>1.6% (8 / 500)
+		</td>
+		<td>3.7% (19 / 516)
+		</td>
+		<td>2.7% (57 / 2,110)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of maternal deaths reported which are audited</td>
+		<td>20%</td>
+		<td>8.5% (19 / 224)
+		</td>
+		<td>54.8% (17 / 31)
+		</td>
+		<td>94.1% (16 / 17)
+		</td>
+		<td>138.9% (25 / 18)
+		</td>
+		<td>26.6% (77 / 290)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Institutional still births rate</td>
+		<td>1.5/ 1,000</td>
+		<td>16.4/ 1000</td>
+		<td>23.5/1000</td>
+		<td>17.9/ 1000</td>
+		<td>18.0/ 1000</td>
+		<td>19.0/ 1000</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of children (less than five years) fully immunized</td>
+		<td>100%</td>
+		<td>104% (46,839/ 45,170
+		</td>
+		<td>96.3% (43,431/ 45,170)
+		</td>
+		<td>98.3% (44,407/ 45,170)
+		</td>
+		<td>98.3% (44,293 / 45,170)
+		</td>
+		<td>97.8% (178,970 / 182,840)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of children aged under five years who have received a 2nd dose for deworming </td>
+		<td>30%</td>
+		<td>10.7%</td>
+		<td>3.4%</td>
+		<td>8.1%</td>
+		<td>11.9%</td>
+		<td>11.9%</td>
+	</tr>
+
+	<tr>
+		<td>Number of children who received DPT3 by 12 months of age</td>
+		<td>70%</td>
+		<td>97.6% (45,419 / 46,521)</td>
+		<td>91.7% (42,673 / 46,521)
+		</td>
+		<td>95.6% (44,488 / 46,521)
+		</td>
+		<td>95.2% (44,293 / 46,521)
+		</td>
+		<td>95% (176,873 / 186,085)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of newborns not breathing at birth who were resuscitated </td>
+		<td>29%</td>
+		<td>50% (398/802)
+		</td>
+		<td>75% (692 / 920)
+		</td>
+		<td>99% (827/ 832)
+		</td>
+		<td>119% (1324 / 1,111)
+		</td>
+		<td>88% (3,241 / 3,665)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of babies with Birth Asphyxia</td>
+		<td>3.0%</td>
+		<td>2.7% (802 / 29403)
+		</td>
+		<td>3.3% (920 / 28019)
+		</td>
+		<td>3.0% (832 / 27945)
+		</td>
+		<td>3.7% (1111/ 30396)
+		</td>
+		<td>3.2% (3665 / 115763)
+		</td>
+	</tr>
+
+
+	<tr>
+		<td>Percentage of children below one year who have received PCV3 (OPCV 3 coverage)</td>
+		<td>97%</td>
+		<td>96.6% (44,950 / 465,521)
+		</td>
+		<td>92.5% (43,013 / 46,521)
+		</td>
+		<td>95.0% (44,172 / 46,521)
+		</td>
+		<td>94.1% (43,768 / 46,521)
+		</td>
+		<td>94.6% (175,903 / 186,084)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Number of cases of child diarrhea treated </td>
+		<td>66,204</td>
+		<td>5,801 </td>
+		<td>6,519</td>
+		<td>7,281</td>
+		<td>4,500</td>
+		<td>24,101</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of cases with pneumonia aged under five years treated with an antibiotic</td>
+		<td>95%</td>
+		<td>88.7% (3700/ 4172)
+		</td>
+		<td>98% (3321 / 3388)
+		</td>
+		<td>99.8% (4,271/ 4,278)
+		</td>
+		<td>92.8% (2,799 / 3016)
+		</td>
+		<td>94.9% (14091 / 14854)
+		</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">FAMILY PLANNING</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR FPINT_SITE: Percentage of HIV service delivery points supported by PEPFAR that are directly providing integrated
+			voluntary family planning services</td>
+		<td>100%</td>
+		<td>100% (129 / 129)
+		</td>
+		<td>100% (129 / 129)
+		</td>
+		<td>100% (129 / 129)
+		</td>
+		<td>100% (129 / 129)
+		</td>
+		<td>100% (129 / 129)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Number of USG-assisted community health workers (CHWs) providing Family Planning (FP) information, referrals, and/or services
+			during the year</td>
+		<td>No target</td>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td>145</td>
+		<td>145</td>
+	</tr>
+
+	<tr>
+		<td>Number of additional USG-assisted community health workers (CHWs) providing family planning (FP) information and/or services
+			during the year</td>
+		<td>No target</td>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td>167</td>
+		<td>167</td>
+	</tr>
+
+	<tr>
+		<td>Average stock out rate of contraceptive commodities at Family Planning (FP) service delivery points</td>
+		<td>37.9%</td>
+		<td>16.8%</td>
+		<td>19.6%</td>
+		<td>32.4%</td>
+		<td>23.3%</td>
+		<td>23.3%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">NUTRITION</td>
+	</tr>
+
+	<tr>
+		<td>Percentage clients who received nutrition assessment using color coded MUAC tapes/Z score chart </td>
+		<td>50%</td>
+		<td>9.6% (113,304/ 1,184,027)
+		</td>
+		<td>11.4% (137,141/ 1,207,663)
+		</td>
+		<td>12.0% (176,578/ 1,472,444)
+		</td>
+		<td>14.0% (149,101/ 1,065,823)
+		</td>
+		<td>11.7% (576,124/ 4,929,957)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR FN_ASSESS: Percentage of People Living with HIV (PLHIV) in care and treatment who were nutritionally assessed </td>
+		<td>100%</td>
+		<td>88.0% (57,083/ 64,881)
+		</td>
+		<td>89.6% (61,728/ 68,881)
+		</td>
+		<td>84.5% (58,045/ 69,075)
+		</td>
+		<td>85.1% (62,280/ 73,206)
+		</td>
+		<td>85.1% (Q4 as proxy)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR FN_THER: Proportion of clinically undernourished PLHIV who received therapeutic or supplementary food </td>
+		<td>100%</td>
+		<td>133 / 254 (51.2%)
+		</td>
+		<td>158 / 279 (57%)
+		</td>
+		<td>310/325 (95.4%)
+		</td>
+		<td>312/501 (62.3%)
+		</td>
+		<td>62.3%</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of pregnant and lactating women who received maternal nutrition counseling</td>
+		<td>70%</td>
+		<td>22.1%</td>
+		<td>22.5%</td>
+		<td>23.3%</td>
+		<td>30.5%</td>
+		<td>30.5%</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of pregnant and lactating mothers who received Infant and Young Child Feeding (IYCF) counselling</td>
+		<td>70%</td>
+		<td>49289/60,068 (82.1%)
+		</td>
+		<td>52702/60,541 (87.1%)
+		</td>
+		<td>46169/44124 (104.6%)
+		</td>
+		<td>74364/244024 (30.5%)
+		</td>
+		<td>30.5%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">HIV TESTING AND COUNSELLING</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR HTS_TST: Number of individuals who received HIV Testing Services (HTS) for HIV and received their test results.</td>
+		<td>805,376</td>
+		<td>157,285 (78.1% of Q1 target)
+		</td>
+		<td>185,418 (92.1% of Q2 target)
+		</td>
+		<td>279,237 (138.7% of Q3 target)
+		</td>
+		<td>236,062 (117.2% of Q4 target)
+		</td>
+		<td>858,002 (106.5% of PY1 target)</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR HTC_TST_POS: Number of individuals who received HIV Testing Services (HTS) and positive test results.</td>
+		<td>18,362</td>
+		<td>2,631 (57.3% of Q1 target)
+		</td>
+		<td>3,415 (74.4% of Q2 target)
+		</td>
+		<td>5,006 (109.1% of Q3 target)
+		</td>
+		<td>4,661 (101.5% of Q4 target)
+		</td>
+		<td>15,713 (83% of annual target)</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of newly identified HIV positives who were linked into HIV care services.</td>
+		<td>90%</td>
+		<td>87%</td>
+		<td>81%</td>
+		<td>79.5%</td>
+		<td>85.6%</td>
+		<td>83%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">HIV PREVENTION: SEXUAL AND GENDER BASED VIOLENCE</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR GEND_GBV: Total Number of people receiving Post -GBV Care</td>
+		<td>8,605</td>
+		<td>465 (21.6% of Q1 target)
+		</td>
+		<td>509 (23.7% of Q2 target)
+		</td>
+		<td>643 (30% of Q3 target)
+		</td>
+		<td>2,123 (98.7% of Q4 target)
+		</td>
+		<td>3,740 (43.4% of PY1 target)
+		</td>
+	</tr>
+
+
+	<tr>
+		<td>Percentage of quality interventions conducted by selected community structures to address gender and social barriers to
+			adoption of positive behaviors.</td>
+		<td>100%</td>
+		<td>No implementation</td>
+		<td>No implementation</td>
+		<td>9/9 (100%)
+		</td>
+		<td>17/17 (100%)
+		</td>
+		<td>26/26 (100%)
+		</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">VOLUNTARY MALE MEDICAL CIRCUMCISION</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR VMMC_CIRC: Number of males circumcised as part of the voluntary medical male circumcision (VMMC) for HIV prevention
+			program within the reporting period.</td>
+		<td>97,997</td>
+		<td>771 (3.1%)
+		</td>
+		<td>2,566 (10.4%)
+		</td>
+		<td>45,951 (53.9%)
+		</td>
+		<td>26,533 (26.6%)
+		</td>
+		<td>76,666 (78.2%)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of circumcised males who returned for follow up (within 48 hours)</td>
+		<td>>90</td>
+		<td>663 / 771 (86%)
+		</td>
+		<td>2,384 / 2558 (93.2%)
+		</td>
+		<td>40,641 (76.9%)
+		</td>
+		<td>59,651 (77.8%)</td>
+		<td>77.8%</td>
+	</tr>
+
+	<tr>
+		<td>Number of males circumcised surgically or by medical device that experienced at least one moderate or severe adverse event(s)
+			(AEs)
+		</td>
+		<td>
+			<5%</td>
+				<td>0.684</td>
+				<td>55 / 2,558 (2.2%)
+				</td>
+				<td>119/52,830 (0.2%)
+				</td>
+				<td>53/26,533(0.1%)</td>
+				<td>0.1%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">HIV PREVENTION: KEY AND PRIORITY POPULATION</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR KP_PREV: Number of key populations reached with individual and/or small group level HIV prevention interventions
+			designed for the target population.</td>
+		<td>5,284</td>
+		<td>0</td>
+		<td>0</td>
+		<td>660</td>
+		<td>3,168</td>
+		<td>3,828 (72.4%)</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR PP_PREV: Number of priority populations (PP) reached with the standardized, evidence-based intervention(s) required
+			that are designed to promote adoption of HIV prevention behaviors and service uptak</td>
+		<td>46,882</td>
+		<td>0</td>
+		<td>0</td>
+		<td>2,844</td>
+		<td>20,741</td>
+		<td>23,584 (50%)</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">PREVENTION OF MOTHER TO CHILD TRANSMISSION OF HIV</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR PMTCT_STAT: Percentage of pregnant women with known HIV status at antenatal care (includes those who already knew
+			their HIV status prior to ANC)</td>
+		<td>153,281</td>
+		<td>87.5% (33,573 / 38,320)</td>
+		<td>92.3% (35,359 /38,320)</td>
+		<td>101.2% (38,767 / 38,320)
+		</td>
+		<td>86.1% (32,980 / 38,320)</td>
+		<td>91.8% (140,679/ 153,281)</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR PMTCT_STAT_POS: Number of pregnant women with positive HIV status at antenatal care</td>
+		<td>4,905</td>
+		<td>115% (1415 / 1226)
+		</td>
+		<td>125% (1538/ 1226)
+		</td>
+		<td>110% (1346 / 1226)
+		</td>
+		<td>104% (1271 /1226)
+		</td>
+		<td>114% (5580 / 4905)
+		</td>
+	</tr>
+
+
+	<tr>
+		<td>PEPFAR PMTCT_ART: Percentage of HIV-positive pregnant women who received ART to reduce the risk of mother-to-child-transmission
+			(MTCT) during pregnancy</td>
+		<td>4,667</td>
+		<td>1152 (98.7% of Q1 target)
+		</td>
+		<td>1226 (105.1% of Q2 target)
+		</td>
+		<td>1264 (108.3% of Q3 target)
+		</td>
+		<td>1198 (102.7% of Q4 target)
+		</td>
+		<td>1152 (98.7% of PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR PMTCT_EID: Percentage of infants born to HIV-positive women who had a virologic HIV test done within 12 months of
+			birth
+		</td>
+		<td>3,921</td>
+		<td>834 (85.1% of Q1 target)
+		</td>
+		<td>859 (87.6% of Q2 target)
+		</td>
+		<td>920 (93.9% of Q3 target)
+		</td>
+		<td>839 (85.6% of Q4 target)
+		</td>
+		<td>3452 (88.0% of PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR PMTCT_EID_POS: Number of infants born to HIV-positive women who had a virologic HIV test done within 12 months of
+			birth who tested positive for HIV</td>
+		<td>168</td>
+		<td>67 (159.5% of Q1 target)
+		</td>
+		<td>63 (150.0% of Q2 target)
+		</td>
+		<td>54 (128.6% of Q3 target)
+		</td>
+		<td>47 (111.9% of Q4 target)
+		</td>
+		<td>231 (137.5% of PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of infants of HIV-positive mothers receiving ARVs for PMTCT at birth</td>
+		<td>100%</td>
+		<td>573/684 (83.8%)
+		</td>
+		<td>595/815 (73.0%)
+		</td>
+		<td>530/552 (96.0%)
+		</td>
+		<td>568/589 (96.4%)
+		</td>
+		<td>2266/2640 (85.9%)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of infants born to HIV-positive pregnant women who began Cotrimoxazole (CTX) prophylaxis within two months of
+			birth
+		</td>
+		<td>100%</td>
+		<td>534/871 (61.3%)
+		</td>
+		<td>549/847 (64.8%)
+		</td>
+		<td>622/984 (63.2%)
+		</td>
+		<td>781/1091 (71.6%)
+		</td>
+		<td>2486/3793 (65.5%)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR PMTCT_FO: Percentage of final outcomes among HIV exposed infants registered in the birth cohort.
+		</td>
+		<td>4,302</td>
+		<td>79% (687/ 871)
+		</td>
+		<td>91% (770 / 847)
+		</td>
+		<td>85% (838 / 984)
+		</td>
+		<td>90% (978 / 1091)
+		</td>
+		<td>86% (3,273 / 3,793)
+		</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">HIV CARE AND TREATMENT </td>
+	</tr>
+
+	<tr>
+		<td>TX_CURR: Number of adults and children currently receiving antiretroviral therapy (ART)</td>
+		<td>100,567</td>
+		<td>43,374 (43.1% of Q1 target)
+		</td>
+		<td>43,198 (43.0% of Q2 target)
+		</td>
+		<td>48,111 (47.8% of Q3 target)
+		</td>
+		<td>57,950 (57.6% of Q4 target)
+		</td>
+		<td>57.6% (of PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TX_NEW: Number of adults and children newly enrolled on antiretroviral therapy (ART)</td>
+		<td>23,200</td>
+		<td>2,176 (37.5% of Q1 target)
+		</td>
+		<td>2,324 (40% of Q2 target)
+		</td>
+		<td>4,003 (69 of Q3 target%)</td>
+		<td>3,550 (61.2% of Q4 target)
+		</td>
+		<td>12,053 (52.0% of PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TX_RET: Percentage of adults and children known to be on treatment 12 months after initiation of antiretroviral
+			therapy.
+		</td>
+		<td>90%</td>
+		<td>69% (1,441 / 2,086)
+		</td>
+		<td>69% (1,558 / 2,256)
+		</td>
+		<td>66.7% (1,944 / 2,915)
+		</td>
+		<td>68.4% (1820 / 2660)
+		</td>
+		<td>68.2% (6,763/ 9,917)</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TX_PVLS: Percentage of ART patients with a viral load result documented in the medical record and/or laboratory
+			information systems (LIS) within the past 12 months with a suppressed viral load (
+			<1000 copies/ml)</td>
+				<td>90%</td>
+				<td>88.9%</td>
+				<td>87.7%</td>
+				<td>92.9%</td>
+				<td>89.2%</td>
+				<td>89.2%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">TB/HIV AND MDR-TB</td>
+	</tr>
+
+	<tr>
+		<td>TB Case Notification Rate (CNR)</td>
+		<td>100 / 100,000 population </td>
+		<td>51/ 100,000 population</td>
+		<td>70/ 100,000 population</td>
+		<td>87/ 100,000 population</td>
+		<td>90/ 100,000 population</td>
+		<td>69/ 100,000 population</td>
+	</tr>
+
+	<tr>
+		<td>Proportion of notified cases of TB who are aged less than 15 years. </td>
+		<td>15%</td>
+		<td>3.0% (11/ 365)
+		</td>
+		<td>4.6% (28 / 607)
+		</td>
+		<td>7.8% (67 / 863)
+		</td>
+		<td>9.0% (80 / 885)
+		</td>
+		<td>6.8% (186 / 2,720
+		</td>
+	</tr>
+
+	<tr>
+		<td>TB treatment success rate (TSR)</td>
+		<td>85%</td>
+		<td>90.8%</td>
+		<td>83.6%</td>
+		<td>83.3%</td>
+		<td>81.0%</td>
+		<td>83.7%</td>
+	</tr>
+
+	<tr>
+		<td>TB Cure rate</td>
+		<td>60%</td>
+		<td>54.6%</td>
+		<td>43.4%</td>
+		<td>34.6%</td>
+		<td>43.3%</td>
+		<td>41.4%</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TB_STAT: Percentage of new and relapse TB cases with documented HIV status</td>
+		<td>100% (2,458 / 2,458)
+		</td>
+		<td>80.3% (293 / 365)
+		</td>
+		<td>86.2% (523 / 607)
+		</td>
+		<td>86.8% (749/863)
+		</td>
+		<td>83.8% (742/885)
+		</td>
+		<td>84.8% (2,307 / 2,720)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TB_STAT_POS: Percentage of new and relapse TB cases with documented HIV-positive status</td>
+		<td>No target</td>
+		<td>29.7% (87 / 293)
+		</td>
+		<td>35% (183 / 523)
+		</td>
+		<td>35.9% (251 / 749)
+		</td>
+		<td>42.6% (290 / 742)
+		</td>
+		<td>37.1% (855 / 2,307)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TB_ART: The number of HIV-positive new and relapsed TB cases on ART during TB treatment</td>
+		<td>95%</td>
+		<td>76 (87.4%: N=87)
+		</td>
+		<td>168 (91.8%: N = 183)
+		</td>
+		<td>251 (93.3%: N= 269)
+		</td>
+		<td>290 (91.8%: N= 316)
+		</td>
+		<td>785 (91.8%: N = 855)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TX_TB: The proportion of ART patients who were screened who are receiving TB treatment. </td>
+		<td>No target provided by PEPFAR</td>
+		<td>Indicator not yet introduced</td>
+		<td>Indicator not yet introduced</td>
+		<td>0.4% (169/ 44,934)
+		</td>
+		<td>(0.5%) (247/ 52,512)
+		</td>
+		<td>0.7% (416 / 52,512)
+		</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TB_PREV: Proportion of ART patients who completed a standard course of TB preventive therapy within the reporting
+			period
+		</td>
+		<td>Not target provided by PEPFAR</td>
+		<td>Indicator not yet introduced</td>
+		<td>Indicator not yet introduced</td>
+		<td></td>
+		<td>6.3% (87 / 1,362)/td>
+			<td>7.3% (100/ 1,362)
+			</td>
+	</tr>
+
+	<tr>
+		<td>PEPFAR TB_SCREENDX: Percentage of ART patients screened for TB symptoms at the last clinical visit</td>
+		<td>100%</td>
+		<td>97.1% (61,327/ 63,145)
+		</td>
+		<td>92.9% (61,464 / 66197)
+		</td>
+		<td>(93.4%) (57,441/ 61,496)
+		</td>
+		<td>98. 8% (52,512 / 53,132)
+		</td>
+		<td>98.8%</td>
+	</tr>
+
+	<tr>
+		<td>Number of multi-drug resistant tuberculosis cases detected </td>
+		<td>30</td>
+		<td>4</td>
+		<td>4</td>
+		<td>4</td>
+		<td>5</td>
+		<td>17 (56.7% of the PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Number of multi drug resistant tuberculosis cases that have been initiated on second line treatment </td>
+		<td>30</td>
+		<td>4</td>
+		<td>4</td>
+		<td>4</td>
+		<td>5</td>
+		<td>17 (56.7% of the PY1 target)
+		</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">LABORATORY</td>
+	</tr>
+
+	<tr>
+		<td>Number of Viral Load tests done</td>
+		<td>37,128</td>
+		<td>8,977</td>
+		<td>14,916</td>
+		<td>15,415</td>
+		<td>16,084</td>
+		<td>55,392 / 37128 (149.2%)
+		</td>
+	</tr>
+
+	<tr>
+		<td>Percentage of Viral load (VL) specimens rejected by the national VL testing laboratory at MoH/CPHL</td>
+		<td>5%</td>
+		<td>3.6%</td>
+		<td>4.1%</td>
+		<td>3.9%</td>
+		<td>1.7%</td>
+		<td>1.7%</td>
+	</tr>
+
+	<tr>
+		<td>Number of laboratories and blood banks/centers engaged in continuous quality improvement (CQI) activities </td>
+		<td>28</td>
+		<td>28</td>
+		<td>28</td>
+		<td>28</td>
+		<td>57</td>
+		<td>57</td>
+	</tr>
+
+	<tr>
+		<td>Number of laboratories and blood banks/centers audited and achieved accreditation </td>
+		<td>0</td>
+		<td>0</td>
+		<td>0</td>
+		<td>0</td>
+		<td>0</td>
+		<td>0</td>
+	</tr>
+
+	<tr>
+		<td>Number of laboratories and blood banks/centers performing HIV-related test and participating in and passing proficiency
+			testing (PT)</td>
+		<td>116</td>
+		<td>54</td>
+		<td>90</td>
+		<td>95</td>
+		<td>96</td>
+		<td></td>
+	</tr>
+
+	<tr>
+		<td>
+			<Percentage of VL test results dispatched from the testing laboratory to requesters (facility health workers) within acceptable
+			 turnaround time/td>
+				<td>95%</td>
+				<td></td>
+				<td></td>
+				<td>85%</td>
+				<td>85%</td>
+				<td>85%</td>
+	</tr>
+
+	<tr>
+		<td>Average percentage of up-time of laboratory diagnostic equipment (CD4, CBC, Chemistry & GeneXpert machines)</td>
+		<td>90%</td>
+		<td></td>
+		<td></td>
+		<td>70%</td>
+		<td>70%</td>
+		<td>70%</td>
+	</tr>
+
+	<tr>
+		<td colspan="7" bgcolor="#C0C0C0">HEALTH MANAGEMENT INFORMATION SYSTEM</td>
+	</tr>
+
+	<tr>
+		<td>Number of PEPFAR-supported facility-based service delivery points supported by your organization that have an electronic
+			medical record system</td>
+		<td>85</td>
+		<td>0</td>
+		<td>0</td>
+		<td>0</td>
+		<td>65</td>
+		<td>65</td>
+	</tr>
+
+</table>
+
+<a href="/download/performance.pdf" downloadreport>Click here to Download this report in PDF</a>
+{% endblock %}
