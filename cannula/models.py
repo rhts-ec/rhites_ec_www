@@ -511,7 +511,7 @@ def load_excel_to_datavalues(source_doc):
             else:
                 period = period_cell.value
             iso_year, iso_quarter, iso_month = extract_periods(str(period).strip())
-            location_parts = (settings.ORG_UNIT_ROOT_NAME, *[x.trim() for x in location_parts if x is not None]) # turn to tuple and prepend name of root OrgUnit
+            location_parts = (settings.ORG_UNIT_ROOT_NAME, *[x.strip() for x in location_parts if x is not None]) # turn to tuple and prepend name of root OrgUnit
             current_ou = OrgUnit.from_path_recurse(*location_parts)
             location = ' => '.join(location_parts)
             logger.debug((period, location))
