@@ -3272,6 +3272,7 @@ def vmmc_dashboard(request):
             vmmc_total = sum_zero(vmmc_device['numeric_sum'], vmmc_other['numeric_sum'], vmmc_surgical['numeric_sum'])
             coverage_percent = (vmmc_total * 100) / vmmc_target['numeric_sum']
         else:
+            vmmc_total = None
             coverage_percent = None
         coverage_percent_val = {
             'period': period,
