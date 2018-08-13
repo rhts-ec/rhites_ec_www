@@ -354,6 +354,12 @@ def unpack_data_element(de_long):
     else:
         return (de_instance, None)
 
+from django.db.models import Func
+
+class Collate_C(Func):
+    function = 'COLLATE "C"'
+    template = '%(expressions)s %(function)s'
+
 class DataValueQuerySet(models.QuerySet):
     """Convenience queryset methods for handling datavalues"""
     def what(self, *names):
@@ -367,7 +373,7 @@ class DataValueQuerySet(models.QuerySet):
                 else:
                     de_filters = Q(data_element__name__iexact=de) | Q(data_element__alias__iexact=de)
 
-        qs = self.annotate(de_name=F('data_element__name'))
+        qs = self.annotate(de_name=Collate_C('data_element__name'))
         qs = qs.annotate(de_uid=F('data_element__dhis2_uid'))
         if de_filters:
             qs = qs.filter(de_filters)
