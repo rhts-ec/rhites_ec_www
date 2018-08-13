@@ -6848,10 +6848,10 @@ def vl_scorecard(request, org_unit_level=3, output_format='HTML'):
     data_element_metas += de_viral_target_meta
     data_element_metas += de_viral_load_meta
 
-    data_element_metas += list(product(['% Achievement'], (None,)))
+    data_element_metas += list(product(['% Achievement (sent per target)'], (None,)))
     data_element_metas += list(product(['% Sample rejection'], (None,)))
     data_element_metas += list(product(['Samples returned'], (None,)))
-    data_element_metas += list(product(['% Achievement'], (None,)))
+    data_element_metas += list(product(['% Achievement (returned per sent)'], (None,)))
 
     num_path_elements = len(ou_headers)
     legend_sets = list()
