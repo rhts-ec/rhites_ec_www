@@ -59,6 +59,8 @@ def orgunit_cleanup_name(name_str):
         name_str = name_str.replace('H/C I', 'HC I') # matches 'HC II', 'HC III' and 'HC IV'
         name_str = name_str.replace('Health Centre I', 'HC I')
         name_str = name_str.replace('Health Center I', 'HC I')
+        name_str = name_str.replace('HCIV', 'HC IV')
+        name_str = name_str.replace('HCII', 'HC II') # matches HC II and HC III
     return name_str
 
 class OrgUnit(MPTTModel):
