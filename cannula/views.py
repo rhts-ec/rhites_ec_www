@@ -1616,18 +1616,18 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
     val_pmtct_mother_pos2 = list(gen_raster)
 
     pmtct_child_de_names = (
+        '105-2.1a Male partners received HIV test results in eMTCT(Total)',
+        '105-2.1b Male partners received HIV test results in eMTCT(HIV+)',
         '105-2.4a Exposed Infants Tested for HIV Below 18 Months(by 1st PCR) ',
         '105-2.4b 1st DNA PCR result returned(HIV+)',
         '105-2.4b 2nd DNA PCR result returned(HIV+)',
-        '105-2.1a Male partners received HIV test results in eMTCT(Total)',
-        '105-2.1b Male partners received HIV test results in eMTCT(HIV+)',
     )
     pmtct_child_short_names = (
+        'PMTCT MALE PARTNERS TESTED',
+        'PMTCT MALE PARTNERS HIV+',
         'PMTCT INFANT HIV+',
         'PMTCT CHILD PCR1 HIV+',
         'PMTCT CHILD PCR2 HIV+',
-        'PMTCT MALE PARTNERS TESTED',
-        'PMTCT MALE PARTNERS HIV+',
     )
     de_pmtct_child_meta = list(product(pmtct_child_de_names, (None,)))
 
@@ -1670,7 +1670,7 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (tst_over15_f, tst_over15_m, tst_under15_f, tst_under15_m, pos_over15_f, pos_over15_m, pos_under15_f, pos_under15_m, linked_over15_f, linked_over15_m, linked_under15_f, linked_under15_m, tst_pregnant, pos_pregnant, pos_infant, pos_pcr1, pos_pcr2, tst_male_partner, pos_male_partner, *other_vals)) = _group
+        (_group_ou_path, (tst_over15_f, tst_over15_m, tst_under15_f, tst_under15_m, pos_over15_f, pos_over15_m, pos_under15_f, pos_under15_m, linked_over15_f, linked_over15_m, linked_under15_f, linked_under15_m, tst_pregnant, pos_pregnant, tst_male_partner, pos_male_partner, pos_infant, pos_pcr1, pos_pcr2, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
@@ -4226,14 +4226,14 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
     val_condoms_new2 = list(gen_raster)
 
     fp_new_de_names = (
-        '105-2.5 Injectable',
         '105-2.5 IUDs',
+        '105-2.5 Injectable',
         '105-2.5 Natural',
         '105-2.7 Implant',
     )
     fp_new_short_names = (
-        'New users - Injectables',
         'New users - IUDs',
+        'New users - Injectables',
         'New users - Natural methods',
         'New users - Implants',
     )
@@ -4354,14 +4354,14 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
     val_condoms_revisit2 = list(gen_raster)
 
     fp_revisit_de_names = (
-        '105-2.5 Injectable',
         '105-2.5 IUDs',
+        '105-2.5 Injectable',
         '105-2.5 Natural',
         '105-2.7 Implant',
     )
     fp_revisit_short_names = (
-        'Revisits - Injectables',
         'Revisits - IUDs',
+        'Revisits - Injectables',
         'Revisits - Natural methods',
         'Revisits - Implants',
     )
@@ -4487,7 +4487,7 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
 
     # perform calculations
     for _group in grouped_vals:
-        (_group_ou_path, (condom_new, inject_new, iud_new, natural_new, implant_new, oral_new, other_new, sterile_new, condom_revisit, inject_revisit, iud_revisit, natural_revisit, implant_revisit, oral_revisit, other_revisit, hiv_new, hiv_revisit, *other_vals)) = _group
+        (_group_ou_path, (condom_new, iud_new, inject_new, natural_new, implant_new, oral_new, other_new, sterile_new, condom_revisit, iud_revisit, inject_revisit, natural_revisit, implant_revisit, oral_revisit, other_revisit, hiv_new, hiv_revisit, *other_vals)) = _group
         _group_ou_dict = dict(zip(OU_PATH_FIELDS, _group_ou_path))
         
         calculated_vals = list()
