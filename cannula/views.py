@@ -665,11 +665,9 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -973,11 +971,9 @@ def malaria_ipt_scorecard(request, org_unit_level=2, output_format='HTML'):
                     offset += 1
                     ws.cell(row=i, column=j+offset, value=g_val['ipt_rate'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSet
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -1181,11 +1177,9 @@ def malaria_compliance(request, org_unit_level=3, output_format='HTML'):
                     offset += 1
                     ws.cell(row=i, column=j+offset, value=g_val['ipt_rate'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSet
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -1383,10 +1377,9 @@ def validation_rule(request, output_format='HTML'):
             ws.cell(row=i, column=5, value=res['de_calc_1'])
             ws.cell(row=i, column=6, value=format_values(res['data_values']))
 
-        for rule in validates_ls.openpyxl_rules():
-            # apply conditional formatting from LegendSet
-            for xls_range in validates_ls.excel_ranges():
-                ws.conditional_formatting.add(xls_range, rule)
+        # apply conditional formatting from LegendSets
+        for ls in legend_sets:
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -1998,10 +1991,9 @@ def hts_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -2497,11 +2489,9 @@ def hts_by_district(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -2791,11 +2781,9 @@ def care_tx_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -3157,11 +3145,9 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -3656,11 +3642,9 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -4135,10 +4119,9 @@ def lab_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -4570,11 +4553,9 @@ def fp_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -5001,11 +4982,9 @@ def fp_cyp_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -5416,11 +5395,9 @@ def fp_cyp_by_district(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -6034,11 +6011,9 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -6672,11 +6647,9 @@ def nutrition_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -6916,11 +6889,9 @@ def vl_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -7347,11 +7318,9 @@ def gbv_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -7600,11 +7569,9 @@ def sc_mos_by_site(request, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -7951,11 +7918,9 @@ def art_new_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -8308,11 +8273,9 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -8969,11 +8932,9 @@ def mnch_preg_birth_scorecard(request, org_unit_level=2, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -9576,11 +9537,9 @@ def mnch_pnc_child_scorecard(request, org_unit_level=2, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -9829,11 +9788,9 @@ def lqas_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
@@ -10075,11 +10032,9 @@ def kp_scorecard(request, org_unit_level=3, output_format='HTML'):
             for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
                 ws.cell(row=i, column=j, value=g_val['numeric_sum'])
 
+        # apply conditional formatting from LegendSets
         for ls in legend_sets:
-            # apply conditional formatting from LegendSets
-            for rule in ls.openpyxl_rules():
-                for cell_range in ls.excel_ranges():
-                    ws.conditional_formatting.add(cell_range, rule)
+            ls.apply_to_worksheet(ws)
 
 
         response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')

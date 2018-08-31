@@ -139,9 +139,10 @@ class LegendSetMappings(object):
         return '{%s}' % ', '.join(map(str, self))
 
 class LegendSet():
-    def __init__(self, ignore_blanks=True):
+    def __init__(self, ignore_blanks=True, skip_header=True):
         self.__legends = list()
         self.ignore_blanks = ignore_blanks
+        self.skip_header = skip_header
         self.mappings = LegendSetMappings()
 
     def add_interval(self, color, min, max):
@@ -152,7 +153,8 @@ class LegendSet():
 
     def openpyxl_rules(self, contrast_text=True):
         if self.ignore_blanks:
-            rule_ignore_blanks = Rule(type="containsBlanks", stopIfTrue=True)
+            # don't use the "containsBlanks" because (in Excel) it treats 0 as blank
+            rule_ignore_blanks = CellIsRule(operator='equal', formula=['""'], stopIfTrue=True)
             yield rule_ignore_blanks
 
         for l_i in sorted(self.__legends, key=legend_sort_key):
@@ -186,7 +188,16 @@ class LegendSet():
         """
         # range = 'E:E' # entire-column-range syntax doesn't work in openpyxl 2.3.0
         # use old-school column/row limit as stand-in for entire row
-        return ['{0}1:{0}16384'.format(excel_column_name(x)) for x in self.mappings]
+        if self.skip_header:
+            return ['{0}2:{0}16384'.format(excel_column_name(x)) for x in self.mappings]
+        else:
+            return ['{0}1:{0}16384'.format(excel_column_name(x)) for x in self.mappings]
+
+    def apply_to_worksheet(self, ws):
+        # apply conditional formatting from LegendSets
+        for cell_range in self.excel_ranges():
+            for rule in self.openpyxl_rules():
+                ws.conditional_formatting.add(cell_range, rule)
 
     def canonical_name(self):
         intervals = [str(x).lower() for x in [self.legends()[0]['start']] + [l['end'] for l in self.legends()]]
