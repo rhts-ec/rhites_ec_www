@@ -897,3 +897,146 @@ def get_validation_view_names():
     cursor = connection.cursor()
     cursor.execute('SELECT viewname FROM pg_catalog.pg_views WHERE viewowner=%s and viewname LIKE %s;', (settings.DATABASES['default']['USER'], 'vw_validation_%'))
     return [x[0] for x in cursor]
+
+#sumplementary tools
+class TbPrev(models.Model):
+    period = models.CharField("YYYY-MM",max_length=200)
+    district = models.CharField("District",max_length=200)
+    subcounty = models.CharField("Subcounty",max_length=200)
+    healthfacility = models.CharField("Health Facility",max_length=200)
+
+    tbprevc1d = models.IntegerField("tb_prev (d,agesex)  _10-14 years, female",default=0)
+    tbprevc2d = models.IntegerField("tb_prev (d,agesex)  __lt 10 years, female",default=0)
+    tbprevc3d = models.IntegerField("tb_prev (d,agesex)  __lt15 yrs, female",default=0)
+    tbprevc4d = models.IntegerField("tb_prev (d,agesex)  _15+ yrs, female",default=0)
+    tbprevc5d = models.IntegerField("tb_prev (d,agesex)  _female, 15-17 years",default=0)
+    tbprevc6d = models.IntegerField("tb_prev (d,agesex)  _female, 18-Â­24 years",default=0)
+    tbprevc7d = models.IntegerField("tb_prev (d,agesex)  _female, 25+ yrs",default=0)
+    tbprevc8d = models.IntegerField("tb_prev (d,agesex)  _10-14 years, male",default=0)
+    tbprevc9d = models.IntegerField("tb_prev (d,agesex)  __lt 10 years, male",default=0)
+    tbprevc10d = models.IntegerField("tb_prev (d,agesex)  __lt15 yrs, male",default=0)
+    tbprevc11d = models.IntegerField("tb_prev (d,agesex)  _15+ yrs, male",default=0)
+    tbprevc12d = models.IntegerField("tb_prev (d,agesex)  _male, 15-17 years",default=0)
+    tbprevc13d = models.IntegerField("tb_prev (d,agesex)  _male, 18-Â­24 years",default=0)
+    tbprevc14d = models.IntegerField("tb_prev (d,agesex)  _male, 25+ yrs",default=0)
+    tbprevc15d = models.IntegerField("tb_prev (d,agesex)  _ipt by newly enrolled on art, female",default=0)
+    tbprevc16d = models.IntegerField("tb_prev (d,agesex)  _ipt by newly enrolled on art, male",default=0)
+    tbprevc17d = models.IntegerField("tb_prev (d,agesex)  _ipt by newly enrolled on art, total",default=0)
+    tbprevc18d = models.IntegerField("tb_prev (d,agesex)  _ipt by previously enrolled on   art, female",default=0)
+    tbprevc19d = models.IntegerField("tb_prev (d,agesex)  _ipt by previously enrolled on   art, male",default=0)
+    tbprevc20d = models.IntegerField("tb_prev (d,agesex)  _ipt by previously enrolled on   art, total",default=0)
+    tbprevc21d = models.IntegerField("tb_prev (d,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by newly enrolled on art, female",default=0)
+    tbprevc22d = models.IntegerField("tb_prev (d,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by newly enrolled on art, male",default=0)
+    tbprevc23d = models.IntegerField("tb_prev (d,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by newly enrolled on art, total",default=0)
+    tbprevc24d = models.IntegerField("tb_prev (d,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by  previously enrolled on art, female",default=0)
+    tbprevc25d = models.IntegerField("tb_prev (d,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by  previously enrolled on art, male",default=0)
+    tbprevc26d = models.IntegerField("tb_prev (d,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by  previously enrolled on art, total",default=0)
+
+    tbprevc1n = models.IntegerField("tb_prev (n,agesex)  _10-14 years, female",default=0)
+    tbprevc2n = models.IntegerField("tb_prev (n,agesex)  __lt 10 years, female",default=0)
+    tbprevc3n = models.IntegerField("tb_prev (n,agesex)  __lt15 yrs, female",default=0)
+    tbprevc4n = models.IntegerField("tb_prev (n,agesex)  _15+ yrs, female",default=0)
+    tbprevc5n = models.IntegerField("tb_prev (n,agesex)  _female, 15-17 years",default=0)
+    tbprevc6n = models.IntegerField("tb_prev (n,agesex)  _female, 18-Â­24 years",default=0)
+    tbprevc7n = models.IntegerField("tb_prev (n,agesex)  _female, 25+ yrs",default=0)
+    tbprevc8n = models.IntegerField("tb_prev (n,agesex)  _10-14 years, male",default=0)
+    tbprevc9n = models.IntegerField("tb_prev (n,agesex)  __lt 10 years, male",default=0)
+    tbprevc10n = models.IntegerField("tb_prev (n,agesex)  __lt15 yrs, male",default=0)
+    tbprevc11n = models.IntegerField("tb_prev (n,agesex)  _15+ yrs, male",default=0)
+    tbprevc12n = models.IntegerField("tb_prev (n,agesex)  _male, 15-17 years",default=0)
+    tbprevc13n = models.IntegerField("tb_prev (n,agesex)  _male, 18-Â­24 years",default=0)
+    tbprevc14n = models.IntegerField("tb_prev (n,agesex)  _male, 25+ yrs",default=0)
+    tbprevc15n = models.IntegerField("tb_prev (n,agesex)  _ipt by newly enrolled on art, female",default=0)
+    tbprevc16n = models.IntegerField("tb_prev (n,agesex)  _ipt by newly enrolled on art, male",default=0)
+    tbprevc17n = models.IntegerField("tb_prev (n,agesex)  _ipt by newly enrolled on art, total",default=0)
+    tbprevc18n = models.IntegerField("tb_prev (n,agesex)  _ipt by previously enrolled on   art, female",default=0)
+    tbprevc19n = models.IntegerField("tb_prev (n,agesex)  _ipt by previously enrolled on   art, male",default=0)
+    tbprevc20n = models.IntegerField("tb_prev (n,agesex)  _ipt by previously enrolled on   art, total",default=0)
+    tbprevc21n = models.IntegerField("tb_prev (n,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by newly enrolled on art, female",default=0)
+    tbprevc22n = models.IntegerField("tb_prev (n,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by newly enrolled on art, male",default=0)
+    tbprevc23n = models.IntegerField("tb_prev (n,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by newly enrolled on art, total",default=0)
+    tbprevc24n = models.IntegerField("tb_prev (n,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by  previously enrolled on art, female",default=0)
+    tbprevc25n = models.IntegerField("tb_prev (n,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by  previously enrolled on art, male",default=0)
+    tbprevc26n = models.IntegerField("tb_prev (n,type of tb preventative (tpt)_alternative tpt regimen (eg, 3 month inh and rifapentine) by  previously enrolled on art, total",default=0)
+
+    def __str__(self):
+        return self.period +" "+ self.district +" "+ self.subcounty +" "+ self.healthfacility
+
+class TbPrevTargets(models.Model):
+
+    district = models.CharField("District",max_length=200)
+    subcounty = models.CharField("Subcounty",max_length=200)
+    healthfacility = models.CharField("Health Facility",max_length=200)
+
+    tbprev_tc1n = models.IntegerField("TB_PREV (N) Numerator",default=0)
+    tbprev_tc2n = models.IntegerField("TB_PREV (N) 6-12 months IPT",default=0)
+    tbprev_tc3n = models.IntegerField("TB_PREV (N) Female, <15",default=0)
+    tbprev_tc4n = models.IntegerField("TB_PREV (N) Female, 15+",default=0)
+    tbprev_tc5n = models.IntegerField("TB_PREV (N) Male, <15",default=0)
+    tbprev_tc6n = models.IntegerField("TB_PREV (N) Male, 15+",default=0)
+
+    tbprev_tc1d = models.IntegerField("TB_PREV (D) Numerator",default=0)
+    tbprev_tc2d = models.IntegerField("TB_PREV (D) 6-12 months IPT",default=0)
+    tbprev_tc3d = models.IntegerField("TB_PREV (D) Female, <15",default=0)
+    tbprev_tc4d = models.IntegerField("TB_PREV (D) Female, 15+",default=0)
+    tbprev_tc5d = models.IntegerField("TB_PREV (D) Male, <15",default=0)
+    tbprev_tc6d = models.IntegerField("TB_PREV (D) Male, 15+",default=0)
+
+    def __str__(self):
+        return self.period +" "+ self.district +" "+ self.subcounty +" "+ self.healthfacility
+
+class TbPrev_Scorecard(object):
+    period = ""
+    district = ""
+    subcounty = ""
+    healthfacility = ""
+
+    #data should be computed on facility
+    target15LessN=0
+    target15PlusN=0
+    targetFemaleN=0
+    targetMaleN=0
+    target6To12N=0
+
+    ArtIpt15LessN=0
+    ArtIpt15PlusN=0
+    ArtIptFemaleN=0
+    ArtIptMaleN=0
+    ArtIpt6To12N=0
+    ArtIptContiousN=0
+    ArtIptAlternativeRegimenN=0
+
+    Perf15LessN=0
+    Perf15PlusN=0
+    PerfFemaleN=0
+    PerfMaleN=0
+    Perf6To12N=0
+    
+    #denominator
+    target15LessD=0
+    target15PlusD=0
+    targetFemaleD=0
+    targetMaleD=0
+    target6To12D=0
+
+    ArtIpt15LessD=0
+    ArtIpt15PlusD=0
+    ArtIptFemaleD=0
+    ArtIptMaleD=0
+    ArtIpt6To12D=0
+    ArtIptContiousD=0
+    ArtIptAlternativeRegimenD=0
+
+    Perf15LessD=0
+    Perf15PlusD=0
+    PerfFemaleD=0
+    PerfMaleD=0
+    Perf6To12D=0
+
+    OverAll15Less=0
+    OverAll15Plus=0
+    OverAllFemale=0
+    OverAllMale=0
+    OverAll6To12=0
+    OverAllContious=0
+    OverAllternativeRegimen=0

@@ -1,0 +1,353 @@
+{% extends "cannula/thematic_base.html" %}
+
+{% block title %} TB PREV {% endblock %}
+{% block heading %}Performance DashBoard-TB PREV {% endblock %}
+{% block datacell %}
+		<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %}
+
+
+{% block content %}
+
+<script type="text/javascript">
+	function ExportToExcel(tb_prev_table_001){
+		   var htmltable= document.getElementById('tb_prev_table_001');
+		   var html = htmltable.outerHTML;
+		   window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+		}
+</script>
+
+<style>
+td 
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+th
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+</style>
+
+<style id=mystyle>
+	.btn1 {
+		background-color: DodgerBlue;
+		border: none;
+		color: white;
+		padding: 10px 25px;
+		cursor: pointer;
+		font-size: 20;
+	}
+	
+	/* Darker background on mouse-over */
+	.btn1:hover {
+		background-color: RoyalBlue;
+	}
+	</style>
+
+<h1 class="center-align red lighten-3">{{title}}</h1>
+<button id="btnExport" onclick="ExportToExcel();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download Score Card </button>
+<p><br><br></p>
+
+<table width="400" border="1" border-spacing: 5px>
+		<tr>
+                <th>Legend</th>
+                <th bgcolor="#145a32" >>60%</th>
+                <th bgcolor="#58d68d" >40-60%</th>
+                <th bgcolor="#f4d03f" >25-39%</th>
+				<th bgcolor="#ba4a00"><25%></th>
+		</tr>
+</table>
+ <p></p>
+ <table id=tb_prev_table_001  border="1">
+
+    <tr>
+    <th rowspan="2">Period</th>
+    <th rowspan="2">District</th>
+    <th rowspan="2">Subcounty</th>
+    <th rowspan="2">Health Facility</th>    
+
+    <th colspan="5" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Target(N)</th>  
+    <th colspan="7" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">ART patients who completed a course of TB preventive therapy or at least 6 months of Isoniazid Preventive Therapy (IPT)</th>      
+    <th colspan="5" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Perf%(N)</th>     
+    
+    <th colspan="5" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Target(D)</th>  
+    <th colspan="7" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">ART patients who were newly started on TB preventive therapy</th>      
+    <th colspan="5" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Perf%(D)</th>  
+   
+    <th colspan="7" style="font-weight:bold; color:  #052a63;" bgcolor="#a5ad8e">Proportion of ART patients who completed a standard course of TB preventive therapy within the reporting period (TB_PREV)</th>      
+
+    
+    
+    </tr>
+
+    <tr>
+            
+            <th><15</th>
+            <th>15+</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th> 
+
+            <th><15</th>
+            <th>15+</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th> 
+            <th>Continuous IPT</th>
+            <th>Alternative regimen</th>
+
+            <th><15%</th>
+            <th>15+%</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th>
+
+            <!--Denominator-->
+            <th><15</th>
+            <th>15+</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th> 
+
+            <th><15</th>
+            <th>15+</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th> 
+            <th>Continuous IPT</th>
+            <th>Alternative regimen</th>
+
+            <th><15%</th>
+            <th>15+%</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th>
+
+            <th><15</th>
+            <th>15+</th>
+            <th>Female</th>
+            <th>Male</th>  
+            <th>6-12 months</th> 
+            <th>Continuous IPT</th>
+            <th>Alternative regimen</th>
+    </tr>
+
+        {% for item in prev_scorecard_data %}
+        <tr>
+            <td>{{ item.period }}</td>
+            <td>{{ item.district }}</td>
+            <td>{{ item.subcounty }}</td>
+            <td>{{ item.healthfacility }}</td>
+
+            <td>{{ item.target15LessN|floatformat:0 }}</td>
+            <td>{{ item.target15PlusN|floatformat:0 }}</td>
+            <td>{{ item.targetFemaleN|floatformat:0 }}</td>
+            <td>{{ item.targetMaleN|floatformat:0 }}</td>
+            <td>{{ item.target6To12N|floatformat:0 }}</td>
+
+            <td>{{ item.ArtIpt15LessN }}</td>
+            <td>{{ item.ArtIpt15PlusN }}</td>
+            <td>{{ item.ArtIptFemaleN }}</td>
+            <td>{{ item.ArtIptMaleN }}</td>
+            <td>{{ item.ArtIpt6To12N }}</td>
+            <td>{{ item.ArtIptContiousN }}</td>
+            <td>{{ item.ArtIptAlternativeRegimenN }}</td>
+
+            {% if item.Perf15LessN >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.Perf15LessN|floatformat:1 }}</td>
+            {% elif item.Perf15LessN >= 40 and item.Perf15LessN < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.Perf15LessN|floatformat:1 }}</td>
+            {% elif item.Perf15LessN >= 25 and item.Perf15LessN < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.Perf15LessN|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.Perf15LessN|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.Perf15PlusN >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.Perf15PlusN|floatformat:1 }}</td>
+            {% elif item.Perf15PlusN >= 40 and item.Perf15PlusN < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.Perf15PlusN|floatformat:1 }}</td>
+            {% elif item.Perf15PlusN >= 25 and item.Perf15PlusN < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.Perf15PlusN|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.Perf15PlusN|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.PerfFemaleN >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.PerfFemaleN|floatformat:1 }}</td>
+            {% elif item.PerfFemaleN >= 40 and item.PerfFemaleN < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.PerfFemaleN|floatformat:1 }}</td>
+            {% elif item.PerfFemaleN >= 25 and item.PerfFemaleN < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.PerfFemaleN|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.PerfFemaleN|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.PerfMaleN >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.PerfMaleN|floatformat:1 }}</td>
+            {% elif item.PerfMaleN >= 40 and item.PerfMaleN < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.PerfMaleN|floatformat:1 }}</td>
+            {% elif item.PerfMaleN >= 25 and item.PerfMaleN < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.PerfMaleN|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.PerfMaleN|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.Perf6To12N >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.Perf6To12N|floatformat:1 }}</td>
+            {% elif item.Perf6To12N >= 40 and item.Perf6To12N < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.Perf6To12N|floatformat:1 }}</td>
+            {% elif item.Perf6To12N >= 25 and item.Perf6To12N < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.Perf6To12N|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.Perf6To12N|floatformat:1 }}</td>
+            {% endif %}
+
+
+            <!--Denominator-->
+            <td>{{ item.target15LessD|floatformat:0 }}</td>
+            <td>{{ item.target15PlusD|floatformat:0 }}</td>
+            <td>{{ item.targetFemaleD|floatformat:0 }}</td>
+            <td>{{ item.targetMaleD|floatformat:0 }}</td>
+            <td>{{ item.target6To12D|floatformat:0 }}</td>
+
+            <td>{{ item.ArtIpt15LessD }}</td>
+            <td>{{ item.ArtIpt15PlusD }}</td>
+            <td>{{ item.ArtIptFemaleD }}</td>
+            <td>{{ item.ArtIptMaleD }}</td>
+            <td>{{ item.ArtIpt6To12D }}</td>
+            <td>{{ item.ArtIptContiousD }}</td>
+            <td>{{ item.ArtIptAlternativeRegimenD }}</td>
+
+            {% if item.Perf15LessD >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.Perf15LessD|floatformat:1 }}</td>
+            {% elif item.Perf15LessD >= 40 and item.Perf15LessD < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.Perf15LessD|floatformat:1 }}</td>
+            {% elif item.Perf15LessD >= 25 and item.Perf15LessD < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.Perf15LessD|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.Perf15LessD|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.Perf15PlusD >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.Perf15PlusD|floatformat:1 }}</td>
+            {% elif item.Perf15PlusD >= 40 and item.Perf15PlusD < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.Perf15PlusD|floatformat:1 }}</td>
+            {% elif item.Perf15PlusD >= 25 and item.Perf15PlusD < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.Perf15PlusD|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.Perf15PlusD|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.PerfFemaleD >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.PerfFemaleD|floatformat:1 }}</td>
+            {% elif item.PerfFemaleD >= 40 and item.PerfFemaleD < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.PerfFemaleD|floatformat:1 }}</td>
+            {% elif item.PerfFemaleD >= 25 and item.PerfFemaleD < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.PerfFemaleD|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.PerfFemaleD|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.PerfMaleD >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.PerfMaleD|floatformat:1 }}</td>
+            {% elif item.PerfMaleD >= 40 and item.PerfMaleD < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.PerfMaleD|floatformat:1 }}</td>
+            {% elif item.PerfMaleD >= 25 and item.PerfMaleD < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.PerfMaleD|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.PerfMaleD|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.Perf6To12D >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.Perf6To12D|floatformat:1 }}</td>
+            {% elif item.Perf6To12D >= 40 and item.Perf6To12D < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.Perf6To12D|floatformat:1 }}</td>
+            {% elif item.Perf6To12D >= 25 and item.Perf6To12D < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.Perf6To12D|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.Perf6To12D|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAll15Less >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAll15Less|floatformat:1 }}</td>
+            {% elif item.OverAll15Less >= 40 and item.OverAll15Less < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAll15Less|floatformat:1 }}</td>
+            {% elif item.OverAll15Less >= 25 and item.OverAll15Less < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAll15Less|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAll15Less|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAll15Plus >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAll15Plus|floatformat:1 }}</td>
+            {% elif item.OverAll15Plus >= 40 and item.OverAll15Plus < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAll15Plus|floatformat:1 }}</td>
+            {% elif item.OverAll15Plus >= 25 and item.OverAll15Plus < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAll15Plus|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAll15Plus|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAllFemale >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAllFemale|floatformat:1 }}</td>
+            {% elif item.OverAllFemale >= 40 and item.OverAllFemale < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAllFemale|floatformat:1 }}</td>
+            {% elif item.OverAllFemale >= 25 and item.OverAllFemale < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAllFemale|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAllFemale|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAllMale >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAllMale|floatformat:1 }}</td>
+            {% elif item.OverAllMale >= 40 and item.OverAllMale < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAllMale|floatformat:1 }}</td>
+            {% elif item.OverAllMale >= 25 and item.OverAllMale < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAllMale|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAllMale|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAll6To12 >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAll6To12|floatformat:1 }}</td>
+            {% elif item.OverAll6To12 >= 40 and item.OverAll6To12 < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAll6To12|floatformat:1 }}</td>
+            {% elif item.OverAll6To12 >= 25 and item.OverAll6To12 < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAll6To12|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAll6To12|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAllContious >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAllContious|floatformat:1 }}</td>
+            {% elif item.OverAllContious >= 40 and item.OverAllContious < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAllContious|floatformat:1 }}</td>
+            {% elif item.OverAllContious >= 25 and item.OverAllContious < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAllContious|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAllContious|floatformat:1 }}</td>
+            {% endif %}
+
+            {% if item.OverAllternativeRegimen >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ item.OverAllternativeRegimen|floatformat:1 }}</td>
+            {% elif item.OverAllternativeRegimen >= 40 and item.OverAllternativeRegimen < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ item.OverAllternativeRegimen|floatformat:1 }}</td>
+            {% elif item.OverAllternativeRegimen >= 25 and item.OverAllternativeRegimen < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ item.OverAllternativeRegimen|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ item.OverAllternativeRegimen|floatformat:1 }}</td>
+            {% endif %}
+           
+        </tr>
+
+        {% endfor %}
+        
+
+ </table>
+
+ {% endblock %}
