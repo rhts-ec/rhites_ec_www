@@ -1,0 +1,345 @@
+{% extends "cannula/report_base.html" %} 
+{% block title %}TB prevention Summary{% endblock %} 
+{% block heading %}
+<h1 align="center">Proportion of ART patients who completed a standard course of TB preventive therapy within the reporting period (TB_PREV)</h1>
+<h1 align="center">Summary Results</h1>
+{% endblock %}
+{% block datacell %}
+<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %} 
+{% block content %}
+
+<script type="text/javascript">
+	function ExportToExcel(tb_prev_table_001){
+		   var htmltable= document.getElementById('tb_prev_table_001');
+		   var html = htmltable.outerHTML;
+		   window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+		}
+</script>
+
+<style>
+td 
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+th 
+{
+    text-align: center; 
+   
+}
+
+</style>
+
+<style id=mystyle>
+	.btn1 {
+		background-color: DodgerBlue;
+		border: none;
+		color: white;
+		padding: 10px 25px;
+		cursor: pointer;
+		font-size: 20;
+	}
+	
+	/* Darker background on mouse-over */
+	.btn1:hover {
+		background-color: RoyalBlue;
+	}
+	</style>
+
+<h1 class="center-align red lighten-3">{{title}}</h1>
+<button id="btnExport" onclick="ExportToExcel();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download Summary table </button>
+<p><br></p>
+<p><br></p>
+<table width="400" border="1"  text-align: center border-spacing: 5px>
+		<tr>
+                <th>Legend</th>
+                <th bgcolor="#145a32" >>60%</th>
+                <th bgcolor="#58d68d" >40-60%</th>
+                <th bgcolor="#f4d03f" >25-39%</th>
+				<th bgcolor="#ba4a00"><25%></th>
+		</tr>
+</table>
+<p><br></p>
+<table border="1" align="center">
+	<tr>
+		<th>Range</th>
+		<th>Target(N)</th>
+		<th>N: ART patients who completed a course of TB preventive therapy or at least 6 months of Isoniazid Preventive Therapy (IPT)</th>
+		<th>Target (D)</th>
+		<th>D: ART patients who were newly started on TB preventive therapy</th>
+		<th>Total %</th>
+		<th>Perf % N</th>
+		<th>Perf % D</th>
+	</tr>
+
+	<tr>
+		<td><15</td>
+		<td>{{ t_nage15less }}</td>
+		<td>{{ nage15less }}</td>
+		<td>{{ t_dage15less }}</td>
+		<td>{{ dage15less }}</td>
+        {% if totalage15less >= 60 %}
+		<td bgcolor="#145a32" align="center">{{ totalage15less|floatformat:1 }}</td>
+		{% elif totalage15less >= 40 and totalage15less < 60  %}
+        <td bgcolor="#58d68d" align="center">{{ totalage15less|floatformat:1 }}</td>
+        {% elif totalage15less >= 25 and totalage15less < 40  %}
+		<td bgcolor="#f4d03f" align="center">{{ totalage15less|floatformat:1 }}</td>
+		{% else %}
+		<td bgcolor="#ba4a00" align="center">{{ totalage15less|floatformat:1 }}</td>
+        {% endif %}
+        
+        {% if perfNage15less >= 60 %}
+		<td bgcolor="#145a32" align="center">{{ perfNage15less|floatformat:1 }}</td>
+		{% elif perfNage15less >= 40 and perfNage15less < 60  %}
+        <td bgcolor="#58d68d" align="center">{{ perfNage15less|floatformat:1 }}</td>
+        {% elif perfNage15less >= 25 and perfNage15less < 40  %}
+		<td bgcolor="#f4d03f" align="center">{{ perfNage15less|floatformat:1 }}</td>
+		{% else %}
+		<td bgcolor="#ba4a00" align="center">{{ perfNage15less|floatformat:1 }}</td>
+		{% endif %}
+
+        {% if perfDage15less >= 60 %}
+		<td bgcolor="#145a32" align="center">{{ perfDage15less|floatformat:1 }}</td>
+		{% elif perfDage15less >= 40 and perfDage15less < 60  %}
+        <td bgcolor="#58d68d" align="center">{{ perfDage15less|floatformat:1 }}</td>
+        {% elif perfDage15less >= 25 and perfDage15less < 40  %}
+		<td bgcolor="#f4d03f" align="center">{{ perfDage15less|floatformat:1 }}</td>
+		{% else %}
+		<td bgcolor="#ba4a00" align="center">{{ perfDage15less|floatformat:1 }}</td>
+		{% endif %}
+    </tr>
+    
+    <tr>
+            <td>15+</td>
+            <td>{{ t_nage15plus }}</td>
+            <td>{{ nage15plus }}</td>
+            <td>{{ t_dage15plus }}</td>
+            <td>{{ dage15plus }}</td> 
+            {% if totalage15plus >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ totalage15plus|floatformat:1 }}</td>
+            {% elif totalage15plus >= 40 and totalage15plus < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ totalage15plus|floatformat:1 }}</td>
+            {% elif totalage15plus >= 25 and totalage15plus < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ totalage15plus|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ totalage15plus|floatformat:1 }}</td>
+            {% endif %}
+            
+            {% if perfNage15plus >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ perfNage15plus|floatformat:1 }}</td>
+            {% elif perfNage15plus >= 40 and perfNage15plus < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ perfNage15plus|floatformat:1 }}</td>
+            {% elif perfNage15plus >= 25 and perfNage15plus < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ perfNage15plus|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ perfNage15plus|floatformat:1 }}</td>
+            {% endif %}
+    
+            {% if perfDage15plus >= 60 %}
+            <td bgcolor="#145a32" align="center">{{ perfDage15plus|floatformat:1 }}</td>
+            {% elif perfDage15plus >= 40 and perfDage15plus < 60  %}
+            <td bgcolor="#58d68d" align="center">{{ perfDage15plus|floatformat:1 }}</td>
+            {% elif perfDage15plus >= 25 and perfDage15plus < 40  %}
+            <td bgcolor="#f4d03f" align="center">{{ perfDage15plus|floatformat:1 }}</td>
+            {% else %}
+            <td bgcolor="#ba4a00" align="center">{{ perfDage15plus|floatformat:1 }}</td>
+            {% endif %}
+        </tr>
+
+        <tr>
+                <td>Female</td>
+                <td>{{ t_nagefemale }}</td>
+                <td>{{ nagefemale }}</td>
+                <td>{{ t_dagefemale }}</td>
+                <td>{{ dagefemale }}</td>
+                
+                {% if totalagefemale >= 60 %}
+                <td bgcolor="#145a32" align="center">{{ totalagefemale|floatformat:1 }}</td>
+                {% elif totalagefemale >= 40 and totalagefemale < 60  %}
+                <td bgcolor="#58d68d" align="center">{{ totalagefemale|floatformat:1 }}</td>
+                {% elif totalagefemale >= 25 and totalagefemale < 40  %}
+                <td bgcolor="#f4d03f" align="center">{{ totalagefemale|floatformat:1 }}</td>
+                {% else %}
+                <td bgcolor="#ba4a00" align="center">{{ totalagefemale|floatformat:1 }}</td>
+                {% endif %}
+                
+                {% if perfNagefemale >= 60 %}
+                <td bgcolor="#145a32" align="center">{{ perfNagefemale|floatformat:1 }}</td>
+                {% elif perfNagefemale >= 40 and perfNagefemale < 60  %}
+                <td bgcolor="#58d68d" align="center">{{ perfNagefemale|floatformat:1 }}</td>
+                {% elif perfNagefemale >= 25 and perfNagefemale < 40  %}
+                <td bgcolor="#f4d03f" align="center">{{ perfNagefemale|floatformat:1 }}</td>
+                {% else %}
+                <td bgcolor="#ba4a00" align="center">{{ perfNagefemale|floatformat:1 }}</td>
+                {% endif %}
+        
+                {% if perfDagefemale >= 60 %}
+                <td bgcolor="#145a32" align="center">{{ perfDagefemale|floatformat:1 }}</td>
+                {% elif perfDagefemale >= 40 and perfDagefemale < 60  %}
+                <td bgcolor="#58d68d" align="center">{{ perfDagefemale|floatformat:1 }}</td>
+                {% elif perfDagefemale >= 25 and perfDagefemale < 40  %}
+                <td bgcolor="#f4d03f" align="center">{{ perfDagefemale|floatformat:1 }}</td>
+                {% else %}
+                <td bgcolor="#ba4a00" align="center">{{ perfDagefemale|floatformat:1 }}</td>
+                {% endif %}
+
+            </tr>
+
+            <tr>
+                    <td>Male</td>
+                    <td>{{ t_nageMale }}</td>
+                    <td>{{ nageMale }}</td>
+                    <td>{{ t_dageMale }}</td>
+                    <td>{{ dageMale }}</td>
+                    {% if totalageMale >= 60 %}
+		            <td bgcolor="#145a32" align="center">{{ totalageMale|floatformat:1 }}</td>
+		            {% elif totalageMale >= 40 and totalageMale < 60  %}
+                    <td bgcolor="#58d68d" align="center">{{ totalageMale|floatformat:1 }}</td>
+                    {% elif totalageMale >= 25 and totalageMale < 40  %}
+		            <td bgcolor="#f4d03f" align="center">{{ totalageMale|floatformat:1 }}</td>
+		            {% else %}
+		            <td bgcolor="#ba4a00" align="center">{{ totalageMale|floatformat:1 }}</td>
+		            {% endif %}
+
+                    {% if perfNageMale >= 60 %}
+		            <td bgcolor="#145a32" align="center">{{ perfNageMale|floatformat:1 }}</td>
+		            {% elif perfNageMale >= 40 and perfNageMale < 60  %}
+                    <td bgcolor="#58d68d" align="center">{{ perfNageMale|floatformat:1 }}</td>
+                    {% elif perfNageMale >= 25 and perfNageMale < 40  %}
+		            <td bgcolor="#f4d03f" align="center">{{ perfNageMale|floatformat:1 }}</td>
+		            {% else %}
+		            <td bgcolor="#ba4a00" align="center">{{ perfNageMale|floatformat:1 }}</td>
+                    {% endif %}
+                    
+                    {% if perfDageMale >= 60 %}
+		            <td bgcolor="#145a32" align="center">{{ perfDageMale|floatformat:1 }}</td>
+		            {% elif perfDageMale >= 40 and perfDageMale < 60  %}
+                    <td bgcolor="#58d68d" align="center">{{ perfDageMale|floatformat:1 }}</td>
+                    {% elif perfDageMale >= 25 and perfDageMale < 40  %}
+		            <td bgcolor="#f4d03f" align="center">{{ perfDageMale|floatformat:1 }}</td>
+		            {% else %}
+		            <td bgcolor="#ba4a00" align="center">{{ perfDageMale|floatformat:1 }}</td>
+		            {% endif %}
+
+                   
+                </tr>
+
+                <tr>
+                        <td>6-12 months IPT</td>
+                        <td>{{ t_nsixtotwelvemonthsipt }}</td>
+                        <td>{{ nsixtotwelvemonthsipt }}</td>
+                        <td>{{ t_dsixtotwelvemonthsipt }}</td>
+                        <td>{{ dsixtotwelvemonthsipt }}</td>
+                        {% if totalsixtotwelvemonthsipt >= 60 %}
+                        <td bgcolor="#145a32" align="center">{{ totalsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% elif totalsixtotwelvemonthsipt >= 40 and totalsixtotwelvemonthsipt < 60  %}
+                        <td bgcolor="#58d68d" align="center">{{ totalsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% elif totalsixtotwelvemonthsipt >= 25 and totalsixtotwelvemonthsipt < 40  %}
+                        <td bgcolor="#f4d03f" align="center">{{ totalsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% else %}
+                        <td bgcolor="#ba4a00" align="center">{{ totalsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% endif %}
+                        
+                        {% if perfNsixtotwelvemonthsipt >= 60 %}
+                        <td bgcolor="#145a32" align="center">{{ perfNsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% elif perfNsixtotwelvemonthsipt >= 40 and perfNsixtotwelvemonthsipt < 60  %}
+                        <td bgcolor="#58d68d" align="center">{{ perfNsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% elif perfNsixtotwelvemonthsipt >= 25 and perfNsixtotwelvemonthsipt < 40  %}
+                        <td bgcolor="#f4d03f" align="center">{{ perfNsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% else %}
+                        <td bgcolor="#ba4a00" align="center">{{ perfNsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% endif %}
+                
+                        {% if perfDsixtotwelvemonthsipt >= 60 %}
+                        <td bgcolor="#145a32" align="center">{{ perfDsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% elif perfDsixtotwelvemonthsipt >= 40 and perfDsixtotwelvemonthsipt < 60  %}
+                        <td bgcolor="#58d68d" align="center">{{ perfDsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% elif perfDsixtotwelvemonthsipt >= 25 and perfDsixtotwelvemonthsipt < 40  %}
+                        <td bgcolor="#f4d03f" align="center">{{ perfDsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% else %}
+                        <td bgcolor="#ba4a00" align="center">{{ perfDsixtotwelvemonthsipt|floatformat:1 }}</td>
+                        {% endif %}
+                      
+                    </tr>
+
+                    <tr>
+                            <td>Continuous IPT</td>
+                            <td>NA</td>
+                            <td>{{ nContinuousIPT }}</td>
+                            <td>NA</td>
+                            <td>{{ dContinuousIPT }}</td>
+                            {% if totalContinuousIPT >= 60 %}
+                            <td bgcolor="#145a32" align="center">{{ totalContinuousIPT|floatformat:1 }}</td>
+                            {% elif totalContinuousIPT >= 40 and totalContinuousIPT < 60  %}
+                            <td bgcolor="#58d68d" align="center">{{ totalContinuousIPT|floatformat:1 }}</td>
+                            {% elif totalContinuousIPT >= 25 and totalContinuousIPT < 40  %}
+                            <td bgcolor="#f4d03f" align="center">{{ totalContinuousIPT|floatformat:1 }}</td>
+                            {% else %}
+                            <td bgcolor="#ba4a00" align="center">{{ totalContinuousIPT|floatformat:1 }}</td>
+                            {% endif %}
+                            
+                            {% if perfNContinuousIPT >= 60 %}
+                            <td bgcolor="#145a32" align="center">{{ perfNContinuousIPT|floatformat:1 }}</td>
+                            {% elif perfNContinuousIPT >= 40 and perfNContinuousIPT < 60  %}
+                            <td bgcolor="#58d68d" align="center">{{ perfNContinuousIPT|floatformat:1 }}</td>
+                            {% elif perfNContinuousIPT >= 25 and perfNContinuousIPT < 40  %}
+                            <td bgcolor="#f4d03f" align="center">{{ perfNContinuousIPT|floatformat:1 }}</td>
+                            {% else %}
+                            <td bgcolor="#ba4a00" align="center">{{ perfNContinuousIPT|floatformat:1 }}</td>
+                            {% endif %}
+                    
+                            {% if perfDContinuousIPT >= 60 %}
+                            <td bgcolor="#145a32" align="center">{{ perfDContinuousIPT|floatformat:1 }}</td>
+                            {% elif perfDContinuousIPT >= 40 and perfDContinuousIPT < 60  %}
+                            <td bgcolor="#58d68d" align="center">{{ perfDContinuousIPT|floatformat:1 }}</td>
+                            {% elif perfDContinuousIPT >= 25 and perfDContinuousIPT < 40  %}
+                            <td bgcolor="#f4d03f" align="center">{{ perfDContinuousIPT|floatformat:1 }}</td>
+                            {% else %}
+                            <td bgcolor="#ba4a00" align="center">{{ perfDContinuousIPT|floatformat:1 }}</td>
+                            {% endif %}
+                           
+                        </tr>
+    
+                        <tr>
+                                <td>Alternative regimen</td>
+                                <td>NA</td>
+                                <td>{{ nAlternativeRegimen }}</td>
+                                <td>NA</td>
+                                <td>{{ dAlternativeRegimen }}</td>
+                                
+                                {% if totalAlternativeRegimen >= 60 %}
+                                <td bgcolor="#145a32" align="center">{{ totalAlternativeRegimen|floatformat:1 }}</td>
+                                {% elif totalAlternativeRegimen >= 40 and totalAlternativeRegimen < 60  %}
+                                <td bgcolor="#58d68d" align="center">{{ totalAlternativeRegimen|floatformat:1 }}</td>
+                                {% elif totalAlternativeRegimen >= 25 and totalAlternativeRegimen < 40  %}
+                                <td bgcolor="#f4d03f" align="center">{{ totalAlternativeRegimen|floatformat:1 }}</td>
+                                {% else %}
+                                <td bgcolor="#ba4a00" align="center">{{ totalAlternativeRegimen|floatformat:1 }}</td>
+                                {% endif %}
+                                
+                                {% if perfNAlternativeRegimen >= 60 %}
+                                <td bgcolor="#145a32" align="center">{{ perfNAlternativeRegimen|floatformat:1 }}</td>
+                                {% elif perfNAlternativeRegimen >= 40 and perfNAlternativeRegimen < 60  %}
+                                <td bgcolor="#58d68d" align="center">{{ perfNAlternativeRegimen|floatformat:1 }}</td>
+                                {% elif perfNAlternativeRegimen >= 25 and perfNAlternativeRegimen < 40  %}
+                                <td bgcolor="#f4d03f" align="center">{{ perfNAlternativeRegimen|floatformat:1 }}</td>
+                                {% else %}
+                                <td bgcolor="#ba4a00" align="center">{{ perfNAlternativeRegimen|floatformat:1 }}</td>
+                                {% endif %}
+                        
+                                {% if perfDAlternativeRegimen >= 60 %}
+                                <td bgcolor="#145a32" align="center">{{ perfDAlternativeRegimen|floatformat:1 }}</td>
+                                {% elif perfDAlternativeRegimen >= 40 and perfDAlternativeRegimen < 60  %}
+                                <td bgcolor="#58d68d" align="center">{{ perfDAlternativeRegimen|floatformat:1 }}</td>
+                                {% elif perfDAlternativeRegimen >= 25 and perfDAlternativeRegimen < 40  %}
+                                <td bgcolor="#f4d03f" align="center">{{ perfDAlternativeRegimen|floatformat:1 }}</td>
+                                {% else %}
+                                <td bgcolor="#ba4a00" align="center">{{ perfDAlternativeRegimen|floatformat:1 }}</td>
+                                {% endif %}
+                            </tr>
+
+
+</table>
+ {% endblock %}

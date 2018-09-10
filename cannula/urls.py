@@ -155,4 +155,9 @@ urlpatterns = [
     url(r'dashboards/reports/$', views.indexreport, name='performance_reports'),
     url(r'scorecards/reports/reports_sites_2016_to_2017\.php', views.reports_sites_2016_to_2017, name='reports_sites_2016_to_2017'),
     url(r'scorecards/reports/reports_sites_2017_to_2018\.php', views.reports_sites_2017_to_2018, name='reports_sites_2017_to_2018'),
+
+    #suplementary tools
+    url(r'dashboards/prev/$', views.index, name='thematic_prev'),
+    url(r'scorecards/prev/tb_prev\.php', views.tb_prev, name='prev'),
+    url(r'scorecards/prev/tb_prev_summary\.php', views.tb_prev_summary, name='prev_summary'),
 ]

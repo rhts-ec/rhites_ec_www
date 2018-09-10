@@ -10,3 +10,6 @@ rhites_ec_web_models*.png
 local_settings.py
 uwsgi_params
 static
+rhites_ec_www/settings.py
+cannula/templates/startmin/parts/top_navigation.html
+cannula/templates/startmin/parts/side_navigation.html
