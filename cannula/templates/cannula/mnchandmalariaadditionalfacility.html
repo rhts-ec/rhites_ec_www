@@ -1,0 +1,255 @@
+{% extends "cannula/thematic_base.html" %}
+
+{% block title %} Additional Malaria and RMNCH indicators {% endblock %}
+{% block heading %}Performance DashBoard-Additional Malaria and RMNCH indicators by Facility {% endblock %}
+{% block datacell %}
+		<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %}
+
+
+{% block content %}
+
+<script type="text/javascript">
+	function ExportToExcel(table_001){
+		   var htmltable= document.getElementById('table_001');
+		   var html = htmltable.outerHTML;
+		   window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+		}
+</script>
+
+<style>
+td 
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+th
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+</style>
+
+<style id=mystyle>
+	.btn1 {
+		background-color: DodgerBlue;
+		border: none;
+		color: white;
+		padding: 10px 25px;
+		cursor: pointer;
+		font-size: 20;
+	}
+	
+	/* Darker background on mouse-over */
+	.btn1:hover {
+		background-color: RoyalBlue;
+	}
+	</style>
+
+<h1 class="center-align red lighten-3">{{title}}</h1>
+<button id="btnExport" onclick="ExportToExcel();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download Score Card </button>
+<p><br></p>
+<p>Legend</p>
+<table border="1">
+<tr>
+    <th>IPT2 coverage</th>
+    <th>Management of 3rd stage of labor</th>
+    <th>Management of birth asphyxia (resuscitated)</th>
+    <th>Treatment of diarrhoeas in the U5s</th>
+    <th>Treatment of pneumonia with appropriate drugs</th>
+    <th>PMTCT early retention</th>
+    <th>MTCT rates within 6-8 weeks</th>
+    <th>Simple malaria treatment</th>
+    <th>Severe malaria treatment</th>
+</tr>
+
+<tr>
+    <td bgcolor="#008000">>=40%</td>
+    <td bgcolor="#008000">>=80%</td>
+    <td bgcolor="#008000">>=50%</td>
+    <td bgcolor="#008000">>=80%</td>
+    <td bgcolor="#008000">>=80%</td>
+    <td bgcolor="#008000">>90%</td>
+    <td bgcolor="#008000">
+        <5%</td>
+            <td bgcolor="#008000">>90%</td>
+            <td bgcolor="#008000">> 90%</td>
+</tr>
+
+<tr>
+    <td bgcolor="#FFFF00">30%-39.9%</td>
+    <td bgcolor="#FFFF00">50%-79.9%</td>
+    <td bgcolor="#FFFF00">30%-49.9%</td>
+    <td bgcolor="#FFFF00">50%-79.9%</td>
+    <td bgcolor="#FFFF00">50%-79.9%</td>
+    <td bgcolor="#FFFF00">80%-89.9%</td>
+    <td bgcolor="#FFFF00">=>5%</td>
+    <td bgcolor="#FFFF00">80%-89.9%</td>
+    <td bgcolor="#FFFF00">80%-89.9%</td>
+</tr>
+
+<tr>
+    <td bgcolor="#FF0000">
+        <30%</td>
+            <td bgcolor="#FF0000">
+                <50%</td>
+                    <td bgcolor="#FF0000">
+                        <30%</td>
+                            <td bgcolor="#FF0000">
+                                <50%</td>
+                                    <td bgcolor="#FF0000">
+                                        <50%</td>
+                                            <td bgcolor="#FF0000">
+                                                <80%</td>
+                                                    <td bgcolor="#FF0000">=>5%</td>
+                                                    <td bgcolor="#FF0000">
+                                                        <80%</td>
+                                                            <td bgcolor="#FF0000">
+                                                                <80%</td>
+</tr>
+</table>
+ <p></p>
+ <table id=table_001  border="1">
+
+    <tr>
+    <th>Health Facility</th>
+    <th># of women of gestation age of 23  weeks and more   who received IPT3 or more doze</th>
+    <th># of women eligible for IPT3 (gestation age of 23 weeks and more)</th>
+    <th>1. IPT3 coverage</th>
+
+    <th># of women giving birth who received an Uterotonics</th> 
+    <th>Total deliveries in a month</th>
+    <th>2. Management of 3rd stage of labor</th>
+
+    <th># of newborns not breathing who were successfully resuscitated</th>
+    <th># of babies born with birth asphyxia</th> 
+    <th>3. Management of birth asphyxia (resuscitated)</th>
+
+
+    <th># of cases of diarrhoea in children U5  treated at the facility</th>
+    <th>Total # of children under 5 with diarrhoea</th>
+    <th>4. Treatment of diarrhoeas in the U5s</th> 
+
+    <th># of cases of child pneumonia treated at the facility with recommended drug</th>
+    <th>Total # of children under 5 with Pnuemonia</th>
+    <th>5. Treatment of pneumonia with appropriate drugs</th>
+
+    <th># of  HIV positive pregnant women  still on treatment 3  months after initiation of ART</th> 
+    <th># of HIV+ Pregnant  mothers initiated on ART 3 months ago</th>
+    <th>6. PMTCT early retention</th>
+
+    <th># of positive infants identified at 6-8 weeks</th>
+    <th># of infants done 1st PCR between 6-8 weeks</th>
+    <th>7. MTCT rates within 6-8 weeks</th>
+
+    <th># of children U5 treated for simple malaria in OPD with 1st line treatment</th>
+    <th>Total # of children under five treated for simple malaria in OPD</th>
+    <th>8. Simple malaria treatment</th> 
+
+    <th># receiving a 1st-line severe malaria drug among children U5 admitted with severe malaria</th>
+    <th>Total # of children U5 treated for severe malaria at the facility</th>
+    <th>9. Severe malaria treatment</th>
+    
+    </tr>
+
+        {% for item in mms_scorecard_data %}
+        <tr> 
+            <td>{{ item.healthfacility }}</td>
+
+            <td>{{ item.ipt2_n }}</td>
+            <td>{{ item.ipt2_d }}</td>
+            {% if item.ipt2 >= 40 %}
+            <td bgcolor="#008000" align="center">{{ item.ipt2|floatformat:2 }}%</td>
+            {% elif item.ipt2 >= 30 and item.ipt2 < 39.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.ipt2|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.ipt2|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.amtsl_n }}</td>
+            <td>{{ item.amtsl_d }}</td>
+            {% if item.man3stage >= 80 %}
+            <td bgcolor="#008000" align="center">{{ item.man3stage|floatformat:2 }}%</td>
+            {% elif item.man3stage >= 50 and item.man3stage < 79.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.man3stage|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.man3stage|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.asphyxia_n }}</td>
+            <td>{{ item.asphyxia_d }}</td>
+            {% if item.manbirth >= 50 %}
+            <td bgcolor="#008000" align="center">{{ item.manbirth|floatformat:2 }}%</td>
+            {% elif item.manbirth >= 30 and item.manbirth < 49.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.manbirth|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.manbirth|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.diarrhea_n }}</td>
+            <td>{{ item.diarrhea_d }}</td>
+            {% if item.treatd >= 80 %}
+            <td bgcolor="#008000" align="center">{{ item.treatd|floatformat:2 }}%</td>
+            {% elif item.treatd >= 50 and item.treatd < 79.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.treatd|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.treatd|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.pneumonia_n }}</td>
+            <td>{{ item.pneumonia_d }}</td>
+            {% if item.treatp >= 80 %}
+            <td bgcolor="#008000" align="center">{{ item.treatp|floatformat:2 }}%</td>
+            {% elif item.treatp >= 50 and item.treatp < 79.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.treatp|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.treatp|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.ret_n }}</td>
+            <td>{{ item.ret_d }}</td>
+            {% if item.pmtct >= 90 %}
+            <td bgcolor="#008000" align="center">{{ item.pmtct|floatformat:2 }}%</td>
+            {% elif item.pmtct >= 80 and item.pmtct < 89.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.pmtct|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.pmtct|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.hei_n }}</td>
+            <td>{{ item.hei_d }}</td>
+            {% if item.mtct < 5 %}
+            <td bgcolor="#008000" align="center">{{ item.mtct|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.mtct|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.simple_malaria_n }}</td>
+            <td>{{ item.simple_malaria_d }}</td>
+            {% if item.simple >= 90 %}
+            <td bgcolor="#008000" align="center">{{ item.simple|floatformat:2 }}%</td>
+            {% elif item.simple >= 80 and item.simple < 89.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.simple|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.simple|floatformat:2 }}%</td>
+            {% endif %}
+
+            <td>{{ item.severe_malaria_n }}</td>
+            <td>{{ item.severe_malaria_d }}</td>
+            {% if item.severe >= 90 %}
+            <td bgcolor="#008000" align="center">{{ item.severe|floatformat:2 }}%</td>
+            {% elif item.severe >= 80 and item.severe < 89.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.severe|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.severe|floatformat:2 }}%</td>
+            {% endif %}
+        </tr>
+
+        {% endfor %}
+        
+
+ </table>
+
+ {% endblock %}

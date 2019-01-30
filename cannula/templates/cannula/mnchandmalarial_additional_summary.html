@@ -1,0 +1,313 @@
+{% extends "cannula/report_base.html" %} {% block title %}Malaria and RMNCH (additional indicators) Summary{% endblock %}
+{% block heading %}
+<h1 align="center">Malaria and RMNCH (additional indicators)</h1>
+<h1 align="center">Summary Results</h1>
+{% endblock %} {% block datacell %}
+<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %} {% block content %}
+
+<script type="text/javascript">
+    function ExportToExcel(table_001) {
+        var htmltable = document.getElementById('table_001');
+        var html = htmltable.outerHTML;
+        window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+    }
+</script>
+
+<script type="text/javascript">
+    function ExportToExcelDOOS(table_002) {
+        var htmltable = document.getElementById('table_002');
+        var html = htmltable.outerHTML;
+        window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+    }
+</script>
+
+<style>
+    td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    th {
+        text-align: center;
+
+    }
+</style>
+
+<style id=mystyle>
+    .btn1 {
+        background-color: DodgerBlue;
+        border: none;
+        color: white;
+        padding: 10px 25px;
+        cursor: pointer;
+        font-size: 20;
+    }
+
+    /* Darker background on mouse-over */
+    .btn1:hover {
+        background-color: RoyalBlue;
+    }
+</style>
+
+<h1 class="center-align red lighten-3">{{title}}</h1>
+<button id="btnExport" onclick="ExportToExcel();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download
+    Summary table </button>
+<p><br><br></p>
+<table id=table_001 border="1" align="center">
+    <tr>
+        <th>Reporting period</th>
+        <th>1. IPT2 coverage</th>
+        <th>2. Management of 3rd stage of labor</th>
+        <th>3. Management of birth asphyxia (resuscitated)</th>
+        <th>4. Treatment of diarrhoeas in the U5s</th>
+        <th>5. Treatment of pneumonia with appropriate drugs</th>
+        <th>6. PMTCT early retention</th>
+        <th>7. MTCT rates within 6-8 weeks</th>
+        <th>8. Simple malaria treatment</th>
+        <th>9. Severe malaria treatment</th>
+    </tr>
+
+    <tr>
+        <td></td>
+        <td bgcolor="#008000">>=40%</td>
+        <td bgcolor="#008000">>=80%</td>
+        <td bgcolor="#008000">>=50%</td>
+        <td bgcolor="#008000">>=80%</td>
+        <td bgcolor="#008000">>=80%</td>
+        <td bgcolor="#008000">>90%</td>
+        <td bgcolor="#008000">
+            <5%</td>
+                <td bgcolor="#008000">>90%</td>
+                <td bgcolor="#008000">> 90%</td>
+    </tr>
+
+    <tr>
+        <td></td>
+        <td bgcolor="#FFFF00">30%-39.9%</td>
+        <td bgcolor="#FFFF00">50%-79.9%</td>
+        <td bgcolor="#FFFF00">30%-49.9%</td>
+        <td bgcolor="#FFFF00">50%-79.9%</td>
+        <td bgcolor="#FFFF00">50%-79.9%</td>
+        <td bgcolor="#FFFF00">80%-89.9%</td>
+        <td bgcolor="#FFFF00">=>5%</td>
+        <td bgcolor="#FFFF00">80%-89.9%</td>
+        <td bgcolor="#FFFF00">80%-89.9%</td>
+    </tr>
+
+    <tr>
+        <td></td>
+        <td bgcolor="#FF0000">
+            <30%</td>
+                <td bgcolor="#FF0000">
+                    <50%</td>
+                        <td bgcolor="#FF0000">
+                            <30%</td>
+                                <td bgcolor="#FF0000">
+                                    <50%</td>
+                                        <td bgcolor="#FF0000">
+                                            <50%</td>
+                                                <td bgcolor="#FF0000">
+                                                    <80%</td>
+                                                        <td bgcolor="#FF0000">=>5%</td>
+                                                        <td bgcolor="#FF0000">
+                                                            <80%</td>
+                                                                <td bgcolor="#FF0000">
+                                                                    <80%</td>
+    </tr>
+
+    <tr>
+        <td colspan="10"><br></td>
+    </tr>
+
+    {% for item in mms_summary %}
+
+    <tr>
+            <td>{{ item.period|date:"M-Y" }}</td>
+
+            {% if item.ipt2 >= 40 %}
+            <td bgcolor="#008000" align="center">{{ item.ipt2|floatformat:2 }}%</td>
+            {% elif item.ipt2 >= 30 and item.ipt2 < 39.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.ipt2|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.ipt2|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.man3stage >= 80 %}
+            <td bgcolor="#008000" align="center">{{ item.man3stage|floatformat:2 }}%</td>
+            {% elif item.man3stage >= 50 and item.man3stage < 79.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.man3stage|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.man3stage|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.manbirth >= 50 %}
+            <td bgcolor="#008000" align="center">{{ item.manbirth|floatformat:2 }}%</td>
+            {% elif item.manbirth >= 30 and item.manbirth < 49.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.manbirth|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.manbirth|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.treatd >= 80 %}
+            <td bgcolor="#008000" align="center">{{ item.treatd|floatformat:2 }}%</td>
+            {% elif item.treatd >= 50 and item.treatd < 79.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.treatd|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.treatd|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.treatp >= 80 %}
+            <td bgcolor="#008000" align="center">{{ item.treatp|floatformat:2 }}%</td>
+            {% elif item.treatp >= 50 and item.treatp < 79.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.treatp|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.treatp|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.pmtct >= 90 %}
+            <td bgcolor="#008000" align="center">{{ item.pmtct|floatformat:2 }}%</td>
+            {% elif item.pmtct >= 80 and item.pmtct < 89.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.pmtct|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.pmtct|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.mtct < 5 %}
+            <td bgcolor="#008000" align="center">{{ item.mtct|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.mtct|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.simple >= 90 %}
+            <td bgcolor="#008000" align="center">{{ item.simple|floatformat:2 }}%</td>
+            {% elif item.simple >= 80 and item.simple < 89.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.simple|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.simple|floatformat:2 }}%</td>
+            {% endif %}
+
+            {% if item.severe >= 90 %}
+            <td bgcolor="#008000" align="center">{{ item.severe|floatformat:2 }}%</td>
+            {% elif item.severe >= 80 and item.severe < 89.9  %}
+            <td bgcolor="#FFFF00" align="center">{{ item.severe|floatformat:2 }}%</td>
+            {% else %}
+            <td bgcolor="#FF0000" align="center">{{ item.severe|floatformat:2 }}%</td>
+            {% endif %}
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+<p><br><br></p>
+<h1 align="center">Days Out of Stock Summary Results</h1>
+
+<p><br></p>
+ <button id="btnExport" onclick="ExportToExcelDOOS();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download DOOS
+    Summary table </button>
+
+    <p><br></p>
+    <table width="400" border="1"  align="center" border-spacing: 5px>
+            <tr>
+                    <th>Legend</th>
+                    <th bgcolor="#008000" >0</th>
+                    <th bgcolor="#FF0000" >>0</th>
+                   
+            </tr>
+    </table>
+     <p></p>
+ <table id=table_002 border="1" align="center">
+        <tr>
+            <th>Reporting period</th>
+            <th>DOS: Female condoms</th>
+            <th>DOS: Male condoms</th>
+            <th>DOS: Moon beads</th>
+            <th>DOS: Implanon</th>
+            <th>DOS: Jadelle</th>
+            <th>DOS: IUD</th>
+            <th>DOS: Depo Provera</th>
+            <th>DOS: Sayana Press</th>
+            <th>DOS: Pills</th>
+            <th>DOS: Emergency pills</th>
+        </tr>
+
+        {% for item in doos_summary %}
+
+        <tr>
+                <td>{{ item.period|date:"M-Y" }}</td>
+    
+                {% if item.dfcondoms <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dfcondoms|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dfcondoms|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dmcondoms <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dmcondoms|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dmcondoms|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dmbeads <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dmbeads|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dmbeads|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dimplanon <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dimplanon|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dimplanon|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.djadelle <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.djadelle|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.djadelle|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.diud <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.diud|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.diud|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.ddepoprovera <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.ddepoprovera|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.ddepoprovera|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dsayana <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dsayana|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dsayana|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dpills <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dpills|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dpills|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.depills <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.depills|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.depills|floatformat:0 }}</td>
+                {% endif %}
+        </tr>
+
+        {% endfor %}
+
+  </table>
+
+<h4>Dashboard</h4>
+<ul>
+    <li><a href="{% url 'mnchandmalarial_additional_scorecard' %}">RMNCH & Malaria by District</a></li>
+    <li><a href="{% url 'read_data_mms_scorecard_data_facility' %}">RMNCH & Malaria by Health facility</a></li>
+    <li><a href="{% url 'mnchandmalarial_additional_scorecard_doos_facility' %}">Days Out of Stock by Health facility</a></li>
+</ul>
+
+{% endblock %}

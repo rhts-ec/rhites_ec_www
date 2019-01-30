@@ -1,6 +1,6 @@
 {% extends "startmin/base.html" %}
 {% block title %}RHITES-EC Performance Monitoring Tool{% endblock %}
-{% block page-header %} Scorecards {% endblock %}
+{% block page-header %} Dashboard {% endblock %}
 {% block content %}
 {% if grouped_data %}
 <script src="/static/startmin/js/jquery.min.js"></script>
@@ -74,7 +74,7 @@ $(document).ready(function() {
 </p>
 {% endif %}
 
-<h4>Scorecards</h4>
+<h4>Dashboard</h4>
 
 {% if 'malaria' in request.path %}
 <ul>
@@ -108,8 +108,10 @@ $(document).ready(function() {
 
 {% if 'pmtct' in request.path %}
 <ul>
-	<li><a href="{% url 'pmtct_sites' %}">PMTCT - Facilities</a></li>
-	<li><a href="{% url 'pmtct_districts' %}">PMTCT - Districts</a></li>
+	<!--<li><a href="{% url 'pmtct_sites' %}">PMTCT - Facilities</a></li>
+	<li><a href="{% url 'pmtct_districts' %}">PMTCT - Districts</a></li>-->
+	<li><a href="{% url 'pmtct_districts_new' %}">PMTCT - Districts</a></li>
+	<li><a href="{% url 'pmtct_scorecard_new_facility' %}">PMTCT - Facilities</a></li>
 </ul>
 {% endif %}
 
@@ -129,6 +131,7 @@ $(document).ready(function() {
 	<li><a href="{% url 'vl_sites' %}">Viral Load - Facilities</a></li>
 	<li><a href="{% url 'vl_districts' %}">Viral Load - Districts</a></li>
 </ul>
+
 {% endif %}
 
 {% if 'fp' in request.path %}
@@ -145,7 +148,6 @@ $(document).ready(function() {
 	<li><a href="{% url 'tb_sites' %}">TB and TB/HIV - Facilities</a></li>
 	<li><a href="{% url 'tb_districts' %}">TB and TB/HIV - Districts</a></li>
 	<li><a href="{% url 'prev_summary' %}">TB Prev Summary</a></li>
-	<li><a href="{% url 'prev' %}">TB Prev Facilities</a></li>
 </ul>
 {% endif %}
 
@@ -179,12 +181,17 @@ $(document).ready(function() {
 	<li><a href="{% url 'mnch_preg_birth_districts' %}">MNCH: Pregnancy &amp; Birth - Districts</a></li>
 	<li><a href="{% url 'mnch_pnc_child_subcounties' %}">MNCH: PNC, Neonatal and Child Health - Subcounties</a></li>
 	<li><a href="{% url 'mnch_pnc_child_districts' %}">MNCH: PNC, Neonatal and Child Health - Districts</a></li>
+
+	<li><a href="{% url 'mnchandmalarial_additional_summary' %}">RMNCH & Malaria(Additional)</a></li>
 </ul>
 {% endif %}
 
 {% if 'lqas' in request.path %}
 <ul>
 	<li><a href="{% url 'lqas_districts' %}">LQAS - Districts</a></li>
+</ul>
+<ul>
+	<li><a href="{% url 'lqas_districts_child' %}">LQAS - Districts-Children</a></li>
 </ul>
 {% endif %}
 

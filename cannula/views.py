@@ -7,7 +7,7 @@ from django.http import Http404, HttpResponse
 from django.template import RequestContext
 from django.core.urlresolvers import reverse
 
-from datetime import date
+from datetime import date,datetime,timedelta
 from decimal import Decimal
 from itertools import groupby, tee, chain, product
 from collections import OrderedDict
@@ -17,11 +17,18 @@ import openpyxl
 from . import dateutil, grabbag
 from .grabbag import default_zero, default, sum_zero, all_not_none, grouper
 
-from .models import TbPrevTargets,TbPrev_Scorecard,TbPrev,DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
+from .models import pmtcteid_dashboard,pmtcteid,pmtcteid_targets,DOOS,mnchandmal,RMNCHAndMalaria,Lab,LabTargets,Lab_Scorecard,TbPrevTargets,TbPrev_Scorecard,TbPrev,DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
 from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
 
 from .dashboards import LegendSet
 
+def home(request):
+    context = {
+        'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
+    }
+    return render(request, 'cannula/home.html', context)
+
+@login_required
 def index(request):
     context = {
         'validation_rules': ValidationRule.objects.all().values_list('id', 'name')
@@ -689,7 +696,7 @@ def malaria_cases_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/malaria_cases_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
-
+@login_required
 def malaria_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -1423,7 +1430,7 @@ def data_element_alias(request):
         raise Http404("Data Element does not exist or data element id is missing/invalid")
 
     return render_to_response('cannula/data_element_edit_alias.html', context, context_instance=RequestContext(request))
-
+@login_required
 def hiv_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -3170,7 +3177,7 @@ def pmtct_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/pmtct_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
-
+@login_required
 def vmmc_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -3666,7 +3673,7 @@ def vmmc_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/vmmc_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
-
+@login_required
 def lab_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -6035,7 +6042,7 @@ def tb_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/tb_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
-
+@login_required
 def nutrition_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -8298,7 +8305,7 @@ def art_active_scorecard(request, org_unit_level=3, output_format='HTML'):
     }
 
     return render(request, 'cannula/art_active_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
-
+@login_required
 def mnch_dashboard(request):
     this_day = date.today()
     this_quarter = '%d-Q%d' % (this_day.year, month2quarter(this_day.month))
@@ -10052,18 +10059,23 @@ def kp_scorecard(request, org_unit_level=3, output_format='HTML'):
         'district_list': DISTRICT_LIST,
         'excel_url': make_excel_url(request.path),
         'csv_url': make_csv_url(request.path),
+        #'start_period': True,
+        #'end_period': True,
         'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
     }
 
     return render(request, 'cannula/kp_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
 
 #reports logic
+@login_required
 def indexreport(request):
     return render(request, 'cannula/index_reports.html')
 
+@login_required
 def reports_sites_2016_to_2017(request):
     return render(request, 'cannula/performance_summary_oct_2016–sep_2017.html')
 
+@login_required
 def reports_sites_2017_to_2018(request):
     return render(request, 'cannula/performance_summary_oct_2017–sep_2018.html')
 
@@ -10318,3 +10330,1688 @@ def sum_tb_prev_summary(column1):
     cursor.execute('SELECT SUM ('+column1+') FROM cannula_tbprev;')
 
     return int(cursor.fetchone()[0])
+
+@login_required
+def vl_lab(request, output_format='HTML'):
+    
+    prev_scorecard_data  =   []
+    PERIOD_LIST = list(Lab.objects.all().order_by('period').values_list('period', flat=True).distinct())
+    PERIOD_LIST.append("None")
+    DISTRICT_LIST = list(Lab.objects.all().order_by('district').values_list('district', flat=True).distinct())
+
+    #Jacob filter logic and load all content code
+    if 'district' in request.GET and 'period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period   = request.GET.get('period')
+
+        if request.GET.get('district') == "" and request.GET.get('period') != "None":
+            query_results = Lab.objects.filter(period='%s' %(request.GET.get('period')))
+        elif request.GET.get('district') == "" and request.GET.get('period') == "None":
+            filter_district = None
+            filter_period   = None
+            query_results = Lab.objects.all()
+
+        else:
+            query_results = Lab.objects.filter(district='%s' %(request.GET.get('district')), period='%s' %(request.GET.get('period')))        
+    elif 'district' in request.GET and 'start_period' in request.GET and 'end_period' in request.GET:
+       filter_district = None
+       filter_period   = None
+       return HttpResponse('in all ' + request.GET.get('district') + ' ' + request.GET.get('start_period') + ' ' + request.GET.get('facility'))
+
+    else:
+        filter_district = None
+        filter_period   = None
+        query_results = Lab.objects.all()
+       
+
+    vl_lab_scorecard_data =[] #read_data_tb_prev_scorecard(query_results)
+
+    facility_list=['None','Hospital A','Hospital B','Hospital C']
+
+    context = {
+    'vl_lab_scorecard_data': vl_lab_scorecard_data,
+    'period_desc': filter_period,
+    'period_list': PERIOD_LIST,
+    'district_list': DISTRICT_LIST,
+    'start_period': True,
+    'end_period': True,
+    'facility': True,
+    'facility_list': facility_list,
+
+    } 
+    return render(request, 'cannula/vl_lab_facilities.html', context)
+
+#lqas children
+@login_required
+def lqas_scorecard_child(request, org_unit_level=3, output_format='HTML'):
+    this_day = date.today()
+    this_year = this_day.year
+    PREV_5YRS = ['%d' % (y,) for y in range(this_year, this_year-6, -1)]
+    DISTRICT_LIST = list(OrgUnit.objects.filter(level=1).order_by('name').values_list('name', flat=True))
+    OU_PATH_FIELDS = OrgUnit.level_fields(org_unit_level)[1:] # skip the topmost/country level
+    # annotations for data collected at district level
+    DISTRICT_LEVEL_ANNOTATIONS = { k:v for k,v in OrgUnit.level_annotations(1, prefix='org_unit__').items() if k in OU_PATH_FIELDS }
+
+    if 'period' in request.GET and request.GET['period'] in PREV_5YRS:
+        filter_period=request.GET['period']
+    else:
+        filter_period = '%d' % (this_year,)
+
+    period_desc = filter_period
+
+    if 'district' in request.GET and request.GET['district'] in DISTRICT_LIST:
+        filter_district = OrgUnit.objects.get(name=request.GET['district'])
+    else:
+        filter_district = None
+
+    # # all facilities (or equivalent)
+    qs_ou = OrgUnit.objects.filter(level=org_unit_level).annotate(**OrgUnit.level_annotations(org_unit_level))
+    if filter_district:
+        qs_ou = qs_ou.filter(Q(lft__gte=filter_district.lft) & Q(rght__lte=filter_district.rght))
+    qs_ou = qs_ou.order_by(*OU_PATH_FIELDS)
+
+    ou_list = list(qs_ou.values_list(*OU_PATH_FIELDS))
+    ou_headers = OrgUnit.level_names(org_unit_level)[1:] # skip the topmost/country level
+
+    def orgunit_vs_de_catcombo_default(row, col):
+        val_dict = dict(zip(OU_PATH_FIELDS, row))
+        de_name, subcategory = col
+        val_dict.update({ 'cat_combo': subcategory, 'de_name': de_name, 'numeric_sum': None })
+        return val_dict
+
+    data_element_metas = list()
+
+    lqas_de_names = (
+        '% of mothers of children (0-11 months) who were counseled and received an HIV test during the last pregnancy and know their results',
+        '% of individuals who were tested for HIV and received their result as a couple',
+        '% of mothers of children 0-11 months who were counselled for PMTCT services during the last pregnancy',
+        '% of mothers who went for ANC 1 within the first trimester',
+        '% of children 0-23 months who had fever in the two weeks preceding the survey and received treatment with ACTs within 24 hours of onset of fever',
+        '% of children 0-23 months who had fever in the two weeks preceding the survey and blood sample was taken for testing and was given ACT',
+        'Proportion of children (0-59) months who had a fever in the last two weeks and were tested for malaria',
+        '% of mothers of children 0-23 months who received two or more doses of IPT2 during their last pregnancy',
+        '% of children 0-59 months who slept under a ITN the night preceding the survey',
+        '% of mothers of children 0-59 months who always slept under an ITN during last pregnancy',
+        '% of mothers of children 0-59 months who know two or more ways to prevent malaria',
+        '% of mothers of children under fiver years who know two or more signs and  symptoms of malaria ',
+        '% of mothers of children under five years who know how malaria is transmitted',
+        '% of Households with at least one ITN',
+        '% of mothers of children 0-11 months who attended ANC at least 4 times during last pregnancy',
+        '% of mothers of children 0-11 months who delivered their last baby in a health facility',
+        '% of mothers of children 0-11 months who were assisted by a trained health worker during delivery',
+        '% of children 12-23 months who are fully vaccinated',
+        '% of children below one year who have received PCV3 (OPCV 3 coverage)',
+        '% of children, ages 12–23 months, who received measles vaccine at the time of the survey (Measles vaccination coverage)',
+        '% of children 0-11 months  with diarrhea in the last two weeks receiving ORT',
+        '% of children 0-23 months with any of  fever, diarrhea or pneumonia seeking care from health workers within 24 hours of illness',
+        'Proportion of mothers initiating breastfeeding within 1 hour after birth',
+        '% of children aged under five years who have received a 2nd dose for deworming',
+        'Proportion of Mothers receiving PNC checks within 6 days',
+        '% of mothers who attended PNC visit within 6 weeks postpartum',
+        '% of children aged 12-23 months receiving a minimum of acceptable diet.',
+        '% of children under  6 months of age who are exclusively breastfed',
+        '% of children 12-23 months receiving vitamin A supplementation in the last six months',
+        '% of households using Iodized salt',
+        '% of mothers with children 12-23 months  who consumed the 3 major food groups in the last 24 hours',
+        '% of mothers of children age 0-11 months who took iron supplementary tablets for at least 90 days during the last pregnancy',
+        '% of mothers of children 0-11 months who received Vitamin A supplementation within 2 months after delivery',
+        'Proportion of children under two (0-23 months) reached with community-level nutrition interventions through USG-supported programs',
+        'Proportion of men and women who say health service delivery in public health facilities has improved in the last year',
+    )
+    de_lqas_meta = list(product(lqas_de_names, (None,)))
+    data_element_metas += list(product(lqas_de_names, (None,)))
+
+    qs_lqas = DataValue.objects.what(*lqas_de_names)
+    qs_lqas = qs_lqas.annotate(cat_combo=Value(None, output_field=CharField()))
+    if filter_district:
+        qs_lqas = qs_lqas.where(filter_district)
+    qs_lqas = qs_lqas.annotate(**DISTRICT_LEVEL_ANNOTATIONS)
+    qs_lqas = qs_lqas.when(filter_period)
+    qs_lqas = qs_lqas.order_by(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period')
+    val_lqas = qs_lqas.values(*OU_PATH_FIELDS, 'de_name', 'cat_combo', 'period').annotate(values_count=Count('numeric_value'), numeric_sum=Sum('numeric_value'))
+
+    gen_raster = grabbag.rasterize(ou_list, de_lqas_meta, val_lqas, ou_path_from_dict, lambda x: (x['de_name'], x['cat_combo']), orgunit_vs_de_catcombo_default)
+    val_lqas2 = list(gen_raster)
+
+    # combine the data and group by district, subcounty and facility
+    grouped_vals = groupbylist(sorted(chain(val_lqas2), key=ou_path_from_dict), key=ou_path_from_dict)
+    if True:
+        grouped_vals = list(filter_empty_rows(grouped_vals))
+
+    num_path_elements = len(ou_headers)
+    legend_sets = list()
+    bfk_ls = LegendSet()
+    bfk_ls.name = 'LQAS - BFK'
+    bfk_ls.add_interval('red', 0, 40)
+    bfk_ls.add_interval('yellow', 40, 60)
+    bfk_ls.add_interval('green', 60, None)
+    bfk_ls.mappings[num_path_elements+1] = True
+    bfk_ls.mappings[num_path_elements+12] = True
+    bfk_ls.mappings[num_path_elements+17] = True
+    legend_sets.append(bfk_ls)
+    cdi_ls = LegendSet()
+    cdi_ls.name = 'LQAS - CDI'
+    cdi_ls.add_interval('red', 0, 45)
+    cdi_ls.add_interval('yellow', 45, 65)
+    cdi_ls.add_interval('green', 65, None)
+    cdi_ls.mappings[num_path_elements+2] = True
+    cdi_ls.mappings[num_path_elements+3] = True
+    cdi_ls.mappings[num_path_elements+6] = True
+    legend_sets.append(cdi_ls)
+    e_ls = LegendSet()
+    e_ls.name = 'LQAS - E'
+    e_ls.add_interval('red', 0, 5.9)
+    e_ls.add_interval('yellow', 5.9, 17.7)
+    e_ls.add_interval('green', 17.7, None)
+    e_ls.mappings[num_path_elements+13] = True
+    legend_sets.append(e_ls)
+    gs_ls = LegendSet()
+    gs_ls.name = 'LQAS - GS'
+    gs_ls.add_interval('red', 0, 18.3)
+    gs_ls.add_interval('yellow', 18.3, 55)
+    gs_ls.add_interval('green', 55, None)
+    gs_ls.mappings[num_path_elements+4] = True
+    gs_ls.mappings[num_path_elements+7] = True
+    legend_sets.append(gs_ls)
+    h_ls = LegendSet()
+    h_ls.name = 'LQAS - H'
+    h_ls.add_interval('red', 0, 3.3)
+    h_ls.add_interval('yellow', 3.3, 10)
+    h_ls.add_interval('green', 10, None)
+    h_ls.mappings[num_path_elements+8] = True
+    legend_sets.append(h_ls)
+    jrt_ls = LegendSet()
+    jrt_ls.name = 'LQAS - JRT'
+    jrt_ls.add_interval('red', 0, 26.7)
+    jrt_ls.add_interval('yellow', 26.7, 80)
+    jrt_ls.add_interval('green', 80, None)
+    jrt_ls.mappings[num_path_elements+9] = True
+    jrt_ls.mappings[num_path_elements+15] = True
+    jrt_ls.mappings[num_path_elements+18] = True
+    legend_sets.append(jrt_ls)
+    l_ls = LegendSet()
+    l_ls.name = 'LQAS - L'
+    l_ls.add_interval('red', 0, 27.3)
+    l_ls.add_interval('yellow', 27.3, 82)
+    l_ls.add_interval('green', 82, None)
+    l_ls.mappings[num_path_elements+14] = True
+    legend_sets.append(l_ls)
+    m_ls = LegendSet()
+    m_ls.name = 'LQAS - M'
+    m_ls.add_interval('red', 0, 31)
+    m_ls.add_interval('yellow', 31, 93)
+    m_ls.add_interval('green', 93, None)
+    m_ls.mappings[num_path_elements+16] = True
+    legend_sets.append(m_ls)
+    n_ls = LegendSet()
+    n_ls.name = 'LQAS - N'
+    n_ls.add_interval('red', 0, 10)
+    n_ls.add_interval('yellow', 10, 30)
+    n_ls.add_interval('green', 30, None)
+    n_ls.mappings[num_path_elements+5] = True
+    legend_sets.append(n_ls)
+    o_ls = LegendSet()
+    o_ls.name = 'LQAS - O'
+    o_ls.add_interval('red', 0, 30)
+    o_ls.add_interval('yellow', 30, 90)
+    o_ls.add_interval('green', 90, None)
+    o_ls.mappings[num_path_elements+0] = True
+    legend_sets.append(o_ls)
+    p_ls = LegendSet()
+    p_ls.name = 'LQAS - P'
+    p_ls.add_interval('red', 0, 8.3)
+    p_ls.add_interval('yellow', 8.3, 25)
+    p_ls.add_interval('green', 25, None)
+    p_ls.mappings[num_path_elements+19] = True
+    legend_sets.append(p_ls)
+    q_ls = LegendSet()
+    q_ls.name = 'LQAS - Q'
+    q_ls.add_interval('red', 0, 50)
+    q_ls.add_interval('yellow', 50, 75)
+    q_ls.add_interval('green', 75, None)
+    q_ls.mappings[num_path_elements+20] = True
+    legend_sets.append(q_ls)
+
+
+    def grouped_data_generator(grouped_data):
+        for group_ou_path, group_values in grouped_data:
+            yield (*group_ou_path, *tuple(map(lambda val: val['numeric_sum'], group_values)))
+
+    if output_format == 'CSV':
+        import csv
+        value_rows = list()
+        value_rows.append((*ou_headers, *data_element_metas))
+        for row in grouped_data_generator(grouped_vals):
+            value_rows.append(row)
+
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="lqas_{0}_scorecard.csv"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerows(value_rows)
+
+        return response
+
+    if output_format == 'EXCEL':
+        wb = openpyxl.workbook.Workbook()
+        ws = wb.active # workbooks are created with at least one worksheet
+        ws.title = 'Sheet1' # unfortunately it is named "Sheet" not "Sheet1"
+        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+
+        headers = chain(ou_headers, data_element_metas)
+        for i, name in enumerate(headers, start=1):
+            c = ws.cell(row=1, column=i)
+            if not isinstance(name, tuple):
+                c.value = str(name)
+            else:
+                de, cat_combo = name
+                if cat_combo is None:
+                    c.value = str(de)
+                else:
+                    c.value = str(de) + '\n' + str(cat_combo)
+        for i, g in enumerate(grouped_vals, start=2):
+            ou_path, g_val_list = g
+            for col_idx, ou in enumerate(ou_path, start=1):
+                ws.cell(row=i, column=col_idx, value=ou)
+            for j, g_val in enumerate(g_val_list, start=len(ou_path)+1):
+                ws.cell(row=i, column=j, value=g_val['numeric_sum'])
+
+        # apply conditional formatting from LegendSets
+        for ls in legend_sets:
+            ls.apply_to_worksheet(ws)
+
+
+        response = HttpResponse(openpyxl.writer.excel.save_virtual_workbook(wb), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="lqas_{0}_scorecard.xlsx"'.format(OrgUnit.get_level_field(org_unit_level))
+
+        return response
+
+    context = {
+        'grouped_data': grouped_vals,
+        'ou_headers': ou_headers,
+        'data_element_names': data_element_metas,
+        'legend_sets': legend_sets,
+        'period_desc': period_desc,
+        'period_list': PREV_5YRS,
+        'district_list': DISTRICT_LIST,
+        'excel_url': make_excel_url(request.path),
+        'csv_url': make_csv_url(request.path),
+        'legend_set_mappings': { tuple([i-len(ou_headers) for i in ls.mappings]):ls.canonical_name() for ls in legend_sets },
+    }
+
+    return render(request, 'cannula/lqas_{0}.html'.format(OrgUnit.get_level_field(org_unit_level)), context)
+
+@login_required
+def mnchandmalarial_additional_summary(request, output_format='HTML'):
+    mms_summary=[]
+    doos_summary=[]
+    PERIOD_LIST = list(RMNCHAndMalaria.objects.all().order_by('reporting_period').values_list('reporting_period', flat=True).distinct())
+    
+    for i in PERIOD_LIST:   
+        mms=mnchandmal()
+        mms.period=i
+        mms.ipt2=rmnchandmalariasummary('ipt2_n','ipt2_d',i)
+        mms.man3stage=rmnchandmalariasummary('amtsl_n','amtsl_d',i)
+        mms.manbirth=rmnchandmalariasummary('asphyxia_n','asphyxia_d',i)
+        mms.treatd=rmnchandmalariasummary('diarrhea_n','diarrhea_d',i)
+        mms.treatp=rmnchandmalariasummary('pneumonia_n','pneumonia_d',i)
+        mms.pmtct=rmnchandmalariasummary('ret_n','ret_d',i)
+        mms.mtct=rmnchandmalariasummary('hei_n','hei_d',i)
+        mms.simple=rmnchandmalariasummary('simple_malaria_n','simple_malaria_d',i)
+        mms.severe=rmnchandmalariasummary('severe_malaria_n','severe_malaria_d',i)
+        mms_summary.append(mms)
+
+    for i in PERIOD_LIST:   
+        doos=DOOS()
+        doos.period=i
+        doos.dmcondoms=rmnchandmalariasummarydoos('dmcondoms',i)
+        doos.dfcondoms=rmnchandmalariasummarydoos('dfcondoms',i)
+        doos.dmbeads=rmnchandmalariasummarydoos('dmbeads',i)
+        doos.dimplanon=rmnchandmalariasummarydoos('dimplanon',i)
+        doos.djadelle=rmnchandmalariasummarydoos('djadelle',i)
+        doos.diud=rmnchandmalariasummarydoos('diud',i)
+        doos.ddepoprovera=rmnchandmalariasummarydoos('ddepoprovera',i)
+        doos.dsayana=rmnchandmalariasummarydoos('dsayana',i)
+        doos.dpills=rmnchandmalariasummarydoos('dpills',i)
+        doos.depills=rmnchandmalariasummarydoos('depills',i)
+        doos_summary.append(doos)
+
+    context = {
+    'mms_summary':mms_summary,
+    'doos_summary':doos_summary,
+    } 
+    return render(request, 'cannula/mnchandmalarial_additional_summary.html', context)
+
+def rmnchandmalariasummary(col_N,col_D,period):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where reporting_period=\'{}\';".format(col_N,period)
+    cursor.execute(str1)
+
+    str2="SELECT SUM ({}) FROM cannula_rmnchandmalaria where reporting_period=\'{}\';".format(col_D,period)
+    cursor1 = connection.cursor()
+    cursor1.execute(str2)
+    i = int(cursor1.fetchone()[0])
+    
+    if i!=0:
+        return (int(cursor.fetchone()[0])/i)*100
+    else:
+        return 0
+
+def rmnchandmalariasummarydoos(col,period):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where reporting_period=\'{}\';".format(col,period)
+    cursor.execute(str1)
+
+    str2="SELECT count(*) FROM cannula_rmnchandmalaria where reporting_period=\'{}\';".format(period)
+    cursor1 = connection.cursor()
+    cursor1.execute(str2)
+    i = int(cursor1.fetchone()[0])
+
+    if i!=0:
+        return int(int(cursor.fetchone()[0])/i)
+    else:
+        return 0
+
+def FormatedDate(filter_date):
+    if "." not in filter_date:
+        dt = datetime.strptime(filter_date,'%B %d, %Y')
+    else:
+        if "Sept." not in filter_date:
+            dt = datetime.strptime(filter_date,'%b. %d, %Y')
+        else:
+            dt_tmp=filter_date.replace("Sept.","Sep.")
+            dt=datetime.strptime(dt_tmp,'%b. %d, %Y')
+            
+    return  f"{dt:%Y-%m-%d}"
+
+@login_required
+def mnchandmalarial_additional_scorecard(request, output_format='HTML'):
+    
+    mms_scorecard_data  =   []
+    PERIOD_LIST=[]
+    querry_set=RMNCHAndMalaria.objects.all()
+    
+    PERIOD_LIST = list(querry_set.order_by('reporting_period').values_list('reporting_period', flat=True).distinct())
+    DISTRICT_LIST = list(querry_set.all().order_by('district').values_list('district', flat=True).distinct())
+    PERIOD_LIST.append("None")
+    #Jacob filter logic and load all content code
+    if 'district' in request.GET and 'start_period' in request.GET and 'end_period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period_start   = request.GET.get('start_period')
+        filter_period_end   = request.GET.get('end_period')
+
+        if request.GET.get('district') == "" and request.GET.get('start_period') != "None" and request.GET.get('end_period') != "None": 
+            mms_scorecard_data =read_data_mms_scorecard_data_period(DISTRICT_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),1)
+            
+        elif request.GET.get('district') == "" and request.GET.get('start_period') == "None" and request.GET.get('end_period') == "None":
+            filter_district = None
+            filter_period_start   = None
+            filter_period_end   = None
+            mms_scorecard_data =read_data_mms_scorecard_data(DISTRICT_LIST)
+
+        else:
+            if filter_district!="All districts":
+                mms_scorecard_data =read_data_mms_scorecard_data_period_district(FormatedDate(filter_period_start),FormatedDate(filter_period_end),filter_district) 
+            else:
+                filter_period_start   = None
+                filter_period_end   = None
+                mms_scorecard_data =read_data_mms_scorecard_data_period(DISTRICT_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),0)  
+    else:
+        filter_district = None
+        filter_period_start   = None
+        filter_period_end   = None
+        mms_scorecard_data =read_data_mms_scorecard_data(DISTRICT_LIST)
+
+    context = {
+    'mms_scorecard_data': mms_scorecard_data,
+    'period_desc': "From: {} To: {}".format(filter_period_start,filter_period_end),
+    'period_list': PERIOD_LIST,
+    'district_list': DISTRICT_LIST,
+    'start_period': True,
+    'end_period': True,
+    } 
+    return render(request, 'cannula/mnchandmalariaadditional.html', context)
+
+#by district
+def read_data_mms_scorecard_data(districtList):
+    scorecard_data_array=[]
+    for i in districtList:
+        mm=RMNCHAndMalaria()
+        mm.district = i
+        mm.ipt2_n=MMscomputefromDb_N("ipt2_n",i)
+        mm.ipt2_d=MMscomputefromDb_D("ipt2_d",i)
+        mm.ipt2=MMscompute(mm.ipt2_n,mm.ipt2_d)
+
+        mm.amtsl_n=MMscomputefromDb_N("amtsl_n",i)
+        mm.amtsl_d=MMscomputefromDb_D("amtsl_d",i)
+        mm.man3stage=MMscompute(mm.amtsl_n,mm.amtsl_d)
+
+        mm.asphyxia_n=MMscomputefromDb_N("asphyxia_n",i)
+        mm.asphyxia_d=MMscomputefromDb_D("asphyxia_d",i)
+        mm.manbirth=MMscompute(mm.asphyxia_n,mm.asphyxia_d)
+
+        mm.diarrhea_n=MMscomputefromDb_N("diarrhea_n",i)
+        mm.diarrhea_d=MMscomputefromDb_D("diarrhea_d",i)
+        mm.treatd=MMscompute(mm.diarrhea_n,mm.diarrhea_d)
+
+        mm.pneumonia_n=MMscomputefromDb_N("pneumonia_n",i)
+        mm.pneumonia_d=MMscomputefromDb_D("pneumonia_d",i)
+        mm.treatp=MMscompute(mm.pneumonia_n,mm.pneumonia_d)
+
+        mm.ret_n=MMscomputefromDb_N("ret_n",i)
+        mm.ret_d=MMscomputefromDb_D("ret_d",i)
+        mm.pmtct=MMscompute(mm.ret_n,mm.ret_d)
+
+        mm.hei_n=MMscomputefromDb_N("hei_n",i)
+        mm.hei_d=MMscomputefromDb_D("hei_d",i)
+        mm.mtct=MMscompute(mm.hei_n,mm.hei_d)
+
+        mm.simple_malaria_n=MMscomputefromDb_N("simple_malaria_n",i)
+        mm.simple_malaria_d=MMscomputefromDb_D("simple_malaria_d",i)
+        mm.simple=MMscompute(mm.simple_malaria_n,mm.simple_malaria_d)
+
+        mm.severe_malaria_n=MMscomputefromDb_N("severe_malaria_n",i)
+        mm.severe_malaria_d=MMscomputefromDb_N("severe_malaria_d",i)
+        mm.severe=MMscompute(mm.severe_malaria_n,mm.severe_malaria_d)
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def MMscompute(Newmerator,Denominator):
+    if Denominator!=0:
+        return (Newmerator/Denominator)*100
+
+def MMscomputefromDb_N(col_N,district):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where district=\'{}\';".format(col_N,district)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def MMscomputefromDb_D(col_D,district):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where district=\'{}\';".format(col_D,district)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def MMscomputefromDb_DistrictPeriod(col,district,period,period_end):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where district=\'{}\' and reporting_period BETWEEN \'{}\' AND \'{}\';".format(col,district,period,period_end)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def MMscomputefromDb_Period(col,period,end_period):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where reporting_period BETWEEN \'{}\' AND \'{}\';".format(col,period,end_period)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def read_data_mms_scorecard_data_period_district(period,period_end,district):
+    scorecard_data_array=[]
+    i=district
+    mm=RMNCHAndMalaria()
+    mm.district = i
+    mm.ipt2_n=MMscomputefromDb_DistrictPeriod("ipt2_n",i,period,period_end)
+    mm.ipt2_d=MMscomputefromDb_DistrictPeriod("ipt2_d",i,period,period_end)
+    mm.ipt2=MMscompute(mm.ipt2_n,mm.ipt2_d)
+
+    mm.amtsl_n=MMscomputefromDb_DistrictPeriod("amtsl_n",i,period,period_end)
+    mm.amtsl_d=MMscomputefromDb_DistrictPeriod("amtsl_d",i,period,period_end)
+    mm.man3stage=MMscompute(mm.amtsl_n,mm.amtsl_d)
+
+    mm.asphyxia_n=MMscomputefromDb_DistrictPeriod("asphyxia_n",i,period,period_end)
+    mm.asphyxia_d=MMscomputefromDb_DistrictPeriod("asphyxia_d",i,period,period_end)
+    mm.manbirth=MMscompute(mm.asphyxia_n,mm.asphyxia_d)
+
+    mm.diarrhea_n=MMscomputefromDb_DistrictPeriod("diarrhea_n",i,period,period_end)
+    mm.diarrhea_d=MMscomputefromDb_DistrictPeriod("diarrhea_d",i,period,period_end)
+    mm.treatd=MMscompute(mm.diarrhea_n,mm.diarrhea_d)
+
+    mm.pneumonia_n=MMscomputefromDb_DistrictPeriod("pneumonia_n",i,period,period_end)
+    mm.pneumonia_d=MMscomputefromDb_DistrictPeriod("pneumonia_d",i,period,period_end)
+    mm.treatp=MMscompute(mm.pneumonia_n,mm.pneumonia_d)
+
+    mm.ret_n=MMscomputefromDb_DistrictPeriod("ret_n",i,period,period_end)
+    mm.ret_d=MMscomputefromDb_DistrictPeriod("ret_d",i,period,period_end)
+    mm.pmtct=MMscompute(mm.ret_n,mm.ret_d)
+
+    mm.hei_n=MMscomputefromDb_DistrictPeriod("hei_n",i,period,period_end)
+    mm.hei_d=MMscomputefromDb_DistrictPeriod("hei_d",i,period,period_end)
+    mm.mtct=MMscompute(mm.hei_n,mm.hei_d)
+
+    mm.simple_malaria_n=MMscomputefromDb_DistrictPeriod("simple_malaria_n",i,period,period_end)
+    mm.simple_malaria_d=MMscomputefromDb_DistrictPeriod("simple_malaria_d",i,period,period_end)
+    mm.simple=MMscompute(mm.simple_malaria_n,mm.simple_malaria_d)
+
+    mm.severe_malaria_n=MMscomputefromDb_DistrictPeriod("severe_malaria_n",i,period,period_end)
+    mm.severe_malaria_d=MMscomputefromDb_DistrictPeriod("severe_malaria_d",i,period,period_end)
+    mm.severe=MMscompute(mm.severe_malaria_n,mm.severe_malaria_d)
+    scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def read_data_mms_scorecard_data_period(districtList,period,end_period,alldistrict):
+    scorecard_data_array=[]
+    for i in districtList:
+        mm=RMNCHAndMalaria()
+        mm.district = i
+        if alldistrict==0:
+            mm.ipt2_n=MMscomputefromDb_Period("ipt2_n",period,end_period)
+            mm.ipt2_d=MMscomputefromDb_Period("ipt2_d",period,end_period)
+        else:
+            mm.ipt2_n=MMscomputefromDb_DistrictPeriod("ipt2_n",i,period,end_period)
+            mm.ipt2_d=MMscomputefromDb_DistrictPeriod("ipt2_d",i,period,end_period)
+        mm.ipt2=MMscompute(mm.ipt2_n,mm.ipt2_d)
+
+        if alldistrict==0:
+            mm.amtsl_n=MMscomputefromDb_Period("amtsl_n",period,end_period)
+            mm.amtsl_d=MMscomputefromDb_Period("amtsl_d",period,end_period)
+        else:
+            mm.amtsl_n=MMscomputefromDb_DistrictPeriod("amtsl_n",i,period,end_period)
+            mm.amtsl_d=MMscomputefromDb_DistrictPeriod("amtsl_d",i,period,end_period)
+        mm.man3stage=MMscompute(mm.amtsl_n,mm.amtsl_d)
+
+        if alldistrict==0:
+            mm.asphyxia_n=MMscomputefromDb_Period("asphyxia_n",period,end_period)
+            mm.asphyxia_d=MMscomputefromDb_Period("asphyxia_d",period,end_period)
+        else:
+            mm.asphyxia_n=MMscomputefromDb_DistrictPeriod("asphyxia_n",i,period,end_period)
+            mm.asphyxia_d=MMscomputefromDb_DistrictPeriod("asphyxia_d",i,period,end_period)
+        mm.manbirth=MMscompute(mm.asphyxia_n,mm.asphyxia_d)
+
+        if alldistrict==0:
+            mm.diarrhea_n=MMscomputefromDb_Period("diarrhea_n",period,end_period)
+            mm.diarrhea_d=MMscomputefromDb_Period("diarrhea_d",period,end_period)
+        else:
+            mm.diarrhea_n=MMscomputefromDb_DistrictPeriod("diarrhea_n",i,period,end_period)
+            mm.diarrhea_d=MMscomputefromDb_DistrictPeriod("diarrhea_d",i,period,end_period)
+        mm.treatd=MMscompute(mm.diarrhea_n,mm.diarrhea_d)
+
+        if alldistrict==0:
+            mm.pneumonia_n=MMscomputefromDb_Period("pneumonia_n",period,end_period)
+            mm.pneumonia_d=MMscomputefromDb_Period("pneumonia_d",period,end_period)
+        else:
+            mm.pneumonia_n=MMscomputefromDb_DistrictPeriod("pneumonia_n",i,period,end_period)
+            mm.pneumonia_d=MMscomputefromDb_DistrictPeriod("pneumonia_d",i,period,end_period)
+        mm.treatp=MMscompute(mm.pneumonia_n,mm.pneumonia_d)
+
+        if alldistrict==0:
+            mm.ret_n=MMscomputefromDb_Period("ret_n",period,end_period)
+            mm.ret_d=MMscomputefromDb_Period("ret_d",period,end_period)
+        else:
+            mm.ret_n=MMscomputefromDb_DistrictPeriod("ret_n",i,period,end_period)
+            mm.ret_d=MMscomputefromDb_DistrictPeriod("ret_d",i,period,end_period)
+        mm.pmtct=MMscompute(mm.ret_n,mm.ret_d)
+
+        if alldistrict==0:
+            mm.hei_n=MMscomputefromDb_Period("hei_n",period,end_period)
+            mm.hei_d=MMscomputefromDb_Period("hei_d",period,end_period)
+        else:
+            mm.hei_n=MMscomputefromDb_DistrictPeriod("hei_n",i,period,end_period)
+            mm.hei_d=MMscomputefromDb_DistrictPeriod("hei_d",i,period,end_period)
+        mm.mtct=MMscompute(mm.hei_n,mm.hei_d)
+
+        if alldistrict==0:
+            mm.simple_malaria_n=MMscomputefromDb_Period("simple_malaria_n",period,end_period)
+            mm.simple_malaria_d=MMscomputefromDb_Period("simple_malaria_d",period,end_period)
+        else:
+            mm.simple_malaria_n=MMscomputefromDb_DistrictPeriod("simple_malaria_n",i,period,end_period)
+            mm.simple_malaria_d=MMscomputefromDb_DistrictPeriod("simple_malaria_d",i,period,end_period)
+        mm.simple=MMscompute(mm.simple_malaria_n,mm.simple_malaria_d)
+
+        if alldistrict==0:
+            mm.severe_malaria_n=MMscomputefromDb_Period("severe_malaria_n",period,end_period)
+            mm.severe_malaria_d=MMscomputefromDb_Period("severe_malaria_d",period,end_period)
+        else:
+            mm.severe_malaria_n=MMscomputefromDb_DistrictPeriod("severe_malaria_n",i,period,end_period)
+            mm.severe_malaria_d=MMscomputefromDb_DistrictPeriod("severe_malaria_d",i,period,end_period)
+        mm.severe=MMscompute(mm.severe_malaria_n,mm.severe_malaria_d)
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+@login_required
+def mnchandmalarial_additional_scorecard_facility(request, output_format='HTML'):
+    
+    mms_scorecard_data  =   []
+    PERIOD_LIST=[]
+    querry_set=RMNCHAndMalaria.objects.all()
+    PERIOD_LIST = list(querry_set.order_by('reporting_period').values_list('reporting_period', flat=True).distinct())
+    DISTRICT_LIST = list(querry_set.all().order_by('district').values_list('district', flat=True).distinct())
+    
+    PERIOD_LIST.append("None")
+
+    FACILITY_LIST = list(querry_set.all().order_by('healthfacility').values_list('healthfacility', flat=True).distinct())
+
+    if 'district' in request.GET and 'start_period' in request.GET and 'end_period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period_start   = request.GET.get('start_period')
+        filter_period_end   = request.GET.get('end_period')
+
+        if request.GET.get('district') == "" and request.GET.get('start_period') != "None" and request.GET.get('end_period') != "None": 
+            mms_scorecard_data =read_data_mms_scorecard_data_facility_period(FACILITY_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),1)
+       
+        elif request.GET.get('district') == "" and request.GET.get('start_period') == "None" and request.GET.get('end_period') == "None":
+            filter_district = None
+            filter_period_start   = None
+            filter_period_end   = None
+            mms_scorecard_data =read_data_mms_scorecard_data_facility_final(FACILITY_LIST)
+
+        else:
+            if filter_district!="":
+                mms_scorecard_data =read_data_mms_scorecard_data_period_facility_facility(FormatedDate(filter_period_start),FormatedDate(filter_period_end),filter_district) 
+            else:
+                filter_period_start   = None
+                filter_period_end   = None
+                mms_scorecard_data =read_data_mms_scorecard_data_facility_period(FACILITY_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),0)  
+    else:
+        filter_district = None
+        filter_period_start   = None
+        filter_period_end   = None
+        mms_scorecard_data =read_data_mms_scorecard_data_facility_final(FACILITY_LIST)
+
+    context = {
+    'mms_scorecard_data': mms_scorecard_data,
+    'period_desc': "From: {} To: {}".format(filter_period_start,filter_period_end),
+    'period_list': PERIOD_LIST,
+    'district_list': FACILITY_LIST,
+    'start_period': True,
+    'end_period': True,
+    } 
+    return render(request, 'cannula/mnchandmalariaadditionalfacility.html', context)
+
+#By facility
+def read_data_mms_scorecard_data_facility_final(facilityList):
+    scorecard_data_array=[]
+    for i in facilityList:
+        mm=RMNCHAndMalaria()
+        mm.healthfacility = i
+
+        mm.ipt2_n=MMscomputefromDb_Facility("ipt2_n",i)
+        mm.ipt2_d=MMscomputefromDb_Facility("ipt2_d",i)
+        mm.ipt2=MMscompute(mm.ipt2_n,mm.ipt2_d)
+
+        mm.amtsl_n=MMscomputefromDb_Facility("amtsl_n",i)
+        mm.amtsl_d=MMscomputefromDb_Facility("amtsl_d",i)
+        mm.man3stage=MMscompute(mm.amtsl_n,mm.amtsl_d)
+
+        mm.asphyxia_n=MMscomputefromDb_Facility("asphyxia_n",i)
+        mm.asphyxia_d=MMscomputefromDb_Facility("asphyxia_d",i)
+        mm.manbirth=MMscompute(mm.asphyxia_n,mm.asphyxia_d)
+
+        mm.diarrhea_n=MMscomputefromDb_Facility("diarrhea_n",i)
+        mm.diarrhea_d=MMscomputefromDb_Facility("diarrhea_d",i)
+        mm.treatd=MMscompute(mm.diarrhea_n,mm.diarrhea_d)
+
+        mm.pneumonia_n=MMscomputefromDb_Facility("pneumonia_n",i)
+        mm.pneumonia_d=MMscomputefromDb_Facility("pneumonia_d",i)
+        mm.treatp=MMscompute(mm.pneumonia_n,mm.pneumonia_d)
+
+        mm.ret_n=MMscomputefromDb_Facility("ret_n",i)
+        mm.ret_d=MMscomputefromDb_Facility("ret_d",i)
+        mm.pmtct=MMscompute(mm.ret_n,mm.ret_d)
+
+        mm.hei_n=MMscomputefromDb_Facility("hei_n",i)
+        mm.hei_d=MMscomputefromDb_Facility("hei_d",i)
+        mm.mtct=MMscompute(mm.hei_n,mm.hei_d)
+
+        mm.simple_malaria_n=MMscomputefromDb_Facility("simple_malaria_n",i)
+        mm.simple_malaria_d=MMscomputefromDb_Facility("simple_malaria_d",i)
+        mm.simple=MMscompute(mm.simple_malaria_n,mm.simple_malaria_d)
+
+        mm.severe_malaria_n=MMscomputefromDb_Facility("severe_malaria_n",i)
+        mm.severe_malaria_d=MMscomputefromDb_Facility("severe_malaria_d",i)
+        mm.severe=MMscompute(mm.severe_malaria_n,mm.severe_malaria_d)
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array   
+
+def MMscomputefromDb_Facility(col,facility):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where healthfacility=\'{}\';".format(col,facility)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def MMscomputefromDb_FacilityPeriod(col,facility,period,end_period):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where healthfacility=\'{}\' and reporting_period BETWEEN \'{}\' AND \'{}\';".format(col,facility,period,end_period)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def read_data_mms_scorecard_data_facility_period(districtList,period,end_period,alldistrict):
+    scorecard_data_array=[]
+    for i in districtList:
+        mm=RMNCHAndMalaria()
+        mm.healthfacility = i
+        if alldistrict==0:
+            mm.ipt2_n=MMscomputefromDb_Period("ipt2_n",period,end_period)
+            mm.ipt2_d=MMscomputefromDb_Period("ipt2_d",period,end_period)
+        else:
+            mm.ipt2_n=MMscomputefromDb_FacilityPeriod("ipt2_n",i,period,end_period)
+            mm.ipt2_d=MMscomputefromDb_FacilityPeriod("ipt2_d",i,period,end_period)
+        mm.ipt2=MMscompute(mm.ipt2_n,mm.ipt2_d)
+
+        if alldistrict==0:
+            mm.amtsl_n=MMscomputefromDb_Period("amtsl_n",period,end_period)
+            mm.amtsl_d=MMscomputefromDb_Period("amtsl_d",period,end_period)
+        else:
+            mm.amtsl_n=MMscomputefromDb_FacilityPeriod("amtsl_n",i,period,end_period)
+            mm.amtsl_d=MMscomputefromDb_FacilityPeriod("amtsl_d",i,period,end_period)
+        mm.man3stage=MMscompute(mm.amtsl_n,mm.amtsl_d)
+
+        if alldistrict==0:
+            mm.asphyxia_n=MMscomputefromDb_Period("asphyxia_n",period,end_period)
+            mm.asphyxia_d=MMscomputefromDb_Period("asphyxia_d",period,end_period)
+        else:
+            mm.asphyxia_n=MMscomputefromDb_FacilityPeriod("asphyxia_n",i,period,end_period)
+            mm.asphyxia_d=MMscomputefromDb_FacilityPeriod("asphyxia_d",i,period,end_period)
+        mm.manbirth=MMscompute(mm.asphyxia_n,mm.asphyxia_d)
+
+        if alldistrict==0:
+            mm.diarrhea_n=MMscomputefromDb_Period("diarrhea_n",period,end_period)
+            mm.diarrhea_d=MMscomputefromDb_Period("diarrhea_d",period,end_period)
+        else:
+            mm.diarrhea_n=MMscomputefromDb_FacilityPeriod("diarrhea_n",i,period,end_period)
+            mm.diarrhea_d=MMscomputefromDb_FacilityPeriod("diarrhea_d",i,period,end_period)
+        mm.treatd=MMscompute(mm.diarrhea_n,mm.diarrhea_d)
+
+        if alldistrict==0:
+            mm.pneumonia_n=MMscomputefromDb_Period("pneumonia_n",period,end_period)
+            mm.pneumonia_d=MMscomputefromDb_Period("pneumonia_d",period,end_period)
+        else:
+            mm.pneumonia_n=MMscomputefromDb_FacilityPeriod("pneumonia_n",i,period,end_period)
+            mm.pneumonia_d=MMscomputefromDb_FacilityPeriod("pneumonia_d",i,period,end_period)
+        mm.treatp=MMscompute(mm.pneumonia_n,mm.pneumonia_d)
+
+        if alldistrict==0:
+            mm.ret_n=MMscomputefromDb_Period("ret_n",period,end_period)
+            mm.ret_d=MMscomputefromDb_Period("ret_d",period,end_period)
+        else:
+            mm.ret_n=MMscomputefromDb_FacilityPeriod("ret_n",i,period,end_period)
+            mm.ret_d=MMscomputefromDb_FacilityPeriod("ret_d",i,period,end_period)
+        mm.pmtct=MMscompute(mm.ret_n,mm.ret_d)
+
+        if alldistrict==0:
+            mm.hei_n=MMscomputefromDb_Period("hei_n",period,end_period)
+            mm.hei_d=MMscomputefromDb_Period("hei_d",period,end_period)
+        else:
+            mm.hei_n=MMscomputefromDb_FacilityPeriod("hei_n",i,period,end_period)
+            mm.hei_d=MMscomputefromDb_FacilityPeriod("hei_d",i,period,end_period)
+        mm.mtct=MMscompute(mm.hei_n,mm.hei_d)
+
+        if alldistrict==0:
+            mm.simple_malaria_n=MMscomputefromDb_Period("simple_malaria_n",period,end_period)
+            mm.simple_malaria_d=MMscomputefromDb_Period("simple_malaria_d",period,end_period)
+        else:
+            mm.simple_malaria_n=MMscomputefromDb_FacilityPeriod("simple_malaria_n",i,period,end_period)
+            mm.simple_malaria_d=MMscomputefromDb_FacilityPeriod("simple_malaria_d",i,period,end_period)
+        mm.simple=MMscompute(mm.simple_malaria_n,mm.simple_malaria_d)
+
+        if alldistrict==0:
+            mm.severe_malaria_n=MMscomputefromDb_Period("severe_malaria_n",period,end_period)
+            mm.severe_malaria_d=MMscomputefromDb_Period("severe_malaria_d",period,end_period)
+        else:
+            mm.severe_malaria_n=MMscomputefromDb_FacilityPeriod("severe_malaria_n",i,period,end_period)
+            mm.severe_malaria_d=MMscomputefromDb_FacilityPeriod("severe_malaria_d",i,period,end_period)
+        mm.severe=MMscompute(mm.severe_malaria_n,mm.severe_malaria_d)
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def read_data_mms_scorecard_data_period_facility_facility(period,end_period,facility):
+    scorecard_data_array=[]
+    i=facility
+    mm=RMNCHAndMalaria()
+    mm.healthfacility = i
+    mm.ipt2_n=MMscomputefromDb_FacilityPeriod("ipt2_n",i,period,end_period)
+    mm.ipt2_d=MMscomputefromDb_FacilityPeriod("ipt2_d",i,period,end_period)
+    mm.ipt2=MMscompute(mm.ipt2_n,mm.ipt2_d)
+
+    mm.amtsl_n=MMscomputefromDb_FacilityPeriod("amtsl_n",i,period,end_period)
+    mm.amtsl_d=MMscomputefromDb_FacilityPeriod("amtsl_d",i,period,end_period)
+    mm.man3stage=MMscompute(mm.amtsl_n,mm.amtsl_d)
+
+    mm.asphyxia_n=MMscomputefromDb_FacilityPeriod("asphyxia_n",i,period,end_period)
+    mm.asphyxia_d=MMscomputefromDb_FacilityPeriod("asphyxia_d",i,period,end_period)
+    mm.manbirth=MMscompute(mm.asphyxia_n,mm.asphyxia_d)
+
+    mm.diarrhea_n=MMscomputefromDb_FacilityPeriod("diarrhea_n",i,period,end_period)
+    mm.diarrhea_d=MMscomputefromDb_FacilityPeriod("diarrhea_d",i,period,end_period)
+    mm.treatd=MMscompute(mm.diarrhea_n,mm.diarrhea_d)
+
+    mm.pneumonia_n=MMscomputefromDb_FacilityPeriod("pneumonia_n",i,period,end_period)
+    mm.pneumonia_d=MMscomputefromDb_FacilityPeriod("pneumonia_d",i,period,end_period)
+    mm.treatp=MMscompute(mm.pneumonia_n,mm.pneumonia_d)
+
+    mm.ret_n=MMscomputefromDb_FacilityPeriod("ret_n",i,period,end_period)
+    mm.ret_d=MMscomputefromDb_FacilityPeriod("ret_d",i,period,end_period)
+    mm.pmtct=MMscompute(mm.ret_n,mm.ret_d)
+
+    mm.hei_n=MMscomputefromDb_FacilityPeriod("hei_n",i,period,end_period)
+    mm.hei_d=MMscomputefromDb_FacilityPeriod("hei_d",i,period,end_period)
+    mm.mtct=MMscompute(mm.hei_n,mm.hei_d)
+
+    mm.simple_malaria_n=MMscomputefromDb_FacilityPeriod("simple_malaria_n",i,period,end_period)
+    mm.simple_malaria_d=MMscomputefromDb_FacilityPeriod("simple_malaria_d",i,period,end_period)
+    mm.simple=MMscompute(mm.simple_malaria_n,mm.simple_malaria_d)
+
+    mm.severe_malaria_n=MMscomputefromDb_FacilityPeriod("severe_malaria_n",i,period,end_period)
+    mm.severe_malaria_d=MMscomputefromDb_FacilityPeriod("severe_malaria_d",i,period,end_period)
+    mm.severe=MMscompute(mm.severe_malaria_n,mm.severe_malaria_d)
+    scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+@login_required
+def mnchandmalarial_additional_scorecard_doos_facility(request, output_format='HTML'):
+    mms_scorecard_data  =   []
+    PERIOD_LIST=[]
+    querry_set=RMNCHAndMalaria.objects.all()
+    PERIOD_LIST = list(querry_set.order_by('reporting_period').values_list('reporting_period', flat=True).distinct())
+    DISTRICT_LIST = list(querry_set.all().order_by('district').values_list('district', flat=True).distinct())
+    
+    PERIOD_LIST.append("None")
+
+    FACILITY_LIST = list(querry_set.all().order_by('healthfacility').values_list('healthfacility', flat=True).distinct())
+
+    if 'district' in request.GET and 'start_period' in request.GET and 'end_period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period_start   = request.GET.get('start_period')
+        filter_period_end   = request.GET.get('end_period')
+
+        if request.GET.get('district') == "" and request.GET.get('start_period') != "None" and request.GET.get('end_period') != "None": 
+            mms_scorecard_data =read_data_mms_scorecard_data_facility_period_doos(FACILITY_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),1)
+        elif request.GET.get('district') == "" and request.GET.get('start_period') == "None" and request.GET.get('end_period') == "None":
+            filter_district = None
+            filter_period_start   = None
+            mms_scorecard_data =read_data_mms_scorecard_data_facility(FACILITY_LIST)
+
+        else:
+            if filter_district!="":
+                mms_scorecard_data =read_data_mms_scorecard_data_period_facility_facility_doos(FormatedDate(filter_period_start),FormatedDate(filter_period_end),filter_district) 
+            else:
+                filter_period_start   = None
+                mms_scorecard_data =read_data_mms_scorecard_data_facility_period_doos(FACILITY_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),0)  
+    else:
+        filter_district = None
+        filter_period_start   = None
+        filter_period_end= None
+        mms_scorecard_data =read_data_mms_scorecard_data_facility(FACILITY_LIST)
+
+    context = {
+    'mms_scorecard_data': mms_scorecard_data,
+    'period_desc': "From: {} To: {}".format(filter_period_start,filter_period_end),
+    'period_list': PERIOD_LIST,
+    'district_list': FACILITY_LIST,
+    'start_period': True,
+    'end_period': True,
+    } 
+    return render(request, 'cannula/mnchandmalarial_additional_scorecard_doos_facility.html', context)
+
+
+#DOOS
+def read_data_mms_scorecard_data_facility(facilityList):
+    scorecard_data_array=[]
+    for i in facilityList:
+        doos=DOOS()
+        doos.healthfacility=i
+        doos.dmcondoms=ComputeMSdoos('dmcondoms',i)
+        doos.dfcondoms=ComputeMSdoos('dfcondoms',i)
+        doos.dmbeads=ComputeMSdoos('dmbeads',i)
+        doos.dimplanon=ComputeMSdoos('dimplanon',i)
+        doos.djadelle=ComputeMSdoos('djadelle',i)
+        doos.diud=ComputeMSdoos('diud',i)
+        doos.ddepoprovera=ComputeMSdoos('ddepoprovera',i)
+        doos.dsayana=ComputeMSdoos('dsayana',i)
+        doos.dpills=ComputeMSdoos('dpills',i)
+        doos.depills=ComputeMSdoos('depills',i)
+        scorecard_data_array.append(doos)
+      
+    return scorecard_data_array   
+
+def ComputeMSdoos(col,facility):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where healthfacility=\'{}\';".format(col,facility)
+    cursor.execute(str1)
+
+    str2="SELECT count(*) FROM cannula_rmnchandmalaria where healthfacility=\'{}\';".format(facility)
+    cursor1 = connection.cursor()
+    cursor1.execute(str2)
+    i = int(cursor1.fetchone()[0])
+
+    if i!=0:
+        return int(int(cursor.fetchone()[0])/i)
+    else:
+        return 0
+
+def MMscomputefromDb_FacilityPeriod_doos(col,facility,period,end_period):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where healthfacility=\'{}\' and reporting_period BETWEEN \'{}\' AND \'{}\';".format(col,facility,period,end_period)
+    cursor.execute(str1)
+
+    str2="SELECT count(*) FROM cannula_rmnchandmalaria where healthfacility=\'{}\' and reporting_period BETWEEN \'{}\' AND \'{}\';".format(facility,period,end_period)
+    cursor1 = connection.cursor()
+    cursor1.execute(str2)
+    i = int(cursor1.fetchone()[0])
+
+    if i!=0:
+        return int(int(cursor.fetchone()[0])/i)
+    else:
+        return 0
+
+def MMscomputefromDb_Period_doos(col,period,end_period):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_rmnchandmalaria where reporting_period BETWEEN \'{}\' AND \'{}\';".format(col,period,end_period)
+    cursor.execute(str1)
+    
+    str2="SELECT count(*) FROM cannula_rmnchandmalaria where reporting_period BETWEEN \'{}\' AND \'{}\';".format(period,end_period)
+    cursor1 = connection.cursor()
+    cursor1.execute(str2)
+    i = int(cursor1.fetchone()[0])
+
+    if i!=0:
+        return int(int(cursor.fetchone()[0])/i)
+    else:
+        return 0
+
+
+def read_data_mms_scorecard_data_facility_period_doos(facilityList,period,end_period,allfacility):
+    scorecard_data_array=[]
+    for i in facilityList:
+        doos=DOOS()
+        doos.healthfacility = i
+        if allfacility==0:
+            doos.dmcondoms=MMscomputefromDb_Period_doos("dmcondoms",period,end_period)
+            doos.dfcondoms=MMscomputefromDb_Period_doos('dfcondoms',period,end_period)
+            doos.dmbeads=MMscomputefromDb_Period_doos('dmbeads',period,end_period)
+            doos.dimplanon=MMscomputefromDb_Period_doos('dimplanon',period,end_period)
+            doos.djadelle=MMscomputefromDb_Period_doos('djadelle',period,end_period)
+            doos.diud=MMscomputefromDb_Period_doos('diud',period,end_period)
+            doos.ddepoprovera=MMscomputefromDb_Period_doos('ddepoprovera',period,end_period)
+            doos.dsayana=MMscomputefromDb_Period_doos('dsayana',period,end_period)
+            doos.dpills=MMscomputefromDb_Period_doos('dpills',period,end_period)
+            doos.depills=MMscomputefromDb_Period_doos('depills',period,end_period)
+        else:
+            doos.dmcondoms=MMscomputefromDb_FacilityPeriod_doos("dmcondoms",i,period,end_period)
+            doos.dfcondoms=MMscomputefromDb_FacilityPeriod_doos('dfcondoms',i,period,end_period)
+            doos.dmbeads=MMscomputefromDb_FacilityPeriod_doos('dmbeads',i,period,end_period)
+            doos.dimplanon=MMscomputefromDb_FacilityPeriod_doos('dimplanon',i,period,end_period)
+            doos.djadelle=MMscomputefromDb_FacilityPeriod_doos('djadelle',i,period,end_period)
+            doos.diud=MMscomputefromDb_FacilityPeriod_doos('diud',i,period,end_period)
+            doos.ddepoprovera=MMscomputefromDb_FacilityPeriod_doos('ddepoprovera',i,period,end_period)
+            doos.dsayana=MMscomputefromDb_FacilityPeriod_doos('dsayana',i,period,end_period)
+            doos.dpills=MMscomputefromDb_FacilityPeriod_doos('dpills',i,period,end_period)
+            doos.depills=MMscomputefromDb_FacilityPeriod_doos('depills',i,period,end_period)
+
+        scorecard_data_array.append(doos)
+      
+    return scorecard_data_array
+
+def read_data_mms_scorecard_data_period_facility_facility_doos(period,end_period,facility):
+    scorecard_data_array=[]
+    doos=DOOS()
+    doos.healthfacility = facility
+    i=facility
+    doos.dmcondoms=MMscomputefromDb_FacilityPeriod_doos("dmcondoms",i,period,end_period)
+    doos.dfcondoms=MMscomputefromDb_FacilityPeriod_doos('dfcondoms',i,period,end_period)
+    doos.dmbeads=MMscomputefromDb_FacilityPeriod_doos('dmbeads',i,period,end_period)
+    doos.dimplanon=MMscomputefromDb_FacilityPeriod_doos('dimplanon',i,period,end_period)
+    doos.djadelle=MMscomputefromDb_FacilityPeriod_doos('djadelle',i,period,end_period)
+    doos.diud=MMscomputefromDb_FacilityPeriod_doos('diud',i,period,end_period)
+    doos.ddepoprovera=MMscomputefromDb_FacilityPeriod_doos('ddepoprovera',i,period,end_period)
+    doos.dsayana=MMscomputefromDb_FacilityPeriod_doos('dsayana',i,period,end_period)
+    doos.dpills=MMscomputefromDb_FacilityPeriod_doos('dpills',i,period,end_period)
+    doos.depills=MMscomputefromDb_FacilityPeriod_doos('depills',i,period,end_period)
+    scorecard_data_array.append(doos)
+      
+    return scorecard_data_array
+
+@login_required
+def pmtct_scorecard_new(request, output_format='HTML'):
+    scorecard_data  =   []
+    months=12
+    PERIOD_LIST=[]
+    querry_set=pmtcteid.objects.all()
+    
+    PERIOD_LIST = list(querry_set.order_by('period').values_list('period', flat=True).distinct())
+    DISTRICT_LIST = list(querry_set.all().order_by('district').values_list('district', flat=True).distinct())
+    PERIOD_LIST.append("None")
+    #Jacob filter logic and load all content code
+    if 'district' in request.GET and 'start_period' in request.GET and 'end_period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period_start   = request.GET.get('start_period')
+        filter_period_end   = request.GET.get('end_period')
+
+        if request.GET.get('district') == "" and request.GET.get('start_period') != "None" and request.GET.get('end_period') != "None": 
+            months=months_between(filter_period_start,filter_period_end)
+            scorecard_data =read_data_pmtcteid_scorecard_data_district_preriod(DISTRICT_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),months)
+            
+        elif request.GET.get('district') == "" and request.GET.get('start_period') == "None" and request.GET.get('end_period') == "None":
+            filter_district = None
+            filter_period_start   = None
+            filter_period_end   = None
+            scorecard_data =read_data_pmtcteid_scorecard_data(DISTRICT_LIST,months)
+
+        else:
+            if filter_district!="All districts":
+                months=months_between(filter_period_start,filter_period_end)
+                scorecard_data =read_data_pmtcteid_scorecard_data_district_preriod_single(filter_district,FormatedDate(filter_period_start),FormatedDate(filter_period_end),months) 
+    else:
+        filter_district = None
+        filter_period_start   = None
+        filter_period_end   = None
+        scorecard_data =read_data_pmtcteid_scorecard_data(DISTRICT_LIST,months)
+
+    totals=totals_pmtcteid_facility(scorecard_data)
+
+    context = {
+    'scorecard_data': scorecard_data,
+    'period_desc': "From: {} To: {}".format(filter_period_start,filter_period_end),
+    'period_list': PERIOD_LIST,
+    'district_list': DISTRICT_LIST,
+    'start_period': True,
+    'end_period': True,
+    'totals': totals,
+    } 
+    return render(request, 'cannula/pmtcteidupdated.html', context)
+
+def read_data_pmtcteid_scorecard_data(districtList,months):
+    scorecard_data_array=[]
+    for i in districtList:
+        mm=pmtcteid_dashboard()
+        mm.district = i
+        mm.T_PMTCT_STAT_nANC_D=ComputePMTCTtarget_district('anci',i,months)
+        mm.ANC_1_visit_D=ComputeSum_pmtcteid_district('ca3',i)+ComputeSum_pmtcteid_district('ca4',i)+ComputeSum_pmtcteid_district('ca5',i)
+        mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+        mm.T_PMTCT_STAT_N=ComputePMTCTtarget_district('pmtctstart',i,months)
+        mm.TRandTRR=ComputeSum_pmtcteid_district('ca7',i)+ComputeSum_pmtcteid_district('ca8',i)+ComputeSum_pmtcteid_district('ca9',i)
+        mm.TRKandTRRK=ComputeSum_pmtcteid_district('ca13',i)
+        mm.total_TRandTRRandTRKandTRRK=mm.TRandTRR + mm.TRKandTRRK
+        mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+        mm.T_PMTCT_STAT_POS_N=ComputePMTCTtarget_district('pmtctstartpos',i,months)    
+        mm.HIVplusTRRK=ComputeSum_pmtcteid_district('ca14',i)
+        mm.TRRplus=ComputeSum_pmtcteid_district('ca2',i)
+        mm.TRR=ComputeSum_pmtcteid_district('ca10',i)+ComputeSum_pmtcteid_district('ca11',i)+ComputeSum_pmtcteid_district('ca12',i)
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
+        mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+        mm.T_PMTCT_ART_N=ComputePMTCTtarget_district('mtct_pmtct_art',i,months) 
+        mm.ART_K=ComputeSum_pmtcteid_district('ca1',i)
+        mm.ART=ComputeSum_pmtcteid_district('ca6',i)
+        mm.MTCT_3N=mm.ART_K+mm.ART
+        mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+        mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+        mm.HEI_discharged_18m=ComputeSum_pmtcteid_district('ca24',i)+ComputeSum_pmtcteid_district('ca25',i)+ComputeSum_pmtcteid_district('ca23',i)
+        mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_district('ca26',i)
+        mm.HEI_ltfu_before_18m=ComputeSum_pmtcteid_district('ca27',i)
+        mm.HEI_died_before_18m=ComputeSum_pmtcteid_district('ca28',i)
+        mm.HEI_care_but_no_test_done18m=ComputeSum_pmtcteid_district('ca29',i)
+        mm.t_HEI_4N=mm.HEI_discharged_18m+mm.HEI_transferred_out_before_18m+mm.HEI_ltfu_before_18m+mm.HEI_died_before_18m+mm.HEI_care_but_no_test_done18m
+        mm.HEI_in_birth_cohort_24mp_4D=ComputeSum_pmtcteid_district('ca22',i)
+        mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+        mm.T_PMTCT_EID_N=ComputePMTCTtarget_district('pmp',i,months)
+        mm.PMTCT_EIDles2m=ComputeSum_pmtcteid_district('ca21',i)
+        mm.PMTCT_EIDles2_12m=ComputeSum_pmtcteid_district('ca19',i)
+        mm.t_PMTCT_EID2m2_12m=mm.PMTCT_EIDles2m+mm.PMTCT_EIDles2_12m
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=mm.t_HIVplusTRRK_TRRplus_TRR_ANC
+        mm.Women_HIV_plus_LD=ComputeSum_pmtcteid_district('ca15',i)+ComputeSum_pmtcteid_district('ca16',i)
+        mm.Breastfeeding_HIV_plus=ComputeSum_pmtcteid_district('ca17',i)+ComputeSum_pmtcteid_district('ca18',i)
+        mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
+        mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+        mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+        mm.T_PMTCT_EID_POS=ComputePMTCTtarget_district('hivplus_infants',i,months)
+        mm.PMTCT_EID_POS=ComputeSum_pmtcteid_district('ca20',i)
+        mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def ComputePMTCTtarget_district(col,district,months):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_pmtcteid_targets where district=\'{}\';".format(col,district)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i/months)
+    else:
+        return 0
+
+def ComputePMTCTtarget_facility(col,facility,months):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_pmtcteid_targets where healthfacility=\'{}\';".format(col,facility)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i/months)
+    else:
+        return 0
+
+def ComputeSum_pmtcteid_district(col,district):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_pmtcteid where district=\'{}\';".format(col,district)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def ComputeSum_pmtcteid_facility(col,facility):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_pmtcteid where healthfacility=\'{}\';".format(col,facility)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def ComputeSum_pmtcteid_district_period(col,district,startperiod,endperiod):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_pmtcteid where district=\'{}\' and period BETWEEN \'{}\' AND \'{}\';".format(col,district,startperiod,endperiod)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def ComputeSum_pmtcteid_facility_period(col,facility,startperiod,endperiod):
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT SUM ({}) FROM cannula_pmtcteid where healthfacility=\'{}\' and period BETWEEN \'{}\' AND \'{}\';".format(col,facility,startperiod,endperiod)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def months_between(start,end):
+    d1=GetDateCBO(start)
+    d2=GetDateCBO(end)
+    months = []
+    cursor = d1
+
+    while cursor <= d2:
+        if cursor.month not in months:
+            months.append(cursor.month)
+        cursor += timedelta(weeks=1)
+
+    return len(months)
+
+def GetDateCBO(filter_date):
+    if "." not in filter_date:
+        dt = datetime.strptime(filter_date,'%B %d, %Y')
+    else:
+        if "Sept." not in filter_date:
+            dt = datetime.strptime(filter_date,'%b. %d, %Y')
+        else:
+            dt_tmp=filter_date.replace("Sept.","Sep.")
+            dt=datetime.strptime(dt_tmp,'%b. %d, %Y')
+            
+    return dt
+
+def read_data_pmtcteid_scorecard_data_district_preriod(districtList,startperiod,endperiod,months):
+    scorecard_data_array=[]
+    for i in districtList:
+        mm=pmtcteid_dashboard()
+        mm.district = i
+        mm.T_PMTCT_STAT_nANC_D=ComputePMTCTtarget_district('anci',i,months)
+        mm.ANC_1_visit_D=ComputeSum_pmtcteid_district_period('ca3',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca4',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca5',i,startperiod,endperiod)
+        mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+        mm.T_PMTCT_STAT_N=ComputePMTCTtarget_district('pmtctstart',i,months)
+        mm.TRandTRR=ComputeSum_pmtcteid_district_period('ca7',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca8',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca9',i,startperiod,endperiod)
+        mm.TRKandTRRK=ComputeSum_pmtcteid_district_period('ca13',i,startperiod,endperiod)
+        mm.total_TRandTRRandTRKandTRRK=mm.TRandTRR + mm.TRKandTRRK
+        mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+        mm.T_PMTCT_STAT_POS_N=ComputePMTCTtarget_district('pmtctstartpos',i,months)    
+        mm.HIVplusTRRK=ComputeSum_pmtcteid_district_period('ca14',i,startperiod,endperiod)
+        mm.TRRplus=ComputeSum_pmtcteid_district_period('ca2',i,startperiod,endperiod)
+        mm.TRR=ComputeSum_pmtcteid_district_period('ca10',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca11',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca12',i,startperiod,endperiod)
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
+        mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+        mm.T_PMTCT_ART_N=ComputePMTCTtarget_district('mtct_pmtct_art',i,months) 
+        mm.ART_K=ComputeSum_pmtcteid_district_period('ca1',i,startperiod,endperiod)
+        mm.ART=ComputeSum_pmtcteid_district_period('ca6',i,startperiod,endperiod)
+        mm.MTCT_3N=mm.ART_K+mm.ART
+        mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+        mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+        mm.HEI_discharged_18m=ComputeSum_pmtcteid_district_period('ca24',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca25',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca23',i,startperiod,endperiod)
+        mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_district_period('ca26',i,startperiod,endperiod)
+        mm.HEI_ltfu_before_18m=ComputeSum_pmtcteid_district_period('ca27',i,startperiod,endperiod)
+        mm.HEI_died_before_18m=ComputeSum_pmtcteid_district_period('ca28',i,startperiod,endperiod)
+        mm.HEI_care_but_no_test_done18m=ComputeSum_pmtcteid_district_period('ca29',i,startperiod,endperiod)
+        mm.t_HEI_4N=mm.HEI_discharged_18m+mm.HEI_transferred_out_before_18m+mm.HEI_ltfu_before_18m+mm.HEI_died_before_18m+mm.HEI_care_but_no_test_done18m
+        mm.HEI_in_birth_cohort_24mp_4D=ComputeSum_pmtcteid_district_period('ca22',i,startperiod,endperiod)
+        mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+        mm.T_PMTCT_EID_N=ComputePMTCTtarget_district('pmp',i,months)
+        mm.PMTCT_EIDles2m=ComputeSum_pmtcteid_district_period('ca21',i,startperiod,endperiod)
+        mm.PMTCT_EIDles2_12m=ComputeSum_pmtcteid_district_period('ca19',i,startperiod,endperiod)
+        mm.t_PMTCT_EID2m2_12m=mm.PMTCT_EIDles2m+mm.PMTCT_EIDles2_12m
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=mm.t_HIVplusTRRK_TRRplus_TRR_ANC
+        mm.Women_HIV_plus_LD=ComputeSum_pmtcteid_district_period('ca15',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca16',i,startperiod,endperiod)
+        mm.Breastfeeding_HIV_plus=ComputeSum_pmtcteid_district_period('ca17',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca18',i,startperiod,endperiod)
+        mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
+        mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+        mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+        mm.T_PMTCT_EID_POS=ComputePMTCTtarget_district('hivplus_infants',i,months)
+        mm.PMTCT_EID_POS=ComputeSum_pmtcteid_district_period('ca20',i,startperiod,endperiod)
+        mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def read_data_pmtcteid_scorecard_data_district_preriod_single(districtList,startperiod,endperiod,months):
+    scorecard_data_array=[]
+    i=districtList
+    mm=pmtcteid_dashboard()
+    mm.district = i
+    mm.T_PMTCT_STAT_nANC_D=ComputePMTCTtarget_district('anci',i,months)
+    mm.ANC_1_visit_D=ComputeSum_pmtcteid_district_period('ca3',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca4',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca5',i,startperiod,endperiod)
+    mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+    mm.T_PMTCT_STAT_N=ComputePMTCTtarget_district('pmtctstart',i,months)
+    mm.TRandTRR=ComputeSum_pmtcteid_district_period('ca7',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca8',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca9',i,startperiod,endperiod)
+    mm.TRKandTRRK=ComputeSum_pmtcteid_district_period('ca13',i,startperiod,endperiod)
+    mm.total_TRandTRRandTRKandTRRK=mm.TRandTRR + mm.TRKandTRRK
+    mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+    mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+    mm.T_PMTCT_STAT_POS_N=ComputePMTCTtarget_district('pmtctstartpos',i,months)    
+    mm.HIVplusTRRK=ComputeSum_pmtcteid_district_period('ca14',i,startperiod,endperiod)
+    mm.TRRplus=ComputeSum_pmtcteid_district_period('ca2',i,startperiod,endperiod)
+    mm.TRR=ComputeSum_pmtcteid_district_period('ca10',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca11',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca12',i,startperiod,endperiod)
+    mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
+    mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+    mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+    mm.T_PMTCT_ART_N=ComputePMTCTtarget_district('mtct_pmtct_art',i,months) 
+    mm.ART_K=ComputeSum_pmtcteid_district_period('ca1',i,startperiod,endperiod)
+    mm.ART=ComputeSum_pmtcteid_district_period('ca6',i,startperiod,endperiod)
+    mm.MTCT_3N=mm.ART_K+mm.ART
+    mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+    mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+    mm.HEI_discharged_18m=ComputeSum_pmtcteid_district_period('ca24',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca25',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca23',i,startperiod,endperiod)
+    mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_district_period('ca26',i,startperiod,endperiod)
+    mm.HEI_ltfu_before_18m=ComputeSum_pmtcteid_district_period('ca27',i,startperiod,endperiod)
+    mm.HEI_died_before_18m=ComputeSum_pmtcteid_district_period('ca28',i,startperiod,endperiod)
+    mm.HEI_care_but_no_test_done18m=ComputeSum_pmtcteid_district_period('ca29',i,startperiod,endperiod)
+    mm.t_HEI_4N=mm.HEI_discharged_18m+mm.HEI_transferred_out_before_18m+mm.HEI_ltfu_before_18m+mm.HEI_died_before_18m+mm.HEI_care_but_no_test_done18m
+    mm.HEI_in_birth_cohort_24mp_4D=ComputeSum_pmtcteid_district_period('ca22',i,startperiod,endperiod)
+    mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+    mm.T_PMTCT_EID_N=ComputePMTCTtarget_district('pmp',i,months)
+    mm.PMTCT_EIDles2m=ComputeSum_pmtcteid_district_period('ca21',i,startperiod,endperiod)
+    mm.PMTCT_EIDles2_12m=ComputeSum_pmtcteid_district_period('ca19',i,startperiod,endperiod)
+    mm.t_PMTCT_EID2m2_12m=mm.PMTCT_EIDles2m+mm.PMTCT_EIDles2_12m
+    mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=mm.t_HIVplusTRRK_TRRplus_TRR_ANC
+    mm.Women_HIV_plus_LD=ComputeSum_pmtcteid_district_period('ca15',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca16',i,startperiod,endperiod)
+    mm.Breastfeeding_HIV_plus=ComputeSum_pmtcteid_district_period('ca17',i,startperiod,endperiod)+ComputeSum_pmtcteid_district_period('ca18',i,startperiod,endperiod)
+    mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
+    mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+    mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+    mm.T_PMTCT_EID_POS=ComputePMTCTtarget_district('hivplus_infants',i,months)
+    mm.PMTCT_EID_POS=ComputeSum_pmtcteid_district_period('ca20',i,startperiod,endperiod)
+    mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+    scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def read_data_pmtcteid_scorecard_data_facility(facilityList,months):
+    scorecard_data_array=[]
+    for i in facilityList:
+        mm=pmtcteid_dashboard()
+        mm.healthfacility = i
+        mm.T_PMTCT_STAT_nANC_D=ComputePMTCTtarget_facility('anci',i,months)
+        mm.ANC_1_visit_D=ComputeSum_pmtcteid_facility('ca3',i)+ComputeSum_pmtcteid_facility('ca4',i)+ComputeSum_pmtcteid_facility('ca5',i)
+        mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+        mm.T_PMTCT_STAT_N=ComputePMTCTtarget_facility('pmtctstart',i,months)
+        mm.TRandTRR=ComputeSum_pmtcteid_facility('ca7',i)+ComputeSum_pmtcteid_facility('ca8',i)+ComputeSum_pmtcteid_facility('ca9',i)
+        mm.TRKandTRRK=ComputeSum_pmtcteid_facility('ca13',i)
+        mm.total_TRandTRRandTRKandTRRK=mm.TRandTRR + mm.TRKandTRRK
+        mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+        mm.T_PMTCT_STAT_POS_N=ComputePMTCTtarget_facility('pmtctstartpos',i,months)    
+        mm.HIVplusTRRK=ComputeSum_pmtcteid_facility('ca14',i)
+        mm.TRRplus=ComputeSum_pmtcteid_facility('ca2',i)
+        mm.TRR=ComputeSum_pmtcteid_facility('ca10',i)+ComputeSum_pmtcteid_facility('ca11',i)+ComputeSum_pmtcteid_facility('ca12',i)
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
+
+        if mm.ANC_1_visit_D!=0:
+            mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+        mm.T_PMTCT_ART_N=ComputePMTCTtarget_facility('mtct_pmtct_art',i,months) 
+        mm.ART_K=ComputeSum_pmtcteid_facility('ca1',i)
+        mm.ART=ComputeSum_pmtcteid_facility('ca6',i)
+        mm.MTCT_3N=mm.ART_K+mm.ART
+        if mm.t_HIVplusTRRK_TRRplus_TRR_ANC!=0:
+            mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+        mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+        mm.HEI_discharged_18m=ComputeSum_pmtcteid_facility('ca24',i)+ComputeSum_pmtcteid_facility('ca25',i)+ComputeSum_pmtcteid_facility('ca23',i)
+        mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_facility('ca26',i)
+        mm.HEI_ltfu_before_18m=ComputeSum_pmtcteid_facility('ca27',i)
+        mm.HEI_died_before_18m=ComputeSum_pmtcteid_facility('ca28',i)
+        mm.HEI_care_but_no_test_done18m=ComputeSum_pmtcteid_facility('ca29',i)
+        mm.t_HEI_4N=mm.HEI_discharged_18m+mm.HEI_transferred_out_before_18m+mm.HEI_ltfu_before_18m+mm.HEI_died_before_18m+mm.HEI_care_but_no_test_done18m
+        mm.HEI_in_birth_cohort_24mp_4D=ComputeSum_pmtcteid_facility('ca22',i)
+        if mm.HEI_in_birth_cohort_24mp_4D!=0:
+            mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+        mm.T_PMTCT_EID_N=ComputePMTCTtarget_facility('pmp',i,months)
+        mm.PMTCT_EIDles2m=ComputeSum_pmtcteid_facility('ca21',i)
+        mm.PMTCT_EIDles2_12m=ComputeSum_pmtcteid_facility('ca19',i)
+        mm.t_PMTCT_EID2m2_12m=mm.PMTCT_EIDles2m+mm.PMTCT_EIDles2_12m
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=mm.t_HIVplusTRRK_TRRplus_TRR_ANC
+        mm.Women_HIV_plus_LD=ComputeSum_pmtcteid_facility('ca15',i)+ComputeSum_pmtcteid_facility('ca16',i)
+        mm.Breastfeeding_HIV_plus=ComputeSum_pmtcteid_facility('ca17',i)+ComputeSum_pmtcteid_facility('ca18',i)
+        mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
+        if mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus!=0:
+            mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+        mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+        mm.T_PMTCT_EID_POS=ComputePMTCTtarget_facility('hivplus_infants',i,months)
+        mm.PMTCT_EID_POS=ComputeSum_pmtcteid_facility('ca20',i)
+        if mm.T_PMTCT_EID_POS!=0:
+            mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def read_data_pmtcteid_scorecard_data_facility_period(facilityList,startperiod,endperiod,months):
+    scorecard_data_array=[]
+    for i in facilityList:
+        mm=pmtcteid_dashboard()
+        mm.healthfacility = i
+        mm.T_PMTCT_STAT_nANC_D=ComputePMTCTtarget_facility('anci',i,months)
+        mm.ANC_1_visit_D=ComputeSum_pmtcteid_facility_period('ca3',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca4',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca5',i,startperiod,endperiod)
+        mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+        mm.T_PMTCT_STAT_N=ComputePMTCTtarget_facility('pmtctstart',i,months)
+        mm.TRandTRR=ComputeSum_pmtcteid_facility_period('ca7',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca8',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca9',i,startperiod,endperiod)
+        mm.TRKandTRRK=ComputeSum_pmtcteid_facility_period('ca13',i,startperiod,endperiod)
+        mm.total_TRandTRRandTRKandTRRK=mm.TRandTRR + mm.TRKandTRRK
+        if mm.ANC_1_visit_D!=0:
+            mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+        mm.T_PMTCT_STAT_POS_N=ComputePMTCTtarget_facility('pmtctstartpos',i,months)    
+        mm.HIVplusTRRK=ComputeSum_pmtcteid_facility_period('ca14',i,startperiod,endperiod)
+        mm.TRRplus=ComputeSum_pmtcteid_facility_period('ca2',i,startperiod,endperiod)
+        mm.TRR=ComputeSum_pmtcteid_facility_period('ca10',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca11',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca12',i,startperiod,endperiod)
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
+        if mm.ANC_1_visit_D!=0:
+            mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+        mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+        mm.T_PMTCT_ART_N=ComputePMTCTtarget_facility('mtct_pmtct_art',i,months) 
+        mm.ART_K=ComputeSum_pmtcteid_facility_period('ca1',i,startperiod,endperiod)
+        mm.ART=ComputeSum_pmtcteid_facility_period('ca6',i,startperiod,endperiod)
+        mm.MTCT_3N=mm.ART_K+mm.ART
+        if mm.t_HIVplusTRRK_TRRplus_TRR_ANC!=0:
+            mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+        mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+        mm.HEI_discharged_18m=ComputeSum_pmtcteid_facility_period('ca24',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca25',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca23',i,startperiod,endperiod)
+        mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_facility_period('ca26',i,startperiod,endperiod)
+        mm.HEI_ltfu_before_18m=ComputeSum_pmtcteid_facility_period('ca27',i,startperiod,endperiod)
+        mm.HEI_died_before_18m=ComputeSum_pmtcteid_facility_period('ca28',i,startperiod,endperiod)
+        mm.HEI_care_but_no_test_done18m=ComputeSum_pmtcteid_facility_period('ca29',i,startperiod,endperiod)
+        mm.t_HEI_4N=mm.HEI_discharged_18m+mm.HEI_transferred_out_before_18m+mm.HEI_ltfu_before_18m+mm.HEI_died_before_18m+mm.HEI_care_but_no_test_done18m
+        mm.HEI_in_birth_cohort_24mp_4D=ComputeSum_pmtcteid_facility_period('ca22',i,startperiod,endperiod)
+        if mm.HEI_in_birth_cohort_24mp_4D!=0:
+            mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+        mm.T_PMTCT_EID_N=ComputePMTCTtarget_facility('pmp',i,months)
+        mm.PMTCT_EIDles2m=ComputeSum_pmtcteid_facility_period('ca21',i,startperiod,endperiod)
+        mm.PMTCT_EIDles2_12m=ComputeSum_pmtcteid_facility_period('ca19',i,startperiod,endperiod)
+        mm.t_PMTCT_EID2m2_12m=mm.PMTCT_EIDles2m+mm.PMTCT_EIDles2_12m
+        mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=mm.t_HIVplusTRRK_TRRplus_TRR_ANC
+        mm.Women_HIV_plus_LD=ComputeSum_pmtcteid_facility_period('ca15',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca16',i,startperiod,endperiod)
+        mm.Breastfeeding_HIV_plus=ComputeSum_pmtcteid_facility_period('ca17',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca18',i,startperiod,endperiod)
+        mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
+        if mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus!=0:
+            mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+        mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+        mm.T_PMTCT_EID_POS=ComputePMTCTtarget_facility('hivplus_infants',i,months)
+        mm.PMTCT_EID_POS=ComputeSum_pmtcteid_facility_period('ca20',i,startperiod,endperiod)
+        if mm.T_PMTCT_EID_POS!=0:
+            mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+        scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+def read_data_pmtcteid_scorecard_data_facility_period_single(facility,startperiod,endperiod,months):
+    scorecard_data_array=[]
+    i=facility
+    mm=pmtcteid_dashboard()
+    mm.healthfacility = i
+    mm.T_PMTCT_STAT_nANC_D=ComputePMTCTtarget_facility('anci',i,months)
+    mm.ANC_1_visit_D=ComputeSum_pmtcteid_facility_period('ca3',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca4',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca5',i,startperiod,endperiod)
+    mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+    mm.T_PMTCT_STAT_N=ComputePMTCTtarget_facility('pmtctstart',i,months)
+    mm.TRandTRR=ComputeSum_pmtcteid_facility_period('ca7',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca8',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca9',i,startperiod,endperiod)
+    mm.TRKandTRRK=ComputeSum_pmtcteid_facility_period('ca13',i,startperiod,endperiod)
+    mm.total_TRandTRRandTRKandTRRK=mm.TRandTRR + mm.TRKandTRRK
+    mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+    mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+    mm.T_PMTCT_STAT_POS_N=ComputePMTCTtarget_facility('pmtctstartpos',i,months)    
+    mm.HIVplusTRRK=ComputeSum_pmtcteid_facility_period('ca14',i,startperiod,endperiod)
+    mm.TRRplus=ComputeSum_pmtcteid_facility_period('ca2',i,startperiod,endperiod)
+    mm.TRR=ComputeSum_pmtcteid_facility_period('ca10',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca11',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca12',i,startperiod,endperiod)
+    mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
+    if mm.ANC_1_visit_D!=0:
+        mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+    mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+    mm.T_PMTCT_ART_N=ComputePMTCTtarget_facility('mtct_pmtct_art',i,months) 
+    mm.ART_K=ComputeSum_pmtcteid_facility_period('ca1',i,startperiod,endperiod)
+    mm.ART=ComputeSum_pmtcteid_facility_period('ca6',i,startperiod,endperiod)
+    mm.MTCT_3N=mm.ART_K+mm.ART
+    if mm.t_HIVplusTRRK_TRRplus_TRR_ANC!=0:
+        mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+    mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+    mm.HEI_discharged_18m=ComputeSum_pmtcteid_facility_period('ca24',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca25',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca23',i,startperiod,endperiod)
+    mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_facility_period('ca26',i,startperiod,endperiod)
+    mm.HEI_ltfu_before_18m=ComputeSum_pmtcteid_facility_period('ca27',i,startperiod,endperiod)
+    mm.HEI_died_before_18m=ComputeSum_pmtcteid_facility_period('ca28',i,startperiod,endperiod)
+    mm.HEI_care_but_no_test_done18m=ComputeSum_pmtcteid_facility_period('ca29',i,startperiod,endperiod)
+    mm.t_HEI_4N=mm.HEI_discharged_18m+mm.HEI_transferred_out_before_18m+mm.HEI_ltfu_before_18m+mm.HEI_died_before_18m+mm.HEI_care_but_no_test_done18m
+    mm.HEI_in_birth_cohort_24mp_4D=ComputeSum_pmtcteid_facility_period('ca22',i,startperiod,endperiod)
+    if mm.HEI_in_birth_cohort_24mp_4D!=0:
+        mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+    mm.T_PMTCT_EID_N=ComputePMTCTtarget_facility('pmp',i,months)
+    mm.PMTCT_EIDles2m=ComputeSum_pmtcteid_facility_period('ca21',i,startperiod,endperiod)
+    mm.PMTCT_EIDles2_12m=ComputeSum_pmtcteid_facility_period('ca19',i,startperiod,endperiod)
+    mm.t_PMTCT_EID2m2_12m=mm.PMTCT_EIDles2m+mm.PMTCT_EIDles2_12m
+    mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=mm.t_HIVplusTRRK_TRRplus_TRR_ANC
+    mm.Women_HIV_plus_LD=ComputeSum_pmtcteid_facility_period('ca15',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca16',i,startperiod,endperiod)
+    mm.Breastfeeding_HIV_plus=ComputeSum_pmtcteid_facility_period('ca17',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca18',i,startperiod,endperiod)
+    mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
+    if mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus!=0:
+        mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+    mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+    mm.T_PMTCT_EID_POS=ComputePMTCTtarget_facility('hivplus_infants',i,months)
+    mm.PMTCT_EID_POS=ComputeSum_pmtcteid_facility_period('ca20',i,startperiod,endperiod)
+    if mm.T_PMTCT_EID_POS!=0:
+        mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+    scorecard_data_array.append(mm)
+      
+    return scorecard_data_array
+
+@login_required
+def pmtct_scorecard_new_facility(request, output_format='HTML'):
+    scorecard_data  =   []
+    months=12
+    PERIOD_LIST=[]
+    querry_set=pmtcteid.objects.all()
+    
+    PERIOD_LIST = list(querry_set.order_by('period').values_list('period', flat=True).distinct())
+    DISTRICT_LIST = list(querry_set.all().order_by('district').values_list('district', flat=True).distinct())
+    PERIOD_LIST.append("None")
+
+    FACILITY_LIST = list(querry_set.all().order_by('healthfacility').values_list('healthfacility', flat=True).distinct())
+    #Jacob filter logic and load all content code
+    if 'district' in request.GET and 'start_period' in request.GET and 'end_period' in request.GET:
+        filter_district = request.GET.get('district')
+        filter_period_start   = request.GET.get('start_period')
+        filter_period_end   = request.GET.get('end_period')
+
+        if request.GET.get('district') == "" and request.GET.get('start_period') != "None" and request.GET.get('end_period') != "None": 
+            months=months_between(filter_period_start,filter_period_end)
+            scorecard_data =read_data_pmtcteid_scorecard_data_facility_period(FACILITY_LIST,FormatedDate(filter_period_start),FormatedDate(filter_period_end),months)
+            
+        elif request.GET.get('district') == "" and request.GET.get('start_period') == "None" and request.GET.get('end_period') == "None":
+            filter_district = None
+            filter_period_start   = None
+            filter_period_end   = None
+            scorecard_data =read_data_pmtcteid_scorecard_data_facility(FACILITY_LIST,months)
+
+        else:
+            if filter_district!="All districts":
+                months=months_between(filter_period_start,filter_period_end)
+                scorecard_data =read_data_pmtcteid_scorecard_data_facility_period_single(filter_district,FormatedDate(filter_period_start),FormatedDate(filter_period_end),months) 
+    else:
+        filter_district = None
+        filter_period_start   = None
+        filter_period_end   = None
+        scorecard_data =read_data_pmtcteid_scorecard_data_facility(FACILITY_LIST,months)
+
+    totals=totals_pmtcteid_facility(scorecard_data)
+
+    context = {
+    'scorecard_data': scorecard_data,
+    'period_desc': "From: {} To: {}".format(filter_period_start,filter_period_end),
+    'period_list': PERIOD_LIST,
+    'district_list': FACILITY_LIST,
+    'start_period': True,
+    'end_period': True,
+    'totals': totals,
+    } 
+    return render(request, 'cannula/pmtceidupdatedbyfacility.html', context)
+
+def totals_pmtcteid_facility(scorecard_data_array):
+    data_array=[]
+    mm=pmtcteid_dashboard()
+    mm.healthfacility = 'Grand Total'
+    mm.T_PMTCT_STAT_nANC_D=sum(c.T_PMTCT_STAT_nANC_D for c in scorecard_data_array)
+    mm.ANC_1_visit_D=sum(c.ANC_1_visit_D for c in scorecard_data_array)
+    mm.perf_T_PMTCT_STAT_nANC_DandANC_1_visit=(mm.ANC_1_visit_D/mm.T_PMTCT_STAT_nANC_D)*100
+
+    mm.T_PMTCT_STAT_N=sum(c.T_PMTCT_STAT_N for c in scorecard_data_array)
+    mm.TRandTRR=sum(c.TRandTRR for c in scorecard_data_array)
+    mm.TRKandTRRK=sum(c.TRKandTRRK for c in scorecard_data_array)
+    mm.total_TRandTRRandTRKandTRRK=sum(c.total_TRandTRRandTRKandTRRK for c in scorecard_data_array)
+    mm.PMTCT_STAT_1Nand1D=(mm.total_TRandTRRandTRKandTRRK/mm.ANC_1_visit_D)*100
+    mm.PerfPMTCT_STAT=(mm.total_TRandTRRandTRKandTRRK/mm.T_PMTCT_STAT_N)*100
+
+    mm.T_PMTCT_STAT_POS_N=sum(c.T_PMTCT_STAT_POS_N for c in scorecard_data_array)
+    mm.HIVplusTRRK=sum(c.HIVplusTRRK for c in scorecard_data_array)
+    mm.TRRplus=sum(c.TRRplus for c in scorecard_data_array)
+    mm.TRR=sum(c.TRR for c in scorecard_data_array)
+    mm.t_HIVplusTRRK_TRRplus_TRR_ANC=sum(c.t_HIVplusTRRK_TRRplus_TRR_ANC for c in scorecard_data_array)
+    mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
+    mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+
+    mm.T_PMTCT_ART_N=sum(c.T_PMTCT_ART_N for c in scorecard_data_array)
+    mm.ART_K=sum(c.ART_K for c in scorecard_data_array)
+    mm.ART=sum(c.ART for c in scorecard_data_array)
+    mm.MTCT_3N=sum(c.MTCT_3N for c in scorecard_data_array)
+    mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
+    mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+
+    mm.HEI_discharged_18m=sum(c.HEI_discharged_18m for c in scorecard_data_array)
+    mm.HEI_transferred_out_before_18m=sum(c.HEI_transferred_out_before_18m for c in scorecard_data_array)
+    mm.HEI_ltfu_before_18m=sum(c.HEI_ltfu_before_18m for c in scorecard_data_array)
+    mm.HEI_died_before_18m=sum(c.HEI_died_before_18m for c in scorecard_data_array)
+    mm.HEI_care_but_no_test_done18m=sum(c.HEI_care_but_no_test_done18m for c in scorecard_data_array)
+    mm.t_HEI_4N=sum(c.t_HEI_4N for c in scorecard_data_array)
+    mm.HEI_in_birth_cohort_24mp_4D=sum(c.HEI_in_birth_cohort_24mp_4D for c in scorecard_data_array)
+    mm.PMTCT_FO=(mm.t_HEI_4N/mm.HEI_in_birth_cohort_24mp_4D)*100
+
+    mm.T_PMTCT_EID_N=sum(c.T_PMTCT_EID_N for c in scorecard_data_array)
+    mm.PMTCT_EIDles2m=sum(c.PMTCT_EIDles2m for c in scorecard_data_array)
+    mm.PMTCT_EIDles2_12m=sum(c.PMTCT_EIDles2_12m for c in scorecard_data_array)
+    mm.t_PMTCT_EID2m2_12m=sum(c.t_PMTCT_EID2m2_12m for c in scorecard_data_array)
+    mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c=sum(c.t_HIVplusTRRK_TRRplus_TRR_ANC_c for c in scorecard_data_array)
+    mm.Women_HIV_plus_LD=sum(c.Women_HIV_plus_LD for c in scorecard_data_array)
+    mm.Breastfeeding_HIV_plus=sum(c.Breastfeeding_HIV_plus for c in scorecard_data_array)
+    mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=sum(c.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus for c in scorecard_data_array)
+    mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
+    mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+
+    mm.T_PMTCT_EID_POS=sum(c.T_PMTCT_EID_POS for c in scorecard_data_array)
+    mm.PMTCT_EID_POS=sum(c.PMTCT_EID_POS for c in scorecard_data_array)
+    mm.PerfPMTCT_EID_POS=(mm.PMTCT_EID_POS/mm.T_PMTCT_EID_POS)*100
+    data_array.append(mm)
+
+    return data_array
+

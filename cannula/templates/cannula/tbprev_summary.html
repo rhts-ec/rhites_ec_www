@@ -10,8 +10,8 @@
 {% block content %}
 
 <script type="text/javascript">
-	function ExportToExcel(tb_prev_table_001){
-		   var htmltable= document.getElementById('tb_prev_table_001');
+	function ExportToExcel(table_001){
+		   var htmltable= document.getElementById('table_001');
 		   var html = htmltable.outerHTML;
 		   window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
 		}
@@ -62,7 +62,7 @@ th
 		</tr>
 </table>
 <p><br></p>
-<table border="1" align="center">
+<table id=table_001 border="1" align="center">
 	<tr>
 		<th>Range</th>
 		<th>Target(N)</th>
@@ -342,4 +342,10 @@ th
 
 
 </table>
+
+<h4>Dashboard</h4>
+<ul>     
+    <li><a href="{% url 'prev' %}">TB Prev Facilities</a></li>
+</ul>
+
  {% endblock %}
