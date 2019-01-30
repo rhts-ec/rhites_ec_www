@@ -11405,7 +11405,7 @@ def read_data_mms_scorecard_data_period_facility_facility_doos(period,end_period
 @login_required
 def pmtct_scorecard_new(request, output_format='HTML'):
     scorecard_data  =   []
-    months=12
+    months=0
     PERIOD_LIST=[]
     querry_set=pmtcteid.objects.all()
     
@@ -11436,6 +11436,7 @@ def pmtct_scorecard_new(request, output_format='HTML'):
         filter_district = None
         filter_period_start   = None
         filter_period_end   = None
+        months=ComputePMTCTtotalMonths()
         scorecard_data =read_data_pmtcteid_scorecard_data(DISTRICT_LIST,months)
 
     totals=totals_pmtcteid_facility(scorecard_data)
@@ -11515,8 +11516,12 @@ def ComputePMTCTtarget_district(col,district,months):
     str1="SELECT SUM ({}) FROM cannula_pmtcteid_targets where district=\'{}\';".format(col,district)
     cursor.execute(str1)
     i=cursor.fetchone()[0]
-    if i!=None:
-        return int(i/months)
+    n=ComputePMTCTtotalMonths()
+    if n!=0:
+        if i!=None:
+            return int(((i/n)/n)*months)
+        else:
+            return 0
     else:
         return 0
 
@@ -11526,8 +11531,13 @@ def ComputePMTCTtarget_facility(col,facility,months):
     str1="SELECT SUM ({}) FROM cannula_pmtcteid_targets where healthfacility=\'{}\';".format(col,facility)
     cursor.execute(str1)
     i=cursor.fetchone()[0]
-    if i!=None:
-        return int(i/months)
+
+    n=ComputePMTCTtotalMonths()
+    if n!=0:
+        if i!=None:
+            return int(((i/n)/n)*months)
+        else:
+            return 0
     else:
         return 0
 
@@ -11535,6 +11545,17 @@ def ComputeSum_pmtcteid_district(col,district):
     from django.db import connection
     cursor = connection.cursor()
     str1="SELECT SUM ({}) FROM cannula_pmtcteid where district=\'{}\';".format(col,district)
+    cursor.execute(str1)
+    i=cursor.fetchone()[0]
+    if i!=None:
+        return int(i)
+    else:
+        return 0
+
+def ComputePMTCTtotalMonths():
+    from django.db import connection
+    cursor = connection.cursor()
+    str1="SELECT count(distinct(period)) FROM cannula_pmtcteid;"
     cursor.execute(str1)
     i=cursor.fetchone()[0]
     if i!=None:
@@ -11812,7 +11833,8 @@ def read_data_pmtcteid_scorecard_data_facility_period(facilityList,startperiod,e
         mm.MTCT_3N=mm.ART_K+mm.ART
         if mm.t_HIVplusTRRK_TRRplus_TRR_ANC!=0:
             mm.PMTCT_ART=(mm.MTCT_3N/mm.t_HIVplusTRRK_TRRplus_TRR_ANC)*100
-        mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
+        if mm.T_PMTCT_ART_N!=0:
+            mm.PerfPMTCT_ART=(mm.MTCT_3N/mm.T_PMTCT_ART_N)* 100
 
         mm.HEI_discharged_18m=ComputeSum_pmtcteid_facility_period('ca24',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca25',i,startperiod,endperiod)+ComputeSum_pmtcteid_facility_period('ca23',i,startperiod,endperiod)
         mm.HEI_transferred_out_before_18m=ComputeSum_pmtcteid_facility_period('ca26',i,startperiod,endperiod)
@@ -11834,7 +11856,8 @@ def read_data_pmtcteid_scorecard_data_facility_period(facilityList,startperiod,e
         mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus=mm.Women_HIV_plus_LD+mm.Breastfeeding_HIV_plus+mm.t_HIVplusTRRK_TRRplus_TRR_ANC_c
         if mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus!=0:
             mm.PMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus)*100
-        mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
+        if mm.T_PMTCT_EID_N!=0:
+            mm.PerfPMTCT_EID=(mm.t_PMTCT_EID2m2_12m/mm.T_PMTCT_EID_N)*100
 
         mm.T_PMTCT_EID_POS=ComputePMTCTtarget_facility('hivplus_infants',i,months)
         mm.PMTCT_EID_POS=ComputeSum_pmtcteid_facility_period('ca20',i,startperiod,endperiod)
@@ -11910,7 +11933,7 @@ def read_data_pmtcteid_scorecard_data_facility_period_single(facility,startperio
 @login_required
 def pmtct_scorecard_new_facility(request, output_format='HTML'):
     scorecard_data  =   []
-    months=12
+    months=0
     PERIOD_LIST=[]
     querry_set=pmtcteid.objects.all()
     
@@ -11943,6 +11966,7 @@ def pmtct_scorecard_new_facility(request, output_format='HTML'):
         filter_district = None
         filter_period_start   = None
         filter_period_end   = None
+        months=ComputePMTCTtotalMonths()
         scorecard_data =read_data_pmtcteid_scorecard_data_facility(FACILITY_LIST,months)
 
     totals=totals_pmtcteid_facility(scorecard_data)
