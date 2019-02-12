@@ -11517,9 +11517,10 @@ def ComputePMTCTtarget_district(col,district,months):
     cursor.execute(str1)
     i=cursor.fetchone()[0]
     n=ComputePMTCTtotalMonths()
+
     if n!=0:
         if i!=None:
-            return int(((i/n)/n)*months)
+            return ((i/n)/n)*months
         else:
             return 0
     else:
@@ -11535,7 +11536,7 @@ def ComputePMTCTtarget_facility(col,facility,months):
     n=ComputePMTCTtotalMonths()
     if n!=0:
         if i!=None:
-            return int(((i/n)/n)*months)
+            return ((i/n)/n)*months
         else:
             return 0
     else:
@@ -11599,6 +11600,10 @@ def ComputeSum_pmtcteid_facility_period(col,facility,startperiod,endperiod):
 def months_between(start,end):
     d1=GetDateCBO(start)
     d2=GetDateCBO(end)
+    plusone=0
+    delta=d2-d1
+    if delta.days!=0:
+        plusone=1
     months = []
     cursor = d1
 
@@ -11607,7 +11612,7 @@ def months_between(start,end):
             months.append(cursor.month)
         cursor += timedelta(weeks=1)
 
-    return len(months)
+    return len(months)+plusone
 
 def GetDateCBO(filter_date):
     if "." not in filter_date:
@@ -11825,7 +11830,8 @@ def read_data_pmtcteid_scorecard_data_facility_period(facilityList,startperiod,e
         mm.t_HIVplusTRRK_TRRplus_TRR_ANC=mm.HIVplusTRRK+ mm.TRRplus+mm.TRR
         if mm.ANC_1_visit_D!=0:
             mm.PMTCT_STAT_POS_2N_1D=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.ANC_1_visit_D)*100
-        mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
+        if mm.T_PMTCT_STAT_POS_N!=0:
+            mm.PerfPMTCT_STAT_POS=(mm.t_HIVplusTRRK_TRRplus_TRR_ANC/mm.T_PMTCT_STAT_POS_N)*100
 
         mm.T_PMTCT_ART_N=ComputePMTCTtarget_facility('mtct_pmtct_art',i,months) 
         mm.ART_K=ComputeSum_pmtcteid_facility_period('ca1',i,startperiod,endperiod)
