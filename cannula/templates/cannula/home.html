@@ -1,119 +1,73 @@
 {% extends "startmin/base.html" %} {% block title %}RHITES-EC Performance Monitoring Tool{% endblock %} 
 {% block heading %} USAID’s Regional Health Integration to Enhance Services in East Central (RHITES-EC) Uganda {% endblock %} 
 {% block content %}
+{% load staticfiles %}
+
 <style>
-.blockHead::after {
-    color:#4D81BF;
-    border-left: 50px solid;
-    border-top: 50px solid transparent;
-    border-bottom: 50px solid transparent;
-    display: inline-block;
-    content: '';
-    position: absolute;
-    right: -50px;
-    top:0
-  
-  }
-  .blockHead {
-    background-color:#4D81BF;
-    width: 300px;
-    height: 100px;
-    line-height: 100px;
-    display: inline-block;
-    position: relative;
-  }
-  .blocktext{
-      color:white;
-      font-weight:bold;
-      padding-left:10px;
-      font-family:Arial;
-      font-size:30px;
-  }
-</style>
-
-<!--<h3>Background</h3>-->
-
-<P>The RHITES-EC performance database presents reports in dashboards aimed to facilitate the measurement and comparison of performances of each program area between different months and years. This performance platform is based on key performance indicators (KPIs) of the program areas, measured against USAID monthly, quarterly and annual targets. It generates reports from the project baseline (2016) through the endline (2016 ― 2021).The platform instantly captures DHIS2 data entered into it, as well as supplementary performance indicator data entered via the open source software Open Data Kit (ODK Kit). It analyses the data immediately easing real-time data access and evidence-based decision making for improved project implementation.</p>
-
-<!--<h1>USAID RHITES-EC - Key Results</h1> -->
+        .container {
+          position: relative;
+          text-align: center;
+          color: blue;
+        }
+        
+        .top-right {
+          position: absolute;
+          top: 0px;
+          right: 0px;
+        }
+        </style>
 
 <html>
-        <!--
-<div>
-    <table border="0" cellspacing="0" cellpadding="4">
-        <tr bgcolor="#A8D08D">
-            <th width="420px"></th>
-            <th><br></th> 
-        </tr>
-        <tr>
-            <td><div class="blockHead"><span class="blocktext">Malaria</span></div></td>
-            <td><p><b>15%</b> Increase in IPTp2 coverage among pregnant women<br></p>      
-                <p><b>3%</b> reduction in presumptive treatment of Malaria<br></p>
-                <p><b>398</b> healthworkers trained in IMM<br></p></td>  
-        </tr>
+        <body>
 
-        <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-        <tr>
-                <td><div class="blockHead"><span class="blocktext">MNCH</span></div></td>
-                <td><p><b>205,774</b> pregnant women attended ANC 1<br></p>      
-                    <p><b>20.5%</b> attended early ANC1, <b>33.9%</b>came for
-                    4 ANC visits & <b>57.0%</b>Health facility deliveries.<br></p>
-                    <p>Perinatal mortality was <b>2.6%</b></p></td>  
-        </tr>
-    
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">Child Health</span></div></td>
-                    <td><p><b>24,101</b> treated for diarrhea with zinc and ORS.<br><b>14,091</b>treated for Pneumonia with antibiotics. <br><b>103.3%</b> of children U5 received Vitamin A supplements, and <b>125.5%</b> received a 2nd deworming doses.</p></td>  
-            </tr>
+                <div id="content">
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">Family Planning</span></div></td>
-                    <td><p><b>410,431</b> total new users of modern methods of family planning (a <b>24%</b> increase from 2015-2016).<br><b>19%</b>(<b>40,177</b>) used long term methods.<br><b>50%</b> of all users were <b><25</b> years</p></td>  
-            </tr>
+                        <header>
+                    <img src="{% static 'cannula/imageone.png' %}" alt="ladies opening a book"/>
+                </header>
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">Nutrition & WASH</span></div></td>
-                    <td><p><b>14%</b> nutrition assessment at OPD, <b>90%</b> nutrition assessment in ART clinic <b>22.7%</b> Households had soap & water at hand washing stations</p></td>  
-            </tr>
+                <main>
+                        <h2>WHO ARE WE?</h2>
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">Laboratory Services</span></div></td>
-                    <td><p>Rejection rates for VL specimens improved from <b>3.9</b> % in Q1, to <b>1.2%</b><br>in Q4 -better than the national target of <b>2%</b><br>The overall coverage for VL testing services improved <b>17.2%</b> in Q1 to <b>88%</b> in Q4.</p></td>  
-            </tr>
+                        <p><b>
+                            We are a health technical assistance project with a cutting-edge performance and monitoring platform.
+                        </b></p>
+                
+                        <p>
+                        Our flagship performance database (REC-DB) is a cutting-edge platform used to process project-required data obtained from the mainstream health information system (DHIS2)<br>
+                        and other supplementary sources; and create user-centric data sets, dashboards and real-time reports that facilitate data utilization from project inception to current time. 
+                        </p>
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">90:90:90 Cascade</span></div></td>
-                    <td><p><b>85%</b> of people living with HIV know their status <br><b>52%</b> living with HIV are on ART <br><b>89.2%</b> Viral load suppression rate among those on ART</p></td>  
-            </tr>
+                        <img src="{% static 'cannula/imagetwo.png' %}" alt="a man using a smartphone"/>
+                        
+                </main>
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">HIV Behavioral Prev</span></div></td>
-                    <td><p><b>72%</b> of targeted KPs & <b>50%</b> of PPs reached <b>3.5% (1,023/29,158)</b> KP/PP tested positive for HIV.<br> <b>78.7%</b> of HIV positive linked to care</p></td>  
-            </tr>
+                <section>
+                        <h2>WHAT HAVE WE DONE</h2>
+            
+                        <h2>Easing real-time data processing, analysis and access</h2>
+                        <p>
+                            Using open-source software, we continually innovate cloud-based and custom-designed collection tools to capture, process and analyze relevant and real-time data from resource-constrained environments,<br>
+                             using one of the most common devices in Uganda ― a phone. This data can be accessed 24/7 from anywhere, by the users.
+                        </p> 
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-
-            <tr>
-                    <td><div class="blockHead"><span class="blocktext">HIV Behavioral Prev</span></div></td>
-                    <td><p><b>72%</b> of targeted KPs & <b>50%</b> of PPs reached <b>3.5% (1,023/29,158)</b> KP/PP tested positive for HIV.<br> <b>78.7%</b> of HIV positive linked to care</p></td>  
-            </tr>
+                        <img src="{% static 'cannula/imagethree.png' %}" alt="people in a meeting"/>
+            
+                        <h2>Improving data quality and integrity</h2>
+                        <p>
+                            This paper-free and geographic verification platform solicits accurate, complete, current, timely submission, storage, traceability, valid and real-time data. REC-DB generates real-time and trustworthy data! 
+                        </p>
+            
+                        <h2>Facilitating evidence-based decision making</h2>
+                        <p>
+                            A performance measurement platform for evidence-based and data-driven decision making, this database enables users to optimize outcomes for program key performance indicators, adapt and scale-up good practices to ensure cost-effectiveness,<br>
+                             accountability and transparency in decision making. 
+                        </p>
+                </section>
         
-            <tr bgcolor="#A8D08D"><td colspan="2" height="2px"><br></td></tr>
-      
-    </table>
-</div>
--->
+                </div>
+        
+        </body>  
+
 </html>
 {% endblock %}

@@ -89,6 +89,11 @@
             <li class="active">
                 <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> Dashboard <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
+
+                        <li>
+                                <!--<a href="https://public.tableau.com/profile/defeattb#!/vizhome/Washdashboard_0/WASHdashboard" target="_self">WASH</a>-->
+                                <a href="{% url 'wash_scorecard' %}">WASH</a>
+                            </li>
                     <li>
                         <a href="{% url 'thematic_hiv' %}">HIV</a>
                     </li>
@@ -134,6 +139,7 @@
             <li>
                 <a href="{% url 'index' %}"><i class="fa fa-table fa-fw"></i> Validation Reports <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
+
                     <li>
                         <a href="{% url 'validation_rule_listing' 'hiv' %}">HIV</a>
                     </li>
@@ -180,6 +186,7 @@
             <li>
                 <a href="#"><i class="fa fa-wrench fa-fw"></i> Upload Datasets <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
+
                     <li>
                         <a href="{% url 'data_workflow_new' "HIV" %}">HIV</a>
                     </li>

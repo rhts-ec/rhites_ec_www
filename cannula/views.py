@@ -12045,3 +12045,10 @@ def totals_pmtcteid_facility(scorecard_data_array):
 
     return data_array
 
+
+@login_required
+def wash_scorecard(request, output_format='HTML'):
+    
+    context = {
+    } 
+    return render(request, 'cannula/washscorecard.html', context)

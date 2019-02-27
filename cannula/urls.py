@@ -177,13 +177,13 @@ urlpatterns = [
     url(r'scorecards/mnch/mnchandmalarial_additional_scorecard_facility\.php', views.mnchandmalarial_additional_scorecard_facility,name='read_data_mms_scorecard_data_facility'),
     url(r'scorecards/mnch/mnchandmalarial_additional_scorecard_doos_facility\.php', views.mnchandmalarial_additional_scorecard_doos_facility,name='mnchandmalarial_additional_scorecard_doos_facility'),
 
-
     #pmtct
     url(r'scorecards/pmtct/pmtct_districts_new\.php', views.pmtct_scorecard_new,name='pmtct_districts_new'),
     url(r'scorecards/pmtct/pmtct_scorecard_new_facility\.php', views.pmtct_scorecard_new_facility,name='pmtct_scorecard_new_facility'),
 
-
-
+    #WASH     wash_scorecard
+    url(r'scorecards/wash/wash_scorecard\.php', views.wash_scorecard,name='wash_scorecard'),
+    
     url(r'dashboards/vl_lab/$', views.index, name='thematic_vl_lab'),
     url(r'scorecards/sp_vl_lab/vl_lab\.php', views.vl_lab, name='vl_lab'),
     #url(r'scorecards/prev/tb_prev_summary\.php', views.tb_prev_summary, name='prev_summary'),
