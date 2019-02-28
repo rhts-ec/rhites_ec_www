@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
+    url(r'^home/', views.home, name='home'),
     url(r'^user_profile_edit$', views.user_profile_edit, name='user_profile_edit'),
     url(r'dashboards/malaria/$', views.malaria_dashboard, name='thematic_malaria'),
     url(r'scorecards/malaria/cases\.php', views.malaria_cases_scorecard, {'org_unit_level': 3}, name='malaria_cases'),
@@ -143,6 +144,14 @@ urlpatterns = [
     url(r'scorecards/lqas/districts\.php', views.lqas_scorecard, {'org_unit_level': 1}, name='lqas_districts'),
     url(r'scorecards/lqas/districts\.xls', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='lqas_districts_excel'),
     url(r'scorecards/lqas/districts\.csv', views.lqas_scorecard, {'org_unit_level': 1, 'output_format': 'CSV'}, name='lqas_districts_csv'),
+
+    url(r'scorecards/lqas/districts_child\.php', views.lqas_scorecard_child, {'org_unit_level': 1}, name='lqas_districts_child'),
+    url(r'scorecards/lqas/districts_child\.xls', views.lqas_scorecard_child, {'org_unit_level': 1, 'output_format': 'EXCEL'}, name='lqas_districts_child_excel'),
+    url(r'scorecards/lqas/districts_child\.csv', views.lqas_scorecard_child, {'org_unit_level': 1, 'output_format': 'CSV'}, name='lqas_districts_child_csv'),
+   
+   
+   
+
     url(r'dashboards/kp/$', views.index, name='thematic_kp'),
     url(r'scorecards/kp/subcounties\.php', views.kp_scorecard, {'org_unit_level': 2}, name='kp_subcounties'),
     url(r'scorecards/kp/subcounties\.xls', views.kp_scorecard, {'org_unit_level': 2, 'output_format': 'EXCEL'}, name='kp_subcounties_excel'),
@@ -157,7 +166,25 @@ urlpatterns = [
     url(r'scorecards/reports/reports_sites_2017_to_2018\.php', views.reports_sites_2017_to_2018, name='reports_sites_2017_to_2018'),
 
     #suplementary tools
+    #TB PREV
     url(r'dashboards/prev/$', views.index, name='thematic_prev'),
     url(r'scorecards/prev/tb_prev\.php', views.tb_prev, name='prev'),
     url(r'scorecards/prev/tb_prev_summary\.php', views.tb_prev_summary, name='prev_summary'),
+    
+    #MNCH and Malaria
+    url(r'scorecards/mnch/mnchandmalarial_additional_summary\.php', views.mnchandmalarial_additional_summary,name='mnchandmalarial_additional_summary'),
+    url(r'scorecards/mnch/mnchandmalarial_additional_scorecard\.php', views.mnchandmalarial_additional_scorecard,name='mnchandmalarial_additional_scorecard'),
+    url(r'scorecards/mnch/mnchandmalarial_additional_scorecard_facility\.php', views.mnchandmalarial_additional_scorecard_facility,name='read_data_mms_scorecard_data_facility'),
+    url(r'scorecards/mnch/mnchandmalarial_additional_scorecard_doos_facility\.php', views.mnchandmalarial_additional_scorecard_doos_facility,name='mnchandmalarial_additional_scorecard_doos_facility'),
+
+    #pmtct
+    url(r'scorecards/pmtct/pmtct_districts_new\.php', views.pmtct_scorecard_new,name='pmtct_districts_new'),
+    url(r'scorecards/pmtct/pmtct_scorecard_new_facility\.php', views.pmtct_scorecard_new_facility,name='pmtct_scorecard_new_facility'),
+
+    #WASH     wash_scorecard
+    url(r'scorecards/wash/wash_scorecard\.php', views.wash_scorecard,name='wash_scorecard'),
+    
+    url(r'dashboards/vl_lab/$', views.index, name='thematic_vl_lab'),
+    url(r'scorecards/sp_vl_lab/vl_lab\.php', views.vl_lab, name='vl_lab'),
+    #url(r'scorecards/prev/tb_prev_summary\.php', views.tb_prev_summary, name='prev_summary'),
 ]

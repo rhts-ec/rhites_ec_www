@@ -17,7 +17,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 
 urlpatterns = [
-    url(r'^$', 'cannula.views.index'),
+    url(r'^$', 'cannula.views.home'),
     url(r'', include('cannula.urls')),
 
     url(r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'startmin/login.html'}),

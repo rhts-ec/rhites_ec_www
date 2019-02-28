@@ -1,0 +1,155 @@
+{% extends "cannula/thematic_base.html" %}
+
+{% block title %} Additional Days Out of Stock indicators {% endblock %}
+{% block heading %}Performance DashBoard-Days Out of Stock By Health Facility {% endblock %}
+{% block datacell %}
+		<td class="w3-right-align Good 0_2_4_none_red_green_yellow none_0_light-green"></td>
+{% endblock %}
+
+
+{% block content %}
+
+<script type="text/javascript">
+	function ExportToExcel(table_001){
+		   var htmltable= document.getElementById('table_001');
+		   var html = htmltable.outerHTML;
+		   window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+		}
+</script>
+
+<style>
+td 
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+th
+{
+    text-align: center; 
+    vertical-align: middle;
+}
+
+</style>
+
+<style id=mystyle>
+	.btn1 {
+		background-color: DodgerBlue;
+		border: none;
+		color: white;
+		padding: 10px 25px;
+		cursor: pointer;
+		font-size: 20;
+	}
+	
+	/* Darker background on mouse-over */
+	.btn1:hover {
+		background-color: RoyalBlue;
+	}
+	</style>
+
+<h1 class="center-align red lighten-3">{{title}}</h1>
+<button id="btnExport" onclick="ExportToExcel();" class="btn1" style="float: right;"><i class="fa fa-download"></i> Download Score Card </button>
+<p><br><br></p>
+    <table width="400" border="1"  align="center" border-spacing: 5px>
+            <tr>
+                    <th>Legend</th>
+                    <th bgcolor="#008000" >0</th>
+                    <th bgcolor="#FF0000" >>0</th>
+                   
+            </tr>
+
+            <tr>
+                    <th></th>
+                    <th bgcolor="#008000">&#x1F600;</th>
+                    <th bgcolor="#FF0000">&#x1F621;</th>
+                   
+            </tr>
+    </table>
+    
+ <table id=table_001 border="1" align="center">
+        <tr>
+            <th>Health Facility</th>
+            <th>DOS: Male condoms</th>
+            <th>DOS: Female condoms</th>
+            <th>DOS: Moon beads</th>
+            <th>DOS: Implanon</th>
+            <th>DOS: Jadelle</th>
+            <th>DOS: IUD</th>
+            <th>DOS: Depo Provera</th>
+            <th>DOS: Sayana Press</th>
+            <th>DOS: Pills</th>
+            <th>DOS: Emergency pills</th>
+        </tr>
+
+        {% for item in mms_scorecard_data %}
+
+        <tr>
+                <td>{{ item.healthfacility }}</td>
+    
+                {% if item.dmcondoms <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dmcondoms|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dmcondoms|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dfcondoms <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dfcondoms|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dfcondoms|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dmbeads <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dmbeads|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dmbeads|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dimplanon <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dimplanon|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dimplanon|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.djadelle <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.djadelle|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.djadelle|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.diud <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.diud|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.diud|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.ddepoprovera <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.ddepoprovera|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.ddepoprovera|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dsayana <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dsayana|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dsayana|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.dpills <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.dpills|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.dpills|floatformat:0 }}</td>
+                {% endif %}
+
+                {% if item.depills <= 0 %}
+                <td bgcolor="#008000" align="center">{{ item.depills|floatformat:0 }}</td>
+                {% else %}
+                <td bgcolor="#FF0000" align="center">{{ item.depills|floatformat:0 }}</td>
+                {% endif %}
+        </tr>
+
+        {% endfor %}
+
+  </table>
+
+ {% endblock %}

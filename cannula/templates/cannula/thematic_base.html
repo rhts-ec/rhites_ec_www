@@ -9,7 +9,7 @@
 {% block extra-styles %}
     <style type="text/css">
         #sidebar.active {
-            margin-left: -250px;
+            margin-left: -200px;
         }
     </style>
 {% endblock %}
@@ -73,6 +73,24 @@
                             {% endfor %}
                         </select>
                     </div><!-- form group [search] -->
+
+                    <!--search by Facility logic-->
+                    {% if facility %}
+                        <!--select facility-->
+                        <div class="form-group">
+                            <label class="filter-col" style="margin-right:0;" for="pref-perpage">Facility:</label>
+                            <select class="form-control" name="facility">
+                        {% for p in facility_list %}
+                        {% if p == facility %}
+                        <option selected="selected">{{ p }}</option>
+                        {% else %}
+                        <option>{{ p }}</option>
+                         {% endif %}
+                        {% endfor %}
+                        </select>                               
+                        </div>
+
+                    {% endif %}
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary">
                             <span class="fa fa-search"></span> Filter

@@ -1,0 +1,66 @@
+{% extends "startmin/base.html" %} {% block title %}RHITES-EC Performance Monitoring Tool{% endblock %} 
+{% block heading %} USAID’s Regional Health Integration to Enhance Services in East Central (RHITES-EC) Uganda {% endblock %} 
+{% block content %}
+{% load staticfiles %}
+
+        <style>
+        .aligncenter {
+            text-align: center;
+        }
+        </style>
+        
+
+<html>
+        <body>
+
+                <div class="aligncenter" id="content">
+        
+                        <header>
+                    <img src="{% static 'cannula/imageone.png' %}"  alt="ladies opening a book"/>
+                </header>
+        
+                <main>
+                        <h2>WHO ARE WE?</h2>
+        
+                        <p><b>
+                            We are a health technical assistance project with a cutting-edge performance and monitoring platform.
+                        </b></p>
+                
+                        <p>
+                        Our flagship performance database (REC-DB) is a cutting-edge platform used to process project-required data obtained from the mainstream health information system (DHIS2)
+                        and other supplementary sources; and create user-centric data sets, dashboards and real-time reports that facilitate data utilization from project inception to current time. 
+                        </p>
+        
+                        <img src="{% static 'cannula/imagetwo.png' %}" alt="a man using a smartphone"/>
+                        
+                </main>
+        
+                <section>
+                        <h2>WHAT HAVE WE DONE</h2>
+            
+                        <h2>Easing real-time data processing, analysis and access</h2>
+                        <p>
+                            Using open-source software, we continually innovate cloud-based and custom-designed collection tools to capture, process and analyze relevant and real-time data from resource-constrained environments,
+                             using one of the most common devices in Uganda ― a phone. This data can be accessed 24/7 from anywhere, by the users.
+                        </p> 
+        
+                        <img src="{% static 'cannula/imagethree.png' %}" alt="people in a meeting"/>
+            
+                        <h2>Improving data quality and integrity</h2>
+                        <p>
+                            This paper-free and geographic verification platform solicits accurate, complete, current, timely submission, storage, traceability, valid and real-time data. REC-DB generates real-time and trustworthy data! 
+                        </p>
+            
+                        <h2>Facilitating evidence-based decision making</h2>
+                        <p>
+                            A performance measurement platform for evidence-based and data-driven decision making, this database enables users to optimize outcomes for program key performance indicators, adapt and scale-up good practices to ensure cost-effectiveness,
+                             accountability and transparency in decision making. 
+                        </p>
+                </section>
+        
+                </div>
+        
+        </body>  
+
+</html>
+{% endblock %}
