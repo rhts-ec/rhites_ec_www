@@ -134,15 +134,15 @@
             {% for item in scorecard_data %}
             <tr> 
                 <td>{{ item.healthfacility }}</td>
-                <td>{{ item.T_PMTCT_STAT_nANC_D|floatformat:2 }}</td>
-                <td>{{ item.ANC_1_visit_D|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_nANC_D|floatformat:0 }}</td>
+                <td>{{ item.ANC_1_visit_D|floatformat:0 }}</td>
 
                 {% if item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% elif item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit >= 80 and item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% endif %}
 
                 <td>{{ item.T_PMTCT_STAT_N|floatformat:2 }}</td>

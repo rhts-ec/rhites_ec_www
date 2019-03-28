@@ -183,6 +183,8 @@ urlpatterns = [
 
     #WASH     wash_scorecard
     url(r'scorecards/wash/wash_scorecard\.php', views.wash_scorecard,name='wash_scorecard'),
+
+    url(r'scorecards/lqas/lqas_scorecard\.php', views.lqas_scorecard, name='lqas_scorecard'),
     
     url(r'dashboards/vl_lab/$', views.index, name='thematic_vl_lab'),
     url(r'scorecards/sp_vl_lab/vl_lab\.php', views.vl_lab, name='vl_lab'),
