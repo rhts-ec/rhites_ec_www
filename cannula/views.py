@@ -12052,3 +12052,10 @@ def wash_scorecard(request, output_format='HTML'):
     context = {
     } 
     return render(request, 'cannula/washscorecard.html', context)
+
+@login_required
+def lqas_scorecard(request, output_format='HTML'):
+    
+    context = {
+    } 
+    return render(request, 'cannula/lqas_scorecard.html', context)

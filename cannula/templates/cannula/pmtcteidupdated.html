@@ -139,133 +139,133 @@
             {% for item in scorecard_data %}
             <tr> 
                 <td>{{ item.district }}</td>
-                <td>{{ item.T_PMTCT_STAT_nANC_D|floatformat:2 }}</td>
-                <td>{{ item.ANC_1_visit_D|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_nANC_D|floatformat:0 }}</td>
+                <td>{{ item.ANC_1_visit_D|floatformat:0 }}</td>
 
                 {% if item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% elif item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit >= 80 and item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_STAT_N|floatformat:2 }}</td>
-                <td>{{ item.TRandTRR|floatformat:2 }}</td>
-                <td>{{ item.TRKandTRRK|floatformat:2 }}</td>
-                <td>{{ item.total_TRandTRRandTRKandTRRK|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_N|floatformat:0 }}</td>
+                <td>{{ item.TRandTRR|floatformat:0 }}</td>
+                <td>{{ item.TRKandTRRK|floatformat:0 }}</td>
+                <td>{{ item.total_TRandTRRandTRKandTRRK|floatformat:0 }}</td>
 
                 {% if item.PMTCT_STAT_1Nand1D >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:1 }}%</td>
                 {% elif item.PMTCT_STAT_1Nand1D >= 80 and item.PMTCT_STAT_1Nand1D < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.PerfPMTCT_STAT >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_STAT >= 80 and item.PerfPMTCT_STAT < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_STAT_POS_N|floatformat:2 }}</td>
-                <td>{{ item.HIVplusTRRK|floatformat:2 }}</td>
-                <td>{{ item.TRRplus|floatformat:2 }}</td>
-                <td>{{ item.TRR|floatformat:2 }}</td>
-                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_POS_N|floatformat:0 }}</td>
+                <td>{{ item.HIVplusTRRK|floatformat:0 }}</td>
+                <td>{{ item.TRRplus|floatformat:0 }}</td>
+                <td>{{ item.TRR|floatformat:0 }}</td>
+                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC|floatformat:0 }}</td>
 
                 {% if item.PerfPMTCT_STAT_POS >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_STAT_POS >= 80 and item.PerfPMTCT_STAT_POS < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.PMTCT_STAT_POS_2N_1D < 2 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:1 }}%</td>
                 {% elif item.PMTCT_STAT_POS_2N_1D >= 2 and item.PMTCT_STAT_POS_2N_1D < 5  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:1 }}%</td>
                 {% endif %}
 
                 
 
-                <td>{{ item.T_PMTCT_ART_N|floatformat:2 }}</td>
-                <td>{{ item.ART_K|floatformat:2 }}</td>
-                <td>{{ item.ART|floatformat:2 }}</td>
-                <td>{{ item.MTCT_3N|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_ART_N|floatformat:0 }}</td>
+                <td>{{ item.ART_K|floatformat:0 }}</td>
+                <td>{{ item.ART|floatformat:0 }}</td>
+                <td>{{ item.MTCT_3N|floatformat:0 }}</td>
 
                 {% if item.PMTCT_ART > 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_ART|floatformat:1 }}%</td>
                 {% elif item.PMTCT_ART >= 80 and item.PMTCT_ART < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_ART|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_ART|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.PerfPMTCT_ART >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_ART|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_ART >= 80 and item.PerfPMTCT_ART < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_ART|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_ART|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.HEI_discharged_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_transferred_out_before_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_ltfu_before_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_died_before_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_care_but_no_test_done18m|floatformat:2 }}</td>
-                <td>{{ item.t_HEI_4N|floatformat:2 }}</td>
-                <td>{{ item.HEI_in_birth_cohort_24mp_4D|floatformat:2 }}</td>
+                <td>{{ item.HEI_discharged_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_transferred_out_before_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_ltfu_before_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_died_before_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_care_but_no_test_done18m|floatformat:0 }}</td>
+                <td>{{ item.t_HEI_4N|floatformat:0 }}</td>
+                <td>{{ item.HEI_in_birth_cohort_24mp_4D|floatformat:0 }}</td>
 
                 {% if item.PMTCT_FO >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_FO|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_FO|floatformat:1 }}%</td>
                 {% elif item.PMTCT_FO >= 80 and item.PMTCT_FO < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_FO|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_FO|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_FO|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_FO|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_EID_N|floatformat:2 }}</td>
-                <td>{{ item.PMTCT_EIDles2m|floatformat:2 }}</td>
-                <td>{{ item.PMTCT_EIDles2_12m|floatformat:2 }}</td>
-                <td>{{ item.t_PMTCT_EID2m2_12m|floatformat:2 }}</td>
-                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC_c|floatformat:2 }}</td>
-                <td>{{ item.Women_HIV_plus_LD|floatformat:2 }}</td>
-                <td>{{ item.Breastfeeding_HIV_plus|floatformat:2 }}</td>
-                <td>{{ item.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_EID_N|floatformat:0 }}</td>
+                <td>{{ item.PMTCT_EIDles2m|floatformat:0 }}</td>
+                <td>{{ item.PMTCT_EIDles2_12m|floatformat:0 }}</td>
+                <td>{{ item.t_PMTCT_EID2m2_12m|floatformat:0 }}</td>
+                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC_c|floatformat:0 }}</td>
+                <td>{{ item.Women_HIV_plus_LD|floatformat:0 }}</td>
+                <td>{{ item.Breastfeeding_HIV_plus|floatformat:0 }}</td>
+                <td>{{ item.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus|floatformat:0 }}</td>
 
                 {% if item.PMTCT_EID >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_EID|floatformat:1 }}%</td>
                 {% elif item.PMTCT_EID >= 80 and item.PMTCT_EID < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_EID|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_EID|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.PerfPMTCT_EID >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_EID >= 80 and item.PerfPMTCT_EID < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_EID_POS|floatformat:2 }}</td>
-                <td>{{ item.PMTCT_EID_POS|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_EID_POS|floatformat:0 }}</td>
+                <td>{{ item.PMTCT_EID_POS|floatformat:0 }}</td>
 
                 {% if item.PerfPMTCT_EID_POS >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_EID_POS >= 80 and item.PerfPMTCT_EID_POS < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:1 }}%</td>
                 {% endif %}
               
 
@@ -276,137 +276,137 @@
             {% for item in totals %}
             <tr style="font-weight:bold; background-color:#E2EFD9"> 
                 <td>{{ item.healthfacility }}</td>
-                <td>{{ item.T_PMTCT_STAT_nANC_D|floatformat:2 }}</td>
-                <td>{{ item.ANC_1_visit_D|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_nANC_D|floatformat:0 }}</td>
+                <td>{{ item.ANC_1_visit_D|floatformat:0 }}</td>
 
                 {% if item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% elif item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit >= 80 and item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.perf_T_PMTCT_STAT_nANC_DandANC_1_visit|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_STAT_N|floatformat:2 }}</td>
-                <td>{{ item.TRandTRR|floatformat:2 }}</td>
-                <td>{{ item.TRKandTRRK|floatformat:2 }}</td>
-                <td>{{ item.total_TRandTRRandTRKandTRRK|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_N|floatformat:0 }}</td>
+                <td>{{ item.TRandTRR|floatformat:0 }}</td>
+                <td>{{ item.TRKandTRRK|floatformat:0 }}</td>
+                <td>{{ item.total_TRandTRRandTRKandTRRK|floatformat:0 }}</td>
 
                 {% if item.total_TRandTRRandTRKandTRRK != 0 %}
                     {% if item.PMTCT_STAT_1Nand1D >= 90 %}
-                    <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:2 }}%</td>
+                    <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:1 }}%</td>
                     {% elif item.PMTCT_STAT_1Nand1D >= 80 and item.PMTCT_STAT_1Nand1D < 90  %}
-                    <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:2 }}%</td>
+                    <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:1 }}%</td>
                     {% else %}
-                    <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:2 }}%</td>
+                    <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_1Nand1D|floatformat:1 }}%</td>
                     {% endif %}
                 {% endif %}
 
                 {% if item.PerfPMTCT_STAT >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_STAT >= 80 and item.PerfPMTCT_STAT < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_STAT_POS_N|floatformat:2 }}</td>
-                <td>{{ item.HIVplusTRRK|floatformat:2 }}</td>
-                <td>{{ item.TRRplus|floatformat:2 }}</td>
-                <td>{{ item.TRR|floatformat:2 }}</td>
-                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_STAT_POS_N|floatformat:0 }}</td>
+                <td>{{ item.HIVplusTRRK|floatformat:0 }}</td>
+                <td>{{ item.TRRplus|floatformat:0 }}</td>
+                <td>{{ item.TRR|floatformat:0 }}</td>
+                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC|floatformat:0 }}</td>
 
                 {% if item.PerfPMTCT_STAT_POS >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_STAT_POS >= 80 and item.PerfPMTCT_STAT_POS < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_STAT_POS|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.t_HIVplusTRRK_TRRplus_TRR_ANC != 0 %}
                 {% if item.PMTCT_STAT_POS_2N_1D < 2 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:1 }}%</td>
                 {% elif item.PMTCT_STAT_POS_2N_1D >= 2 and item.PMTCT_STAT_POS_2N_1D < 5  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_STAT_POS_2N_1D|floatformat:1 }}%</td>
                 {% endif %}
                 {% else %}
                 <td bgcolor="#FFFFFF" align="center"><br></td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_ART_N|floatformat:2 }}</td>
-                <td>{{ item.ART_K|floatformat:2 }}</td>
-                <td>{{ item.ART|floatformat:2 }}</td>
-                <td>{{ item.MTCT_3N|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_ART_N|floatformat:0 }}</td>
+                <td>{{ item.ART_K|floatformat:0 }}</td>
+                <td>{{ item.ART|floatformat:0 }}</td>
+                <td>{{ item.MTCT_3N|floatformat:0 }}</td>
 
                 {% if item.PMTCT_ART > 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_ART|floatformat:1 }}%</td>
                 {% elif item.PMTCT_ART >= 80 and item.PMTCT_ART < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_ART|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_ART|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.PerfPMTCT_ART >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_ART|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_ART >= 80 and item.PerfPMTCT_ART < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_ART|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_ART|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_ART|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.HEI_discharged_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_transferred_out_before_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_ltfu_before_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_died_before_18m|floatformat:2 }}</td>
-                <td>{{ item.HEI_care_but_no_test_done18m|floatformat:2 }}</td>
-                <td>{{ item.t_HEI_4N|floatformat:2 }}</td>
-                <td>{{ item.HEI_in_birth_cohort_24mp_4D|floatformat:2 }}</td>
+                <td>{{ item.HEI_discharged_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_transferred_out_before_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_ltfu_before_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_died_before_18m|floatformat:0 }}</td>
+                <td>{{ item.HEI_care_but_no_test_done18m|floatformat:0 }}</td>
+                <td>{{ item.t_HEI_4N|floatformat:0 }}</td>
+                <td>{{ item.HEI_in_birth_cohort_24mp_4D|floatformat:0 }}</td>
 
                 {% if item.PMTCT_FO >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_FO|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_FO|floatformat:1 }}%</td>
                 {% elif item.PMTCT_FO >= 80 and item.PMTCT_FO < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_FO|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_FO|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_FO|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_FO|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_EID_N|floatformat:2 }}</td>
-                <td>{{ item.PMTCT_EIDles2m|floatformat:2 }}</td>
-                <td>{{ item.PMTCT_EIDles2_12m|floatformat:2 }}</td>
-                <td>{{ item.t_PMTCT_EID2m2_12m|floatformat:2 }}</td>
-                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC_c|floatformat:2 }}</td>
-                <td>{{ item.Women_HIV_plus_LD|floatformat:2 }}</td>
-                <td>{{ item.Breastfeeding_HIV_plus|floatformat:2 }}</td>
-                <td>{{ item.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_EID_N|floatformat:0 }}</td>
+                <td>{{ item.PMTCT_EIDles2m|floatformat:0 }}</td>
+                <td>{{ item.PMTCT_EIDles2_12m|floatformat:0 }}</td>
+                <td>{{ item.t_PMTCT_EID2m2_12m|floatformat:0 }}</td>
+                <td>{{ item.t_HIVplusTRRK_TRRplus_TRR_ANC_c|floatformat:0 }}</td>
+                <td>{{ item.Women_HIV_plus_LD|floatformat:0 }}</td>
+                <td>{{ item.Breastfeeding_HIV_plus|floatformat:0 }}</td>
+                <td>{{ item.t_Women_HIV_plus_LDplusBreastfeeding_HIV_plus|floatformat:0 }}</td>
 
                 {% if item.PMTCT_EID >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PMTCT_EID|floatformat:1 }}%</td>
                 {% elif item.PMTCT_EID >= 80 and item.PMTCT_EID < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PMTCT_EID|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PMTCT_EID|floatformat:1 }}%</td>
                 {% endif %}
 
                 {% if item.PerfPMTCT_EID >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_EID >= 80 and item.PerfPMTCT_EID < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID|floatformat:1 }}%</td>
                 {% endif %}
 
-                <td>{{ item.T_PMTCT_EID_POS|floatformat:2 }}</td>
-                <td>{{ item.PMTCT_EID_POS|floatformat:2 }}</td>
+                <td>{{ item.T_PMTCT_EID_POS|floatformat:0 }}</td>
+                <td>{{ item.PMTCT_EID_POS|floatformat:0 }}</td>
 
                 {% if item.PerfPMTCT_EID_POS >= 90 %}
-                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:2 }}%</td>
+                <td bgcolor="#008000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:1 }}%</td>
                 {% elif item.PerfPMTCT_EID_POS >= 80 and item.PerfPMTCT_EID_POS < 90  %}
-                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FFFF00" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:1 }}%</td>
                 {% else %}
-                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:2 }}%</td>
+                <td bgcolor="#FF0000" align="center">{{ item.PerfPMTCT_EID_POS|floatformat:1 }}%</td>
                 {% endif %}
             </tr>
             {% endfor %}

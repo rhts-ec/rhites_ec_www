@@ -90,16 +90,6 @@
                 <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> Dashboard <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
 
-                        <li>
-                                <!--<a href="https://public.tableau.com/profile/defeattb#!/vizhome/Washdashboard_0/WASHdashboard" target="_self">WASH</a>-->
-                                <a href="{% url 'wash_scorecard' %}">WASH</a>
-                            </li>
-                    <li>
-                        <a href="{% url 'thematic_hiv' %}">HIV</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'thematic_pmtct' %}">PMTCT/EID</a>
-                    </li>
                     <li>
                         <a href="{% url 'thematic_malaria' %}">Malaria</a>
                     </li>
@@ -107,7 +97,19 @@
                         <a href="{% url 'thematic_mnch' %}">Maternal &amp; Child Health</a>
                     </li>
                     <li>
+                        <a href="{% url 'thematic_fp' %}">Family Planning</a>
+                    </li>
+                    <li>
                         <a href="{% url 'thematic_nutrition' %}">Nutrition</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'thematic_hiv' %}">HIV</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'thematic_pmtct' %}">PMTCT/EID</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'thematic_vmmc' %}">VMMC</a>
                     </li>
                     <li>
                         <a href="{% url 'thematic_tb' %}">Tuberculosis &amp; TB/HIV</a>
@@ -116,25 +118,31 @@
                         <a href="{% url 'thematic_lab' %}">Lab Tests</a>
                     </li>
                     <li>
-                        <a href="{% url 'thematic_vmmc' %}">VMMC</a>
+                        <a href="{% url 'thematic_sc' %}">Supply Chain</a>
                     </li>
                     <li>
-                        <a href="{% url 'thematic_fp' %}">Family Planning</a>
+                        <a href="{% url 'wash_scorecard' %}">WASH</a>
                     </li>
+                </ul>
+            </li>
+
+            <li class="active">
+                <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> Dashboard-Community <span class="fa arrow"></span></a>
+                <ul class="nav nav-second-level">
                     <li>
                         <a href="{% url 'thematic_gbv' %}">GBV</a>
                     </li>
                     <li>
-                        <a href="{% url 'thematic_sc' %}">Supply Chain</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'thematic_lqas' %}">LQAS</a>
+                        <a href="{% url 'lqas_scorecard' %}">LQAS</a>
+                         <!-- <a href="{% url 'thematic_lqas' %}">LQAS</a>-->
+                       <!-- <a href="{% url 'thematic_lqas' %}">LQAS</a>-->
                     </li>
                     <li>
                         <a href="{% url 'thematic_kp' %}">Key &amp; Priority Populations</a>
                     </li>
                 </ul>
             </li>
+
             {% if user.is_authenticated %}
             <li>
                 <a href="{% url 'index' %}"><i class="fa fa-table fa-fw"></i> Validation Reports <span class="fa arrow"></span></a>
