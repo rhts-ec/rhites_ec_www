@@ -10726,7 +10726,8 @@ def FormatedDate(filter_date):
             dt_tmp=filter_date.replace("Sept.","Sep.")
             dt=datetime.strptime(dt_tmp,'%b. %d, %Y')
             
-    return  f"{dt:%Y-%m-%d}"
+    #return  f"{dt:%Y-%m-%d}"
+    return dt.isoformat()
 
 @login_required
 def mnchandmalarial_additional_scorecard(request, output_format='HTML'):
