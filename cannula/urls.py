@@ -189,4 +189,13 @@ urlpatterns = [
     url(r'dashboards/vl_lab/$', views.index, name='thematic_vl_lab'),
     url(r'scorecards/sp_vl_lab/vl_lab\.php', views.vl_lab, name='vl_lab'),
     #url(r'scorecards/prev/tb_prev_summary\.php', views.tb_prev_summary, name='prev_summary'),
+
+    #IFAS     bottlenetinverntory_scorecard
+    url(r'scorecards/ifas/ifas_scorecard\.php', views.ifas_scorecard,name='ifas_scorecard'),
+    url(r'scorecards/ifas/renew_ifas_data\.php', views.renew_ifas_data,name='renew_ifas_data'),
+    #url(r'^(?P<id>\d+)/$', views.detail_bottleneck_view, name='detail_bottleneck_view'),
+    url(r'^(?P<id>\d+)/edit/$', views.editbottleneck, name='editbottleneck'),
+
+    #linkages
+    url(r'scorecards/linkages/linkages_scorecard\.php', views.linkages_scorecard, name='linkages_scorecard'),
 ]

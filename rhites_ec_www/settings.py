@@ -137,7 +137,7 @@ ORG_UNIT_ROOT_NAME = 'Uganda'
 DJANGO_EASY_AUDIT_WATCH_REQUEST_EVENTS = False # don't log HTTP requests
 
 # Timeout period (in seconds)
-INACTIVITY_TIMEOUT = 300
+INACTIVITY_TIMEOUT = 1800
 
 # import local settings
 try:

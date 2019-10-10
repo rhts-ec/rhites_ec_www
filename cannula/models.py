@@ -4,6 +4,7 @@ from django.db.models.signals import post_init
 from django.core.files.storage import FileSystemStorage
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from .enums import Where_Identified_CHOICES
 
 import logging
 logger = logging.getLogger(__name__)
@@ -1283,6 +1284,23 @@ class pmtcteid_dashboard(object):
     T_PMTCT_EID_POS=0
     PMTCT_EID_POS=0
     PerfPMTCT_EID_POS=0 #(PMTCT_EID_POS/T_PMTCT_EID_POS)*100
+
+class IFASBottleneck(models.Model):
+    bottleneck=models.CharField("Enter the name of the bottleneck",max_length=200)
+    level=models.CharField("Level",max_length=200)
+    when_identified = models.DateField("Please enter the date when the bottleneck was identified")
+    where_identified = models.IntegerField(choices=Where_Identified_CHOICES, default=1) 
+    potential_solutions=models.CharField("Level",max_length=400)
+    efforts_to_address_bottleneck=models.CharField("Efforts to address the bottleneck",max_length=500)
+    next_steps=models.CharField("Next steps",max_length=500)
+    additional_bottleneck_identified=models.CharField("Additional bottleneck identified during efforts",max_length=500)
+    comments=models.CharField("Comments if any",max_length=500)
+
+    
+
+
+    
+
 
 
     

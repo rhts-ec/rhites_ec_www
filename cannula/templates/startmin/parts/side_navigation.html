@@ -121,7 +121,7 @@
                         <a href="{% url 'thematic_sc' %}">Supply Chain</a>
                     </li>
                     <li>
-                        <a href="{% url 'wash_scorecard' %}">WASH</a>
+                        <a href="{% url 'wash_scorecard' %}"><b>WASH</b></a>
                     </li>
                 </ul>
             </li>
@@ -130,10 +130,14 @@
                 <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> Dashboard-Community <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">
                     <li>
+                        <a href="{% url 'linkages_scorecard' %}"><b>Linkages</b></a>
+                    </li>
+
+                    <li>
                         <a href="{% url 'thematic_gbv' %}">GBV</a>
                     </li>
                     <li>
-                        <a href="{% url 'lqas_scorecard' %}">LQAS</a>
+                        <a href="{% url 'lqas_scorecard' %}"><b>LQAS</b></a>
                          <!-- <a href="{% url 'thematic_lqas' %}">LQAS</a>-->
                        <!-- <a href="{% url 'thematic_lqas' %}">LQAS</a>-->
                     </li>
@@ -142,6 +146,17 @@
                     </li>
                 </ul>
             </li>
+            
+            <!--
+            <li class="active">
+                <a href="{% url 'index' %}"><i class="fa fa-line-chart fa-fw"></i> IFAS <span class="fa arrow"></span></a>
+                <ul class="nav nav-second-level">
+                    <li>
+                        <a href="{% url 'ifas_scorecard' %}">Bottlenek Inventory</a>
+                    </li>
+                </ul>
+            </li>
+            -->
 
             {% if user.is_authenticated %}
             <li>

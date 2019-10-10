@@ -1,0 +1,47 @@
+{% extends "startmin/base.html" %} 
+{% block title %} RHITES-EC Iron Folic Acid Supplement (IFAS) {% endblock %} {% block heading %} IFAS Bottleneck Inventory {% endblock %} 
+{% block content %}
+
+<html>
+<ul>     
+    <li style="float: right;"><a href="{% url 'renew_ifas_data' %}">Add Bottleneck</a></li>
+</ul>
+<p><br><br></p>
+<table id=bottleneck  border="1">
+
+    <tr>
+    <th>Bottleneck</th>
+    <th>When Identified</th>
+    <th>Where Identified</th>
+    <th>Potential Solutions</th>
+    <th>Efforts to address the bottleneck</th>
+    <th>Next steps</th>
+    <th>Additional bottleneck identified during efforts</th>
+    <th>Comments if any</th>
+    <th>Action</th>
+    </tr>
+
+    {% for item in Bottlenecks %}
+
+    <tr>
+        <td>{{ item.bottleneck }}</td>
+        <td>{{ item.when_identified }}</td>
+        <td>{{ item.where_identified }}</td>
+        <td>{{ item.potential_solutions }}</td>
+        <td>{{ item.efforts_to_address_bottleneck }}</td>
+        <td>{{ item.next_steps }}</td>
+        <td>{{ item.additional_bottleneck_identified }}</td>
+        <td>{{ item.comments }}</td>
+        <td> <a href="{% url 'thematic_kp' %}">Edit Item</a></td>
+
+       
+    </tr>
+
+    {% endfor %}
+      
+
+</table>
+
+
+</html>
+{% endblock %}

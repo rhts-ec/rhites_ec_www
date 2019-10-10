@@ -17,8 +17,8 @@ import openpyxl
 from . import dateutil, grabbag
 from .grabbag import default_zero, default, sum_zero, all_not_none, grouper
 
-from .models import pmtcteid_dashboard,pmtcteid,pmtcteid_targets,DOOS,mnchandmal,RMNCHAndMalaria,Lab,LabTargets,Lab_Scorecard,TbPrevTargets,TbPrev_Scorecard,TbPrev,DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
-from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm
+from .models import IFASBottleneck,pmtcteid_dashboard,pmtcteid,pmtcteid_targets,DOOS,mnchandmal,RMNCHAndMalaria,Lab,LabTargets,Lab_Scorecard,TbPrevTargets,TbPrev_Scorecard,TbPrev,DataElement, OrgUnit, DataValue, ValidationRule, SourceDocument, ou_dict_from_path, ou_path_from_dict
+from .forms import SourceDocumentForm, DataElementAliasForm, UserProfileForm,BottleneckInventory
 
 from .dashboards import LegendSet
 
@@ -12060,3 +12060,66 @@ def lqas_scorecard(request, output_format='HTML'):
     context = {
     } 
     return render(request, 'cannula/lqas_scorecard.html', context)
+
+@login_required
+def linkages_scorecard(request, output_format='HTML'):
+    
+    context = {
+    } 
+    return render(request, 'cannula/linkages_scorecard.html', context)
+
+@login_required
+def ifas_scorecard(request, output_format='HTML'):
+    
+    data=IFASBottleneck.objects.all()
+    context = {
+        'Bottlenecks':data,
+    } 
+    return render(request, 'cannula/ifasscorecard.html', context)
+
+@login_required
+def renew_ifas_data(request):
+
+    if request.method == 'POST':
+        data=BottleneckInventory(request.POST)
+        if data.is_valid():
+            data.save()
+            data2=IFASBottleneck.objects.all()
+            context = {
+                'Bottlenecks':data2,
+            }
+            return render(request, 'cannula/ifasscorecard.html', context)
+        #in post method
+    else:
+        data=BottleneckInventory()
+        
+    context = {
+        'form':data,
+    } 
+    return render(request, 'cannula/new_bottleneck.html', context)
+
+@login_required
+def editbottleneck(request, id):
+    obj= get_object_or_404(Post, id=id)
+        
+    form = Createform(request.POST or None, instance= obj)
+    context= {'form': form}
+
+    if form.is_valid():
+        obj= form.save(commit= False)
+
+        obj.save()
+
+        messages.success(request, "You successfully updated the post")
+
+        context= {'form': form}
+
+        return render(request, 'cannula/edit_bottleneck.html', context)
+
+    else:
+        context= {'form': form,'error': 'The form was not updated successfully. Please enter in a title and content'}
+        return render(request,'cannula/edit_bottleneck.html' , context)
+
+        
+
+    
