@@ -1,0 +1,29 @@
+
+{% extends "startmin/base.html" %} 
+
+{% block title %} RHITES-EC Iron Folic Acid Supplement (IFAS) {% endblock %} {% block heading %} Edit Bottleneck {% endblock %} 
+{% block content %}
+
+<body>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}
+            </li>
+            {% endfor %}
+    </ul>
+    {% endif %} {% if error %} {{ error }} {% endif %}
+
+    <form action="" method="POST">
+        {{ form.as_p }}
+        <input type="submit" value="Edit Bottleneck" />
+    </form>
+    <br/><br/>
+
+
+</body>
+
+
+
+
+{% endblock %}
