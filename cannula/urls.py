@@ -198,4 +198,11 @@ urlpatterns = [
 
     #linkages
     url(r'scorecards/linkages/linkages_scorecard\.php', views.linkages_scorecard, name='linkages_scorecard'),
+
+    #rmnch_and_malaria_additional
+    url(r'scorecards/malaria_and_rmnch_additional/malaria_and_rmnch_additional_scorecard\.php', views.malaria_and_rmnch_additional_scorecard, name='malaria_and_rmnch_additional_scorecard'),
+
+    #ltfu_scorecard
+    url(r'scorecards/lost_to_follow_up/ltfu_scorecard\.php', views.ltfu_scorecard, name='ltfu_scorecard'),
+
 ]
