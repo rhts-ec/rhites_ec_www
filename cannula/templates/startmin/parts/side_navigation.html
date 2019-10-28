@@ -15,64 +15,7 @@
                 <!-- /input-group -->
             </li>
             {% endcomment %}
-            <!--<li>
-                <a href="#"><i class="fa fa-bar-chart-o fa-fw"></i> Overview <span class="fa arrow"></span></a>
-                <ul class="nav nav-second-level">
-                    <li>
-                        <a href="#">HIV</a>
-                    </li>
-                    <li>
-                        <a href="#">Malaria</a>
-                    </li>
-                    <li>
-                        <a href="#">Maternal &amp; Child Health</a>
-                    </li>
-                    <li>
-                        <a href="#">Nutrition</a>
-                    </li>
-                    <li>
-                        <a href="#">Tuberclosis</a>
-                    </li>
-                    <li>
-                        <a href="#">Lab Tests</a>
-                    </li>
-                    <li>
-                        <a href="#">VMMC</a>
-                    </li>
-                    <li>
-                        <a href="#">Family Planning</a>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <a href="{% url 'index' %}"><i class="fa fa-dashboard fa-fw"></i> Dashboards <span class="fa arrow"></span></a>
-                <ul class="nav nav-second-level">
-                    <li>
-                        <a href="#">HIV</a>
-                    </li>
-                    <li>
-                        <a href="#">Malaria</a>
-                    </li>
-                    <li>
-                        <a href="#">Maternal &amp; Child Health</a>
-                    </li>
-                    <li>
-                        <a href="#">Nutrition</a>
-                    </li>
-                    <li>
-                        <a href="#">Tuberclosis</a>
-                    </li>
-                    <li>
-                        <a href="#">Lab Tests</a>
-                    </li>
-                    <li>
-                        <a href="#">VMMC</a>
-                    </li>
-                    <li>
-                        <a href="#">Family Planning</a>
-                    </li>
-                </ul>
-            </li>-->
+
             <li class="active">
                 <a href="{% url 'index' %}">
                     <i class="fa fa-table fa-fw"></i> Reports
@@ -95,6 +38,9 @@
                     </li>
                     <li>
                         <a href="{% url 'thematic_mnch' %}">Maternal &amp; Child Health</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'malaria_and_rmnch_additional_scorecard' %}"><b>Malaria &amp; RMNCH Additional</b></a>
                     </li>
                     <li>
                         <a href="{% url 'thematic_fp' %}">Family Planning</a>
@@ -132,6 +78,9 @@
                     <li>
                         <a href="{% url 'linkages_scorecard' %}"><b>Linkages</b></a>
                     </li>
+                    <li>
+                        <a href="{% url 'ltfu_scorecard' %}"><b>LTFU</b></a>
+                    </li>
 
                     <li>
                         <a href="{% url 'thematic_gbv' %}">GBV</a>
@@ -158,7 +107,7 @@
             </li>
             -->
 
-            {% if user.is_authenticated %}
+            {% if user.is_staff %}
             <li>
                 <a href="{% url 'index' %}"><i class="fa fa-table fa-fw"></i> Validation Reports <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level">

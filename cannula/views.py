@@ -12069,6 +12069,20 @@ def linkages_scorecard(request, output_format='HTML'):
     return render(request, 'cannula/linkages_scorecard.html', context)
 
 @login_required
+def ltfu_scorecard(request, output_format='HTML'):
+    
+    context = {
+    } 
+    return render(request, 'cannula/ltfu_scorecard.html', context)
+
+@login_required
+def malaria_and_rmnch_additional_scorecard(request, output_format='HTML'):
+    
+    context = {
+    } 
+    return render(request, 'cannula/rmnch_and_malaria_scorecard.html', context)
+    
+@login_required
 def ifas_scorecard(request, output_format='HTML'):
     
     data=IFASBottleneck.objects.all()
